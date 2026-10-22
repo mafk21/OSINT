@@ -17,8 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from osint_hunter.active_collectors import shodan_favicon_mmh3  # noqa: E402
+from osint_hunter.active_collectors import MODULE_DISPATCH, shodan_favicon_mmh3  # noqa: E402
 from osint_hunter.approval import (  # noqa: E402
+    ACTIVE_MODULES_CATALOG,
     ActiveAuthorizationError,
     prepare_active_request,
     verify_and_consume_approval,
@@ -36,9 +37,17 @@ from scripts.mcp_server import process_rpc  # noqa: E402
 
 
 def main() -> int:
-    # 1. Schema & referential integrity validation
+    # 1. Schema & referential integrity validation + Active Arsenal checks
     rc = subprocess.call([sys.executable, str(ROOT / "scripts" / "validate.py")])
     assert rc == 0, "validate.py failed"
+
+    all_tools = json.loads((ROOT / "data" / "tools.json").read_text(encoding="utf-8"))
+    assert len(all_tools) >= 680, f"Expected >=680 tools, got {len(all_tools)}"
+    active_cnt = sum(1 for t in all_tools if t["opsec"] == "Active")
+    hybrid_cnt = sum(1 for t in all_tools if t["opsec"] == "Hybrid")
+    assert active_cnt >= 130 and (active_cnt + hybrid_cnt) >= 175, f"Active/Hybrid count low: {active_cnt}/{hybrid_cnt}"
+    assert len(ACTIVE_MODULES_CATALOG) == 22, f"Expected 22 active modules, got {len(ACTIVE_MODULES_CATALOG)}"
+    assert set(ACTIVE_MODULES_CATALOG.keys()) == set(MODULE_DISPATCH.keys()), "Active catalog/dispatch mismatch!"
 
     # 2. Multi-selector extraction test
     sels = extract_selectors(

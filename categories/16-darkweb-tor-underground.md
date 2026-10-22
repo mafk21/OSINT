@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Never browse live `.onion` hidden services from a host browser or Tor2Web proxy. Use Tor Browser inside Whonix/Tails or an isolated disposable VM with JavaScript set to Safest.
 
-**Discipline Telemetry**: `22` Verified Tools · `6` S-Tier Flagships · `18` Passive · `18` Free/Open-Source
+**Discipline Telemetry**: `25` Verified Tools · `6` S-Tier Flagships · `18` Passive · `21` Free/Open-Source
 
 ## Subcategories
 - [Tor (.onion) Search Engines](#tor-onion-search-engines) (3)
@@ -16,6 +16,7 @@
 - [PGP & Cryptographic Attribution](#pgp-cryptographic-attribution) (2)
 - [Hidden Service OPSEC Auditing](#hidden-service-opsec-auditing) (3)
 - [Alternative Darknets](#alternative-darknets) (2)
+- [Onion Active Crawlers](#onion-active-crawlers) (3)
 
 ---
 
@@ -241,6 +242,37 @@
 - **Platforms**: Linux, macOS, Windows, Docker · **Tags**: `i2p`, `eepsites`, `garlic-routing`, `i2pd`
 - **Overview**: Garlic-routed peer-to-peer anonymous overlay network hosting `.i2p` eepsites, forums, and trackers increasingly favored as fallback infrastructure when Tor hidden services face DDoS.
 - **Quick-Start / Tradecraft**: `Run lightweight C++ `i2pd` router inside an isolated disposable VM when investigating `.i2p` fallback mirrors.`
+
+---
+
+## Onion Active Crawlers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Onioff**](https://github.com/k4m4/onioff) ([GitHub](https://github.com/k4m4/onioff)) | CLI | OSS / Free | 🔴 Active | ✅ | `onion_url` → `darkweb_mentions, urls, metadata` |
+| **A** | [**TorCrawl.py**](https://github.com/MikeMeliz/TorCrawl.py) ([GitHub](https://github.com/MikeMeliz/TorCrawl.py)) | CLI | OSS / Free | 🔴 Active | ✅ | `onion_url, url` → `darkweb_mentions, archived_pages, urls` |
+| **A** | [**Ahmia Crawler**](https://github.com/ahmia/ahmia-crawler) ([GitHub](https://github.com/ahmia/ahmia-crawler)) | Framework | OSS / Free | 🔴 Active | ✅ | `onion_url` → `darkweb_mentions, urls, archived_pages` |
+
+### [Onioff](https://github.com/k4m4/onioff) `[A-Tier]`
+- **ID**: `onioff` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`k4m4/onioff`](https://github.com/k4m4/onioff)
+- **Inputs**: `onion_url` → **Outputs**: `darkweb_mentions`, `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `tor`, `onion-inspector`, `liveness-check`, `active`
+- **Overview**: Python Tor onion URL inspector actively connecting over SOCKS5 Tor to verify `.onion` liveness, extract page titles, and harvest outbound hidden-service links.
+- **Quick-Start / Tradecraft**: `python3 onioff.py http://exampleonion.onion -o report.txt`
+
+### [TorCrawl.py](https://github.com/MikeMeliz/TorCrawl.py) `[A-Tier]`
+- **ID**: `torcrawl` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`MikeMeliz/TorCrawl.py`](https://github.com/MikeMeliz/TorCrawl.py)
+- **Inputs**: `onion_url`, `url` → **Outputs**: `darkweb_mentions`, `archived_pages`, `urls`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `tor-crawler`, `onion-spider`, `darkint`, `active`
+- **Overview**: Lightweight Python web crawler routing requests through Tor to recursively spider `.onion` hidden services and download HTML evidence locally.
+- **Quick-Start / Tradecraft**: `python3 torcrawl.py -u http://exampleonion.onion -c -d 2`
+
+### [Ahmia Crawler](https://github.com/ahmia/ahmia-crawler) `[A-Tier]`
+- **ID**: `ahmia-crawler` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`ahmia/ahmia-crawler`](https://github.com/ahmia/ahmia-crawler)
+- **Inputs**: `onion_url` → **Outputs**: `darkweb_mentions`, `urls`, `archived_pages`
+- **Platforms**: CLI, Linux, Docker, Python · **Tags**: `ahmia`, `scrapy`, `tor-indexing`, `active`
+- **Overview**: Official Scrapy-based Tor network hidden-service spider powering Ahmia.fi for large-scale `.onion` discovery and content indexing.
+- **Quick-Start / Tradecraft**: `scrapy crawl ahmia-tor`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ ⛓️ Crypto & Blockchain OSINT](./15-crypto-blockchain-web3.md) · [🛡️ Threat Intel, Malware & IOCs ▶](./17-threat-intel-malware-cti.md)

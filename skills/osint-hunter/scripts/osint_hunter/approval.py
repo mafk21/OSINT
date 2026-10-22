@@ -27,14 +27,44 @@ ACTIVE_MODULES_CATALOG = {
         "opsec_impact": "Queries live DNS / reverse PTR records for target hostnames and IP addresses.",
         "applies_to": ["domain", "url", "ip", "email"],
     },
+    "active_dns_zone_transfer_axfr": {
+        "title": "Authoritative DNS Zone Transfer (AXFR) & CHAOS Version Audit",
+        "opsec_impact": "Opens TCP port 53 to target authoritative nameservers to test AXFR zone transfer and version.bind.",
+        "applies_to": ["domain", "url"],
+    },
+    "active_dns_srv_and_federation": {
+        "title": "Live SRV Service Records & M365/Entra Tenant Federation Probe",
+        "opsec_impact": "Queries live SRV records (_sip, _ldap, _kerberos, _matrix, _autodiscover) and Microsoft federation realm metadata.",
+        "applies_to": ["domain", "email"],
+    },
+    "active_subdomain_takeover_cname_audit": {
+        "title": "Live CNAME Chain & Dangling Subdomain Takeover Fingerprint Check",
+        "opsec_impact": "Resolves live CNAME records and inspects HTTP responses against 18 cloud/SaaS takeover signatures.",
+        "applies_to": ["domain", "url"],
+    },
     "active_tls_cert_inspector": {
         "title": "Live TLS Handshake & X.509 SAN Certificate Inspector",
-        "opsec_impact": "Initiates direct TCP/TLS handshake to target port 443; target logs record your source IP and TLS JA3/JA4 client hello.",
+        "opsec_impact": "Initiates direct TCP/TLS handshake to target port 443; target logs record your source IP and TLS client hello.",
+        "applies_to": ["domain", "url", "ip"],
+    },
+    "active_tls_protocol_alpn_matrix": {
+        "title": "TLS Protocol Version (1.0–1.3), Cipher Suite, PFS & ALPN Matrix Auditor",
+        "opsec_impact": "Performs multiple TLS handshakes on port 443 to enumerate supported TLS versions, ALPN (h2/http1.1), and cipher posture.",
+        "applies_to": ["domain", "url", "ip"],
+    },
+    "active_jarm_tls_fingerprint": {
+        "title": "Active TLS ServerHello Stack & JARM-Style Origin Fingerprinter",
+        "opsec_impact": "Sends crafted raw TLS ClientHello probes to port 443 to compute deterministic ServerHello stack fingerprints.",
         "applies_to": ["domain", "url", "ip"],
     },
     "active_http_fingerprint_and_headers": {
         "title": "Live HTTP Redirect, Security Header, CSP & Analytics Tag Fingerprinter",
-        "opsec_impact": "Sends direct HTTP/HTTPS GET request(s) to target web server; leaves User-Agent and source IP in target access logs.",
+        "opsec_impact": "Sends direct HTTP/HTTPS GET request(s) to target web server; leaves User-Agent and source IP in access logs.",
+        "applies_to": ["domain", "url", "ip"],
+    },
+    "active_http_methods_cors_and_waf": {
+        "title": "Live HTTP OPTIONS Methods, CORS Reflection & WAF/CDN Edge Detector",
+        "opsec_impact": "Sends HTTP OPTIONS and Origin-header GET requests to target origin; may trigger WAF telemetry.",
         "applies_to": ["domain", "url", "ip"],
     },
     "active_wellknown_and_robots_harvester": {
@@ -42,20 +72,65 @@ ACTIVE_MODULES_CATALOG = {
         "opsec_impact": "Sends 4 targeted HTTP GET requests (/robots.txt, /.well-known/security.txt, /.well-known/openid-configuration, /humans.txt) directly to target origin.",
         "applies_to": ["domain", "url"],
     },
+    "active_mobile_app_and_fediverse_links": {
+        "title": "Live Android assetlinks, Apple App-Site-Association, Nostr NIP-05 & ATProto Harvester",
+        "opsec_impact": "Fetches /.well-known/ mobile signing & decentralized identity manifests directly from target web server.",
+        "applies_to": ["domain", "url"],
+    },
+    "active_sitemap_and_feed_harvester": {
+        "title": "Live XML Sitemap, Sitemap Index & RSS/Atom Author Harvester",
+        "opsec_impact": "Fetches /sitemap.xml, /sitemap_index.xml, and /feed.xml directly from target origin.",
+        "applies_to": ["domain", "url"],
+    },
+    "active_api_openapi_and_graphql_discovery": {
+        "title": "Non-Intrusive OpenAPI/Swagger, GraphQL, ai-plugin & llms.txt Spec Discovery",
+        "opsec_impact": "Probes 7 standard public API documentation paths (/openapi.json, /swagger.json, /llms.txt, /graphql) on target origin.",
+        "applies_to": ["domain", "url"],
+    },
+    "active_exposed_vcs_and_env_check": {
+        "title": "Non-Destructive Exposed /.git/HEAD, /.DS_Store & Cross-Domain Policy Check",
+        "opsec_impact": "Sends 5 read-only signature checks (/.git/HEAD, /.svn/entries, /.DS_Store, /crossdomain.xml); logged by target web server/WAF.",
+        "applies_to": ["domain", "url"],
+    },
+    "active_js_bundle_cloud_and_endpoint_carver": {
+        "title": "Live First-Party JavaScript Bundle API Endpoint & Cloud Bucket Carver",
+        "opsec_impact": "Downloads up to 4 live <script src> JavaScript bundles from target origin to extract embedded API routes and cloud URLs.",
+        "applies_to": ["domain", "url"],
+    },
     "active_favicon_hash_extractor": {
         "title": "Live /favicon.ico Shodan MurmurHash3 (mmh3) & SHA-256 Calculator",
         "opsec_impact": "Fetches /favicon.ico directly from target server to compute origin-unmasking Shodan mmh3 hash.",
         "applies_to": ["domain", "url"],
     },
-    "active_tcp_service_banner_probe": {
-        "title": "Non-Intrusive TCP Service Port & SSH/SMTP/HTTP Banner Read",
-        "opsec_impact": "Opens brief TCP connections to common public ports (21, 22, 25, 80, 443, 8080, 8443); detectable by target firewall/IDS.",
-        "applies_to": ["ip", "domain"],
-    },
     "active_url_jsonld_opengraph": {
         "title": "Live Webpage OpenGraph, JSON-LD sameAs Social Graph & Contact Extractor",
         "opsec_impact": "Fetches target URL HTML directly to extract embedded schema.org links, metadata, and mailto/tel contacts.",
         "applies_to": ["url", "domain"],
+    },
+    "active_cloud_bucket_permutation_probe": {
+        "title": "Active AWS S3, Google Cloud Storage & Azure Blob Public Bucket Probe",
+        "opsec_impact": "Sends HTTP HEAD/GET bucket existence and public-listing checks for target brand/domain permutations.",
+        "applies_to": ["domain", "company", "username"],
+    },
+    "active_tcp_service_banner_probe": {
+        "title": "Expanded 20-Port Non-Intrusive TCP Service & Banner Scanner",
+        "opsec_impact": "Opens brief TCP connections across 20 common service ports (SSH, FTP, SMTP, HTTP/S, MySQL, RDP, Postgres, Redis, Elastic); detectable by firewall/IDS.",
+        "applies_to": ["ip", "domain"],
+    },
+    "active_ssh_hostkey_and_kex_probe": {
+        "title": "Live SSH-2.0 Banner & RFC 4253 KEXINIT Host-Key/Cipher Fingerprinter",
+        "opsec_impact": "Connects to TCP port 22 to read unauthenticated SSH greeting and KEXINIT algorithm list without login attempts.",
+        "applies_to": ["ip", "domain"],
+    },
+    "active_smtp_ehlo_starttls_inspector": {
+        "title": "Live Mail Server SMTP Banner, EHLO Capabilities & STARTTLS Cert Inspector",
+        "opsec_impact": "Connects to target or MX port 25/587 to read 220 banner, EHLO extensions, and STARTTLS X.509 SAN hostnames.",
+        "applies_to": ["domain", "ip", "email"],
+    },
+    "active_username_live_platform_probe": {
+        "title": "Direct 16-Platform Live HTTP/API Username Existence & Profile Verifier",
+        "opsec_impact": "Sends live HTTP requests across 16 social, developer, and registry platforms to confirm handle existence and extract bios/links.",
+        "applies_to": ["username"],
     },
 }
 

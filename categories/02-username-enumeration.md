@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Username scanners generate high-volume HTTP requests from your IP to hundreds of platforms; route scans through a VPN/Tor or residential proxy pool and manually verify hits to rule out handle collisions.
 
-**Discipline Telemetry**: `26` Verified Tools · `4` S-Tier Flagships · `25` Passive · `24` Free/Open-Source
+**Discipline Telemetry**: `29` Verified Tools · `4` S-Tier Flagships · `26` Passive · `27` Free/Open-Source
 
 ## Subcategories
 - [CLI Handle Scanners](#cli-handle-scanners) (8)
@@ -18,6 +18,9 @@
 - [Profile Metadata Parsers](#profile-metadata-parsers) (1)
 - [Search-Engine Handle Discovery](#search-engine-handle-discovery) (1)
 - [Multi-Selector Suites](#multi-selector-suites) (1)
+- [Developer Handle Profiling](#developer-handle-profiling) (1)
+- [Automated Browser Correlation](#automated-browser-correlation) (1)
+- [Corporate Handle Permutations](#corporate-handle-permutations) (1)
 
 ---
 
@@ -289,6 +292,51 @@
 - **Platforms**: Linux, macOS, Docker, Python · **Tags**: `multi-tool`, `username`, `phone`, `dorks`
 - **Overview**: Multi-purpose OSINT toolkit investigating usernames, phone numbers, and domains with social profile enumeration, WHOIS/DNS checks, dork generation, and optional GUI portal.
 - **Quick-Start / Tradecraft**: `python3 MrHolmes.py`
+
+---
+
+## Developer Handle Profiling
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**OctoSuite**](https://github.com/rly0nheart/octosuite) ([GitHub](https://github.com/rly0nheart/octosuite)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `username, company, repo_code` → `social_profiles, emails, metadata` |
+
+### [OctoSuite](https://github.com/rly0nheart/octosuite) `[A-Tier]`
+- **ID**: `octosuite` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`rly0nheart/octosuite`](https://github.com/rly0nheart/octosuite)
+- **Inputs**: `username`, `company`, `repo_code` → **Outputs**: `social_profiles`, `emails`, `metadata`, `usernames`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `github-osint`, `username`, `developer-recon`, `cli`
+- **Overview**: Advanced interactive CLI for live GitHub user, organization, repository, follower, commit-email, and activity reconnaissance.
+- **Quick-Start / Tradecraft**: `octosuite`
+
+---
+
+## Automated Browser Correlation
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Social Mapper**](https://github.com/Greenwolf/social_mapper) ([GitHub](https://github.com/Greenwolf/social_mapper)) | CLI | OSS / Free | 🔴 Active | 🔑 | `person_name, image, company` → `social_profiles, usernames, person_records` |
+
+### [Social Mapper](https://github.com/Greenwolf/social_mapper) `[A-Tier]`
+- **ID**: `social-mapper` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`Greenwolf/social_mapper`](https://github.com/Greenwolf/social_mapper)
+- **Inputs**: `person_name`, `image`, `company` → **Outputs**: `social_profiles`, `usernames`, `person_records`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `facial-recognition`, `selenium`, `active-socmint`, `correlation`
+- **Overview**: Active browser-automated social media enumeration tool correlating target names and photographs across LinkedIn, X, Facebook, Instagram, and VKontakte via facial recognition.
+- **Quick-Start / Tradecraft**: `python3 social_mapper.py -f imagefolder -i ./targets -m fast -fb -tw -ig -li`
+
+---
+
+## Corporate Handle Permutations
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Username Anarchy**](https://github.com/urbanadventurer/username-anarchy) ([GitHub](https://github.com/urbanadventurer/username-anarchy)) | CLI | OSS / Free | 🟢 Passive | ✅ | `person_name, company` → `usernames, emails` |
+
+### [Username Anarchy](https://github.com/urbanadventurer/username-anarchy) `[A-Tier]`
+- **ID**: `username-anarchy` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`urbanadventurer/username-anarchy`](https://github.com/urbanadventurer/username-anarchy)
+- **Inputs**: `person_name`, `company` → **Outputs**: `usernames`, `emails`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `username-generation`, `email-format`, `permutations`
+- **Overview**: Corporate username and email format permutation generator building realistic login wordlists from employee full names for downstream verification.
+- **Quick-Start / Tradecraft**: `./username-anarchy --input-file names.txt`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🧰 Frameworks & Link Analysis](./01-all-in-one-frameworks.md) · [📧 Email Intelligence ▶](./03-email-intelligence.md)

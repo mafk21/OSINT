@@ -1,13 +1,13 @@
 ---
 name: osint-arsenal
-description: Search and pivot across 540 verified OSINT tools, 20 intelligence disciplines, 24 input-to-output selector chains, 56 Google/Shodan/Censys/FOFA/GitHub dorks, 12 investigation playbooks, and 2026 dead or hijacked tool graveyard warnings. Use when selecting OSINT tools for any clue, planning investigation tradecraft, generating search engine dorks, or checking working replacements for retired tools.
+description: Search and pivot across 680 verified OSINT tools, 20 intelligence disciplines, 24 input-to-output selector chains, 56 Google/Shodan/Censys/FOFA/GitHub dorks, 12 investigation playbooks, and 2026 dead or hijacked tool graveyard warnings. Use when selecting OSINT tools for any clue, planning investigation tradecraft, generating search engine dorks, or checking working replacements for retired tools.
 license: MIT
 compatibility: Python 3.9+ standard library only (zero pip dependencies). Also includes Markdown reference sheets for non-shell environments.
 ---
 
-# OSINT 540-Tool Arsenal, Pivot Advisor & Dork Forge (`osint-arsenal`)
+# OSINT 680-Tool Arsenal, Pivot Advisor & Dork Forge (`osint-arsenal`)
 
-This skill bundles the complete validated **540-tool OSINT Monster Database**, **12 multi-hop playbooks**, **56 search dorks**, and **2026 Graveyard warnings** inside `data/` + `scripts/osint.py`.
+This skill bundles the complete validated **680-tool OSINT Monster Database**, **12 multi-hop playbooks**, **56 search dorks**, and **2026 Graveyard warnings** inside `data/` + `scripts/osint.py`.
 
 ## Locating `osint.py`
 
@@ -28,7 +28,7 @@ python3 "$OSINT_PY" pivot email --passive --free
 python3 "$OSINT_PY" pivot username --no-auth --tier S
 python3 "$OSINT_PY" pivot domain --passive --limit 15
 
-# 2. Full-Text Tool Search Across 540 Verified Tools
+# 2. Full-Text Tool Search Across 680 Verified Tools
 python3 "$OSINT_PY" search telegram --passive
 python3 "$OSINT_PY" search satellite --free --no-auth
 python3 "$OSINT_PY" search --category geoint-maps-satellites --tier S

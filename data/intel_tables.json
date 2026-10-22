@@ -876,5 +876,114 @@
         "cmd": "phoneinfoga scan -n '{target}'"
       }
     ]
+  },
+  "active_action_templates": {
+    "domain": [
+      {
+        "tool_id": "naabu",
+        "label": "Fast Active Port Discovery (CDN Excluded)",
+        "cmd": "naabu -host {target} -top-ports 1000 -exclude-cdn"
+      },
+      {
+        "tool_id": "httpx",
+        "label": "Active HTTP Tech, Status & Favicon Probe",
+        "cmd": "httpx -u https://{target} -title -td -sc -favicon"
+      },
+      {
+        "tool_id": "dnsrecon",
+        "label": "Active DNS AXFR, SRV & Zone Walk",
+        "cmd": "dnsrecon -d {target} -a"
+      },
+      {
+        "tool_id": "baddns",
+        "label": "Active Subdomain & NS/MX Takeover Check",
+        "cmd": "baddns {target}"
+      },
+      {
+        "tool_id": "feroxbuster",
+        "label": "Recursive Active Web Content Discovery",
+        "cmd": "feroxbuster -u https://{target} -w raft-medium-directories.txt"
+      },
+      {
+        "tool_id": "testssl-sh",
+        "label": "Full Active TLS/Cipher/Cert Audit",
+        "cmd": "testssl.sh --fast https://{target}"
+      }
+    ],
+    "ip": [
+      {
+        "tool_id": "rustscan",
+        "label": "65k Active TCP Port + Nmap Service Scan",
+        "cmd": "rustscan -a {target} -- -sV -sC"
+      },
+      {
+        "tool_id": "fingerprintx",
+        "label": "40+ Protocol Active Service Fingerprinter",
+        "cmd": "echo {target}:443 | fingerprintx --json"
+      },
+      {
+        "tool_id": "jarm",
+        "label": "Active TLS JARM C2/Stack Fingerprint",
+        "cmd": "python3 jarm.py {target} -p 443"
+      },
+      {
+        "tool_id": "ssh-audit",
+        "label": "Active SSH Banner & KEXINIT OS Audit",
+        "cmd": "ssh-audit -j {target}"
+      }
+    ],
+    "url": [
+      {
+        "tool_id": "katana",
+        "label": "Headless Active JS & Endpoint Crawler",
+        "cmd": "katana -u {target} -jc -d 3"
+      },
+      {
+        "tool_id": "ffuf",
+        "label": "Active Path & Parameter Fuzzer",
+        "cmd": "ffuf -w wordlist.txt -u {target}/FUZZ -mc 200,301,302,403"
+      },
+      {
+        "tool_id": "kiterunner",
+        "label": "Contextual Active API Route Scan",
+        "cmd": "kr scan {target} -w routes-large.kite"
+      },
+      {
+        "tool_id": "monolith",
+        "label": "Active Single-File Forensic HTML Capture",
+        "cmd": "monolith {target} -o evidence.html"
+      }
+    ],
+    "email": [
+      {
+        "tool_id": "uhoh365",
+        "label": "Unauthenticated M365 Email Existence Check",
+        "cmd": "echo {target} | python3 UhOh365.py /dev/stdin"
+      },
+      {
+        "tool_id": "reacher",
+        "label": "Active SMTP RCPT-TO Mailbox Verification",
+        "cmd": "reacher_cli {target}"
+      }
+    ],
+    "username": [
+      {
+        "tool_id": "octosuite",
+        "label": "Interactive GitHub Active Handle Profiler",
+        "cmd": "octosuite # target: {target}"
+      }
+    ],
+    "onion_url": [
+      {
+        "tool_id": "onioff",
+        "label": "Active Tor .onion Liveness & Link Inspector",
+        "cmd": "python3 onioff.py {target}"
+      },
+      {
+        "tool_id": "torcrawl",
+        "label": "Active Tor Hidden-Service Crawler",
+        "cmd": "python3 torcrawl.py -u {target} -c -d 2"
+      }
+    ]
   }
 }

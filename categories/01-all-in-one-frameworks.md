@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Automated frameworks like SpiderFoot, BBOT, and Recon-ng bundle both passive API queries and active HTTP/DNS probes. Always enforce passive-only presets when target alerting is unacceptable.
 
-**Discipline Telemetry**: `37` Verified Tools · `15` S-Tier Flagships · `23` Passive · `32` Free/Open-Source
+**Discipline Telemetry**: `46` Verified Tools · `18` S-Tier Flagships · `23` Passive · `41` Free/Open-Source
 
 ## Subcategories
 - [Recursive Recon Scanners](#recursive-recon-scanners) (1)
@@ -23,6 +23,11 @@
 - [Commercial Identity Platforms](#commercial-identity-platforms) (2)
 - [OSINT Web Crawlers](#osint-web-crawlers) (1)
 - [CLI Aggregators](#cli-aggregators) (1)
+- [Active Recon Suites](#active-recon-suites) (3)
+- [Active Web Spiders](#active-web-spiders) (1)
+- [Attack Surface Management](#attack-surface-management) (2)
+- [Recon Toolchains](#recon-toolchains) (2)
+- [Out-of-Band Callback Recon](#out-of-band-callback-recon) (1)
 
 ---
 
@@ -417,6 +422,113 @@
 - **Platforms**: Linux, macOS, Python · **Tags**: `cli-aggregator`, `api-wrapper`, `passive-recon`, `threat-intel`
 - **Overview**: Python CLI aggregator uniting dozens of OSINT and threat-intelligence APIs (PassiveTotal, Censys, Shodan, VirusTotal, BinaryEdge, GitHub, Telegram, PGP, URLScan) under one consistent command interface.
 - **Quick-Start / Tradecraft**: `pip install harpoon && harpoon config && harpoon ip info 8.8.8.8`
+
+---
+
+## Active Recon Suites
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Raccoon**](https://github.com/evyatarmeged/Raccoon) ([GitHub](https://github.com/evyatarmeged/Raccoon)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `subdomains, open_ports, certificates` |
+| **B** | [**ReconSpider**](https://github.com/bhavsec/reconspider) ([GitHub](https://github.com/bhavsec/reconspider)) | Framework | OSS / Free | 🟡 Hybrid | ✅ | `domain, ip, email` → `open_ports, dns_records, emails` |
+| **S** | [**OWASP Nettacker**](https://github.com/OWASP/Nettacker) ([GitHub](https://github.com/OWASP/Nettacker)) | Framework | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `open_ports, subdomains, tech_stack` |
+
+### [Raccoon](https://github.com/evyatarmeged/Raccoon) `[A-Tier]`
+- **ID**: `raccoon-scanner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`evyatarmeged/Raccoon`](https://github.com/evyatarmeged/Raccoon)
+- **Inputs**: `domain`, `ip`, `url` → **Outputs**: `subdomains`, `open_ports`, `certificates`, `tech_stack`, `urls`
+- **Platforms**: CLI, Linux, macOS, Python, Docker · **Tags**: `active-recon`, `waf-detection`, `tls`, `port-scan`
+- **Overview**: High-performance offensive reconnaissance suite performing live DNS mapping, TLS/SSL inspection, WAF detection, directory fuzzing, and port scanning.
+- **Quick-Start / Tradecraft**: `raccoon example.com`
+
+### [ReconSpider](https://github.com/bhavsec/reconspider) `[B-Tier]`
+- **ID**: `reconspider` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`bhavsec/reconspider`](https://github.com/bhavsec/reconspider)
+- **Inputs**: `domain`, `ip`, `email`, `url`, `phone` → **Outputs**: `open_ports`, `dns_records`, `emails`, `urls`, `whois`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `framework`, `hybrid-recon`, `spider`, `cli`
+- **Overview**: Multi-selector active and passive OSINT framework for scanning IP addresses, emails, websites, domains, open ports, and metadata.
+- **Quick-Start / Tradecraft**: `python3 reconspider.py`
+
+### [OWASP Nettacker](https://github.com/OWASP/Nettacker) `[S-Tier]`
+- **ID**: `owasp-nettacker` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`OWASP/Nettacker`](https://github.com/OWASP/Nettacker)
+- **Inputs**: `domain`, `ip`, `url`, `asn` → **Outputs**: `open_ports`, `subdomains`, `tech_stack`, `urls`
+- **Platforms**: Web, CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `owasp`, `active-recon`, `iot-scanner`, `port-scan`
+- **Overview**: Automated OWASP active reconnaissance and asset discovery framework running multi-threaded port, service, subdomain, directory, and IoT checks.
+- **Quick-Start / Tradecraft**: `python3 nettacker.py -i example.com -m port_scan,subdomain_scan`
+
+---
+
+## Active Web Spiders
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**BlackWidow**](https://github.com/1N3/BlackWidow) ([GitHub](https://github.com/1N3/BlackWidow)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `urls, subdomains, emails` |
+
+### [BlackWidow](https://github.com/1N3/BlackWidow) `[A-Tier]`
+- **ID**: `blackwidow` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`1N3/BlackWidow`](https://github.com/1N3/BlackWidow)
+- **Inputs**: `domain`, `url` → **Outputs**: `urls`, `subdomains`, `emails`, `phones`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `web-spider`, `crawler`, `parameters`, `active`
+- **Overview**: Python-based active web application spider that crawls target websites to harvest subdomains, URLs, dynamic parameters, emails, and phone numbers.
+- **Quick-Start / Tradecraft**: `blackwidow -u https://example.com -l 3`
+
+---
+
+## Attack Surface Management
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**ScopeSentry**](https://github.com/Autumn-27/ScopeSentry) ([GitHub](https://github.com/Autumn-27/ScopeSentry)) | Framework | OSS / Free | 🔴 Active | ✅ | `domain, ip, company` → `subdomains, open_ports, tech_stack` |
+| **A** | [**ARL-Next (Asset Reconnaissance Lighthouse)**](https://github.com/owl234/ARL-Next) ([GitHub](https://github.com/owl234/ARL-Next)) | Framework | OSS / Free | 🔴 Active | ✅ | `domain, ip, asn` → `subdomains, open_ports, tech_stack` |
+
+### [ScopeSentry](https://github.com/Autumn-27/ScopeSentry) `[A-Tier]`
+- **ID**: `scopesentry` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Autumn-27/ScopeSentry`](https://github.com/Autumn-27/ScopeSentry)
+- **Inputs**: `domain`, `ip`, `company`, `asn` → **Outputs**: `subdomains`, `open_ports`, `tech_stack`, `urls`, `secrets`
+- **Platforms**: Web, Docker, Linux, Go, Python · **Tags**: `asm`, `port-scanning`, `subdomain-enum`, `distributed`
+- **Overview**: Distributed attack surface mapping and active reconnaissance platform integrating subdomain enumeration, port scanning, crawler checks, and asset monitoring.
+- **Quick-Start / Tradecraft**: `docker compose up -d # ScopeSentry ASM Console`
+
+### [ARL-Next (Asset Reconnaissance Lighthouse)](https://github.com/owl234/ARL-Next) `[A-Tier]`
+- **ID**: `arl-next` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`owl234/ARL-Next`](https://github.com/owl234/ARL-Next)
+- **Inputs**: `domain`, `ip`, `asn`, `company` → **Outputs**: `subdomains`, `open_ports`, `tech_stack`, `certificates`, `urls`
+- **Platforms**: Web, Docker, Linux, Python · **Tags**: `asm`, `lighthouse`, `asset-discovery`, `active-recon`
+- **Overview**: Modernized Asset Reconnaissance Lighthouse for rapid active external asset discovery, subdomain brute-forcing, port/service fingerprinting, and HTTP screenshotting.
+- **Quick-Start / Tradecraft**: `docker compose up -d # ARL-Next Asset Lighthouse`
+
+---
+
+## Recon Toolchains
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**PDTM (ProjectDiscovery Tool Manager)**](https://github.com/projectdiscovery/pdtm) ([GitHub](https://github.com/projectdiscovery/pdtm)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `keyword` → `opsec_protection, tech_stack` |
+| **A** | [**Notify (ProjectDiscovery)**](https://github.com/projectdiscovery/notify) ([GitHub](https://github.com/projectdiscovery/notify)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `keyword, domain` → `metadata` |
+
+### [PDTM (ProjectDiscovery Tool Manager)](https://github.com/projectdiscovery/pdtm) `[S-Tier]`
+- **ID**: `pdtm` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/pdtm`](https://github.com/projectdiscovery/pdtm)
+- **Inputs**: `keyword` → **Outputs**: `opsec_protection`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `projectdiscovery`, `toolchain`, `active-recon`, `installer`
+- **Overview**: Official manager to install and update ProjectDiscovery's active and passive reconnaissance suite (subfinder, httpx, naabu, dnsx, tlsx, katana, nuclei).
+- **Quick-Start / Tradecraft**: `go install -v github.com/projectdiscovery/pdtm/cmd/pdtm@latest && pdtm -ia`
+
+### [Notify (ProjectDiscovery)](https://github.com/projectdiscovery/notify) `[A-Tier]`
+- **ID**: `projectdiscovery-notify` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/notify`](https://github.com/projectdiscovery/notify)
+- **Inputs**: `keyword`, `domain` → **Outputs**: `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `pipeline`, `alerting`, `projectdiscovery`, `automation`
+- **Overview**: Unix pipeline streaming helper routing live active recon output from naabu, httpx, subfinder, or nuclei straight to Slack, Discord, Telegram, or webhooks.
+- **Quick-Start / Tradecraft**: `subfinder -d example.com | httpx | notify`
+
+---
+
+## Out-of-Band Callback Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Interactsh**](https://github.com/projectdiscovery/interactsh) ([GitHub](https://github.com/projectdiscovery/interactsh)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `dns_records, ip_addresses, metadata` |
+
+### [Interactsh](https://github.com/projectdiscovery/interactsh) `[S-Tier]`
+- **ID**: `interactsh` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/interactsh`](https://github.com/projectdiscovery/interactsh)
+- **Inputs**: `domain`, `url` → **Outputs**: `dns_records`, `ip_addresses`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `oob`, `dns-callback`, `active-probing`, `projectdiscovery`
+- **Overview**: Open-source Out-of-Band (OOB) interaction gathering client and server capturing live DNS, HTTP, SMTP, and LDAP callbacks during active reconnaissance.
+- **Quick-Start / Tradecraft**: `interactsh-client -v`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [🕵️ Username & Handle Recon ▶](./02-username-enumeration.md)

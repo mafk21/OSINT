@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Some password-reset enumeration modules can trigger 'password reset requested' emails or SMS alerts on poorly designed websites. Stick to silent registration-check tools (e.g., Holehe passive modules, Epieos, GHunt) for covert work.
 
-**Discipline Telemetry**: `25` Verified Tools · `8` S-Tier Flagships · `21` Passive · `15` Free/Open-Source
+**Discipline Telemetry**: `30` Verified Tools · `10` S-Tier Flagships · `21` Passive · `20` Free/Open-Source
 
 ## Subcategories
 - [Reverse Email & Phone Portals](#reverse-email-phone-portals) (2)
@@ -19,6 +19,8 @@
 - [Email Reputation & Verification](#email-reputation-verification) (3)
 - [Developer Email Attribution](#developer-email-attribution) (1)
 - [Email-to-Phone Pivoting](#email-to-phone-pivoting) (1)
+- [Active Email Verification](#active-email-verification) (3)
+- [Mail Server & SMTP Posture](#mail-server-smtp-posture) (2)
 
 ---
 
@@ -289,6 +291,60 @@
 - **Platforms**: Linux, macOS, Python · **Tags**: `masked-phone`, `password-reset-correlation`, `nanpa`, `email-pivot`
 - **Overview**: OSINT utility implementing Martin Vigo's password-reset masking correlation technique—combining masked phone digits (`***-***-8492`) from public reset pages with regional NANPA/carrier prefixes.
 - **Quick-Start / Tradecraft**: `Use 'scrape' and 'generate' modes carefully; note active reset requests may notify targets on some sites.`
+
+---
+
+## Active Email Verification
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**UhOh365**](https://github.com/Raikia/UhOh365) ([GitHub](https://github.com/Raikia/UhOh365)) | CLI | OSS / Free | 🔴 Active | ✅ | `email, domain` → `emails, usernames, metadata` |
+| **A** | [**smtp-user-enum**](https://github.com/pentestmonkey/smtp-user-enum) ([GitHub](https://github.com/pentestmonkey/smtp-user-enum)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip, username` → `emails, usernames` |
+| **A** | [**onedrive_user_enum**](https://github.com/nyxgeek/onedrive_user_enum) ([GitHub](https://github.com/nyxgeek/onedrive_user_enum)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, username, company` → `emails, usernames, urls` |
+
+### [UhOh365](https://github.com/Raikia/UhOh365) `[S-Tier]`
+- **ID**: `uhoh365` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Raikia/UhOh365`](https://github.com/Raikia/UhOh365)
+- **Inputs**: `email`, `domain` → **Outputs**: `emails`, `usernames`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `o365`, `m365`, `email-enum`, `active-recon`
+- **Overview**: Unauthenticated Microsoft 365 / Exchange Online email address existence enumerator querying Autodiscover responses without triggering login lockouts.
+- **Quick-Start / Tradecraft**: `python3 UhOh365.py emails.txt`
+
+### [smtp-user-enum](https://github.com/pentestmonkey/smtp-user-enum) `[A-Tier]`
+- **ID**: `smtp-user-enum` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`pentestmonkey/smtp-user-enum`](https://github.com/pentestmonkey/smtp-user-enum)
+- **Inputs**: `domain`, `ip`, `username`, `email` → **Outputs**: `emails`, `usernames`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `smtp`, `vrfy`, `rcpt-to`, `active-enum`
+- **Overview**: Classic active SMTP server account enumeration tool probing VRFY, EXPN, and RCPT TO commands directly against target mail gateways.
+- **Quick-Start / Tradecraft**: `smtp-user-enum -M VRFY -U users.txt -t mail.example.com`
+
+### [onedrive_user_enum](https://github.com/nyxgeek/onedrive_user_enum) `[A-Tier]`
+- **ID**: `onedrive-user-enum` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`nyxgeek/onedrive_user_enum`](https://github.com/nyxgeek/onedrive_user_enum)
+- **Inputs**: `domain`, `username`, `company` → **Outputs**: `emails`, `usernames`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `onedrive`, `sharepoint`, `m365`, `active-user-enum`
+- **Overview**: Active corporate OneDrive for Business / SharePoint URL prober validating Microsoft 365 usernames and email addresses without sign-in audit events.
+- **Quick-Start / Tradecraft**: `python3 onedrive_enum.py -d example.com -U users.txt`
+
+---
+
+## Mail Server & SMTP Posture
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**checkdmarc**](https://github.com/domainaware/checkdmarc) ([GitHub](https://github.com/domainaware/checkdmarc)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, certificates, metadata` |
+| **A** | [**Ruler (SensePost Exchange Recon)**](https://github.com/sensepost/ruler) ([GitHub](https://github.com/sensepost/ruler)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, email` → `emails, urls, tech_stack` |
+
+### [checkdmarc](https://github.com/domainaware/checkdmarc) `[S-Tier]`
+- **ID**: `checkdmarc` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`domainaware/checkdmarc`](https://github.com/domainaware/checkdmarc)
+- **Inputs**: `domain` → **Outputs**: `dns_records`, `certificates`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `smtp`, `starttls`, `dmarc`, `spf`, `mx-recon`
+- **Overview**: Python CLI and library that actively queries DNS and connects to live MX servers via SMTP STARTTLS to validate SPF, DMARC, BIMI, MTA-STS, DNSSEC, and TLS certs.
+- **Quick-Start / Tradecraft**: `checkdmarc example.com`
+
+### [Ruler (SensePost Exchange Recon)](https://github.com/sensepost/ruler) `[A-Tier]`
+- **ID**: `sensepost-ruler` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`sensepost/ruler`](https://github.com/sensepost/ruler)
+- **Inputs**: `domain`, `email` → **Outputs**: `emails`, `urls`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `exchange`, `autodiscover`, `mail-recon`, `active`
+- **Overview**: Microsoft Exchange and Autodiscover reconnaissance tool mapping Exchange MAPI/RPC endpoints, domain autodiscover records, and mail infrastructure.
+- **Quick-Start / Tradecraft**: `ruler --domain example.com autodiscover`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🕵️ Username & Handle Recon](./02-username-enumeration.md) · [📱 Phone & Messaging OSINT ▶](./04-phone-messaging-osint.md)

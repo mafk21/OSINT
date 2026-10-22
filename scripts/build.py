@@ -669,6 +669,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
             by_input[inp].append(t)
 
     passive_cnt = sum(1 for t in tools if t["opsec"] == "Passive")
+    active_hyb_cnt = sum(1 for t in tools if t["opsec"] in ("Active", "Hybrid"))
     oss_cnt = sum(1 for t in tools if t["github"])
     no_auth_cnt = sum(1 for t in tools if not t["auth_required"])
 
@@ -677,13 +678,13 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "",
         "# 🛰️ OSINT MONSTER DATABASE",
         "",
-        "**Autonomous OSINT Hunting Engine · 540-Tool Intelligence Arsenal · Native MCP Server · Field Playbooks**",
+        f"**Autonomous OSINT Hunting Engine · {len(tools)}-Tool Intelligence Arsenal · 22 Gated Active Probes · Native MCP & Skills**",
         "",
         f"![Verified Tools](https://img.shields.io/badge/Verified_Tools-{len(tools)}-00e5ff?style=for-the-badge) "
-        f"![Disciplines](https://img.shields.io/badge/Disciplines-{len(categories)}-7c4dff?style=for-the-badge) "
         f"![Passive Safe](https://img.shields.io/badge/Passive_Safe-{passive_cnt}-00e676?style=for-the-badge) "
+        f"![Active & Hybrid](https://img.shields.io/badge/Active_&_Hybrid-{active_hyb_cnt}-ff5252?style=for-the-badge) "
         f"![Open Source](https://img.shields.io/badge/GitHub_Repos-{oss_cnt}-ffab00?style=for-the-badge) "
-        "![Stack](https://img.shields.io/badge/Python_3_Stdlib-Zero_Deps-ff5252?style=for-the-badge)",
+        f"![Disciplines](https://img.shields.io/badge/Disciplines-{len(categories)}-7c4dff?style=for-the-badge)",
         "",
         "[**🤖 Agent Protocol**](./AGENTS.md) · "
         "[**🧩 Skills Setup**](./docs/SKILLS_SETUP.md) · "
@@ -705,7 +706,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "| Capability | Entrypoint | Highlights |",
         "| :--- | :--- | :--- |",
         "| **🧩 Portable Agent Skills** | [`skills/`](./skills/) · [`docs/SKILLS_SETUP.md`](./docs/SKILLS_SETUP.md) | Self-contained `osint-hunter` & `osint-arsenal` skills for **Claude Code, Codex, Claude.ai, Cursor & 75+ agents** (no repo clone needed) |",
-        "| **🤖 Autonomous Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | 35+ passive collectors & offline decoders, Wave-2/3 recursive entity pivoting, OASIS **STIX 2.1** & SHA-256 dossiers |",
+        f"| **🤖 Autonomous Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | 35+ passive collectors + **22 user-gated active probes**, Wave-2/3 recursive pivoting, OASIS **STIX 2.1** & SHA-256 dossiers |",
         "| **🔌 Native MCP Server** | [`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | `stdio` JSON-RPC 2.0 + Streamable HTTP (`POST /api/mcp`) + OpenAI/Anthropic schemas ([`openai_tools.json`](./data/openai_tools.json)) |",
         "| **🖥️ Web Command Center** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Live Hunt UI, SVG entity-pivot graph, Active Authorization Modal, Live Dork Forge, & Case Loadout builder |",
         "| **🗃️ Multi-Format Data** | [`data/`](./data/) · [`scripts/osint.py`](./scripts/osint.py) | `tools.json`, **SQLite FTS5** (`osint.sqlite`), `tools.csv`, `tools.jsonl`, & terminal search/pivot CLI |",
@@ -714,7 +715,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "",
         "## 🧩 Install as Agent Skills (Claude, Codex, Cursor & 75+ Agents)",
         "",
-        "Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + User-Gated Active recon engine) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) (540-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and investigate targets from **any directory** without cloning this repo:",
+        f"Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + 22-probe User-Gated Active recon engine) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) ({len(tools)}-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and investigate targets from **any directory** without cloning this repo:",
         "",
         "```bash",
         "# Universal Skills CLI (Claude Code, OpenAI Codex, Cursor, OpenCode, Windsurf, Copilot & 75+ agents)",
@@ -751,9 +752,9 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "# 3. Launch Web Command Center + REST Hunt API + HTTP MCP Server (http://0.0.0.0:8000)",
         "python3 scripts/server.py --port 8000",
         "",
-        "# 4. Search the 540-Tool Arsenal, Pivot by Selector, or Forge Target Dorks",
+        f"# 4. Search the {len(tools)}-Tool Arsenal ({active_hyb_cnt} Active/Hybrid), Pivot by Selector, or Forge Dorks",
         "python3 scripts/osint.py stats",
-        "python3 scripts/osint.py pivot email --passive --free",
+        "python3 scripts/osint.py pivot domain --opsec Active --free",
         "python3 scripts/osint.py dorks --engine Shodan --target example.com",
         "```",
         "",
@@ -766,7 +767,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "| Mode | Agent Behavior | Enforcement & Scope |",
         "| :--- | :--- | :--- |",
         "| **`🟢 Passive Mode`** *(Default)* | **Starts hunting on Turn 1 with zero clarifying questions** | Queries 35+ passive APIs & offline decoders (GitHub commit/SSH/PGP packet carving, npm/PyPI, DoH, `crt.sh`, RDAP, Wayback, InternetDB, RIPEstat, E.164, ICAO, MMSI, VIN, OUI, JPEG EXIF GPS). **Zero packets hit target servers.** |",
-        "| **`🔴 Active Mode`** *(Gated)* | **ALWAYS asks your permission before every single run** | Enforced in code ([`osint_hunter/approval.py`](./osint_hunter/approval.py)) via **single-use, target-bound `ACT-XXXXXXXX` tokens**. Unlocks live `:443` TLS SANs, HTTP/CSP/GA4 headers, `robots.txt`/`security.txt`, **Shodan `mmh3` favicon hashes**, & TCP banners. |",
+        f"| **`🔴 Active Mode`** *(Gated)* | **ALWAYS asks your permission before every single run** | Enforced in code ([`osint_hunter/approval.py`](./osint_hunter/approval.py)) via **single-use, target-bound `ACT-XXXXXXXX` tokens**. Unlocks **22 built-in live probes** (DNS AXFR, SRV/M365, CNAME takeover, TLS 1.0–1.3/ALPN, JARM stack hash, CORS/WAF, OpenAPI/GraphQL, `.git/HEAD`, JS bundle carver, S3/GCS/Azure buckets, 20-port TCP, SSH KEXINIT, SMTP STARTTLS, 16-site handle check) + **{active_hyb_cnt} Active/Hybrid tools**. |",
         "",
         "Every hunt writes a gitignored forensic bundle under `cases/<UTC_TIMESTAMP>_<SLUG>/` containing `dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, and `manifest.sha256`.",
         "",
@@ -1002,6 +1003,14 @@ For full collector and active-gate details, read `references/ACTIVE_GATE_AND_MOD
 """
     (hunter_dir / "SKILL.md").write_text(hunter_skill_md, encoding="utf-8")
 
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from osint_hunter.approval import ACTIVE_MODULES_CATALOG
+
+    mod_lines = [
+        f"{idx}. `{mid}` — **{meta['title']}** (`{', '.join(meta['applies_to'])}`)"
+        for idx, (mid, meta) in enumerate(ACTIVE_MODULES_CATALOG.items(), 1)
+    ]
     (hunter_dir / "references" / "ACTIVE_GATE_AND_MODULES.md").write_text(
         "\n".join(
             [
@@ -1011,14 +1020,8 @@ For full collector and active-gate details, read `references/ACTIVE_GATE_AND_MOD
                 "- **Offline Decoders**: ITU E.164 phone + NANPA/carrier hints, ICAO 24-bit hex + military block flag, Maritime IMO checksum + MMSI MID flag state, ISO 3779 17-char VIN WMI/year/check-digit, IEEE OUI MAC + Wi-Fi BSSID bit analysis, JWT header/payload/expiry, local JPEG EXIF GPS + PNG/PDF/DOCX/XLSX/ZIP author carving.",
                 "- **Passive Public APIs**: GitHub profile + `.patch` commit email leak + `.keys` SSH + `.gpg` OpenPGP UID carving, GitLab, Keybase cryptographic proofs, Reddit JSON, HackerNews Firebase, npm & PyPI maintainer registries, Gravatar SHA-256, Google DoH (`A`/`AAAA`/`MX`/`TXT`/`NS`/`SOA`/`CAA`) + DMARC/SPF/BIMId, `crt.sh` Certificate Transparency, IANA RDAP, Wayback CDX + sensitive path scan, HackerTarget passive hosts, URLhaus, Shodan InternetDB, RIPEstat BGP/ASN, Nominatim reverse geocode, Mempool.space BTC & Ethereum JSON-RPC.",
                 "",
-                "## Gated Active Modules (Law 2 — Requires Single-Use `ACT-XXXXXXXX` Approval)",
-                "1. `active_dns_live_resolver` — Live forward & reverse PTR resolution.",
-                "2. `active_tls_cert_inspector` — Direct `:443` TLS handshake, X.509 SANs, issuer, serial, SHA-256 thumbprint.",
-                "3. `active_http_fingerprint_and_headers` — Redirect chain, Server/X-Powered-By, HSTS/CSP host extraction, GA4/GTM/AdSense/Meta Pixel IDs.",
-                "4. `active_wellknown_and_robots_harvester` — Live `/robots.txt`, `/.well-known/security.txt`, `/.well-known/openid-configuration`, `/humans.txt`.",
-                "5. `active_favicon_hash_extractor` — Live `/favicon.ico` Shodan MurmurHash3 (`http.favicon.hash:<mmh3>`) & SHA-256.",
-                "6. `active_tcp_service_banner_probe` — Non-intrusive TCP banner read on common ports (`21, 22, 25, 80, 443, 8080, 8443`).",
-                "7. `active_url_jsonld_opengraph` — Live HTML OpenGraph, JSON-LD `sameAs` social links, `mailto:` & `tel:` contacts.",
+                f"## {len(ACTIVE_MODULES_CATALOG)} Gated Active Modules (Law 2 — Requires Single-Use `ACT-XXXXXXXX` Approval)",
+                *mod_lines,
                 "",
             ]
         ),
@@ -1053,10 +1056,10 @@ For full collector and active-gate details, read `references/ACTIVE_GATE_AND_MOD
         "\n".join(
             [
                 "interface:",
-                '  display_name: "OSINT 540-Tool Arsenal & Dork Forge"',
-                '  short_description: "Search 540 OSINT tools, selector pivots, playbooks & search dorks"',
+                f'  display_name: "OSINT {len(tools)}-Tool Arsenal & Dork Forge"',
+                f'  short_description: "Search {len(tools)} OSINT tools (Passive & Active), selector pivots, playbooks & dorks"',
                 '  brand_color: "#7C4DFF"',
-                '  default_prompt: "Show me the top passive no-auth OSINT tools to pivot from an email address and forge target search dorks."',
+                '  default_prompt: "Show me the top passive and active OSINT tools for a domain and forge target search dorks."',
                 "",
             ]
         ),

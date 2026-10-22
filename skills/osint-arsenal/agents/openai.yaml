@@ -1,5 +1,5 @@
 interface:
-  display_name: "OSINT 540-Tool Arsenal & Dork Forge"
-  short_description: "Search 540 OSINT tools, selector pivots, playbooks & search dorks"
+  display_name: "OSINT 680-Tool Arsenal & Dork Forge"
+  short_description: "Search 680 OSINT tools (Passive & Active), selector pivots, playbooks & dorks"
   brand_color: "#7C4DFF"
-  default_prompt: "Show me the top passive no-auth OSINT tools to pivot from an email address and forge target search dorks."
+  default_prompt: "Show me the top passive and active OSINT tools for a domain and forge target search dorks."

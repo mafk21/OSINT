@@ -156,7 +156,7 @@ MCP_TOOLS = [
     },
     {
         "name": "osint_query_arsenal",
-        "description": "Query the 540-tool OSINT Monster Database by keyword, input selector, category, or OPSEC posture.",
+        "description": "Query the 680-tool OSINT Monster Database (502 Passive + 178 Active/Hybrid) by keyword, input selector, category, or OPSEC posture.",
         "inputSchema": {
             "type": "object",
             "properties": {

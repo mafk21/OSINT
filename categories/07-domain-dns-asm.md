@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Querying Certificate Transparency (`crt.sh`), passive DNS (`SecurityTrails`), and RDAP is 100% passive. Running `httpx`, `Katana`, or DNS brute-forcing touches target servers and leaves logs.
 
-**Discipline Telemetry**: `38` Verified Tools · `11` S-Tier Flagships · `24` Passive · `29` Free/Open-Source
+**Discipline Telemetry**: `86` Verified Tools · `26` S-Tier Flagships · `26` Passive · `76` Free/Open-Source
 
 ## Subcategories
 - [Tech Profiling & Tag Pivoting](#tech-profiling-tag-pivoting) (4)
@@ -17,6 +17,17 @@
 - [Subdomain & Asset Discovery](#subdomain-asset-discovery) (6)
 - [Archive URL Mining](#archive-url-mining) (4)
 - [DNS Diagnostics & Topology](#dns-diagnostics-topology) (2)
+- [Active Web & VHost Discovery](#active-web-vhost-discovery) (5)
+- [Active DNS Resolution & Bruteforce](#active-dns-resolution-bruteforce) (7)
+- [Active DNS Enumeration](#active-dns-enumeration) (4)
+- [Subdomain Enumeration](#subdomain-enumeration) (2)
+- [Subdomain Takeover Detection](#subdomain-takeover-detection) (7)
+- [Web Tech & WAF Fingerprinting](#web-tech-waf-fingerprinting) (8)
+- [Active Parameter & JS Recon](#active-parameter-js-recon) (6)
+- [Active Web Spiders](#active-web-spiders) (1)
+- [Active Web Probing](#active-web-probing) (6)
+- [Root Domain & TLD Discovery](#root-domain-tld-discovery) (1)
+- [Historical URL Discovery](#historical-url-discovery) (1)
 
 ---
 
@@ -377,6 +388,467 @@
 - **Platforms**: Web, Linux, Python · **Tags**: `dnssec`, `delegation-graph`, `nameserver-topology`
 - **Overview**: Visualizes DNS delegation hierarchies, authoritative nameserver glue records, and full DNSSEC chain-of-trust cryptographic signatures from the root zone down.
 - **Quick-Start / Tradecraft**: `Analyze complex zone delegations and DNSSEC misconfigurations visually at https://dnsviz.net/.`
+
+---
+
+## Active Web & VHost Discovery
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**ffuf (Fuzz Faster U Fool)**](https://github.com/ffuf/ffuf) ([GitHub](https://github.com/ffuf/ffuf)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain, ip` → `urls, subdomains, tech_stack` |
+| **S** | [**Gobuster**](https://github.com/OJ/gobuster) ([GitHub](https://github.com/OJ/gobuster)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `subdomains, urls, dns_records` |
+| **S** | [**feroxbuster**](https://github.com/epi052/feroxbuster) ([GitHub](https://github.com/epi052/feroxbuster)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, documents, tech_stack` |
+| **A** | [**dirsearch**](https://github.com/maurosoria/dirsearch) ([GitHub](https://github.com/maurosoria/dirsearch)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, documents, secrets` |
+| **A** | [**VHostScan**](https://github.com/codingo/VHostScan) ([GitHub](https://github.com/codingo/VHostScan)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `subdomains, urls` |
+
+### [ffuf (Fuzz Faster U Fool)](https://github.com/ffuf/ffuf) `[S-Tier]`
+- **ID**: `ffuf` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`ffuf/ffuf`](https://github.com/ffuf/ffuf)
+- **Inputs**: `url`, `domain`, `ip` → **Outputs**: `urls`, `subdomains`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `fuzzer`, `vhost-discovery`, `directory-bruteforce`, `active-recon`
+- **Overview**: Blazing-fast Go active web fuzzer for hidden directory discovery, virtual-host (`Host:` header) subdomain enumeration, and GET/POST parameter discovery.
+- **Quick-Start / Tradecraft**: `ffuf -w wordlist.txt -u https://example.com/FUZZ -mc 200,301,302,403`
+
+### [Gobuster](https://github.com/OJ/gobuster) `[S-Tier]`
+- **ID**: `gobuster` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`OJ/gobuster`](https://github.com/OJ/gobuster)
+- **Inputs**: `domain`, `url` → **Outputs**: `subdomains`, `urls`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `dns-bruteforce`, `vhost`, `dirbusting`, `s3-buckets`, `active`
+- **Overview**: Multi-mode Go active enumeration tool supporting URI/directory brute-forcing (`dir`), DNS subdomain brute-forcing (`dns`), VHost (`vhost`), S3 (`s3`), and GCS (`gcs`).
+- **Quick-Start / Tradecraft**: `gobuster dns -d example.com -w subdomains.txt`
+
+### [feroxbuster](https://github.com/epi052/feroxbuster) `[S-Tier]`
+- **ID**: `feroxbuster` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`epi052/feroxbuster`](https://github.com/epi052/feroxbuster)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `documents`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `content-discovery`, `rust`, `recursive`, `active-recon`
+- **Overview**: Fast, recursive Rust active content discovery tool featuring automatic link extraction from responses, smart wildcard filtering, and rate-limit tuning.
+- **Quick-Start / Tradecraft**: `feroxbuster -u https://example.com -w raft-medium-directories.txt`
+
+### [dirsearch](https://github.com/maurosoria/dirsearch) `[A-Tier]`
+- **ID**: `dirsearch` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`maurosoria/dirsearch`](https://github.com/maurosoria/dirsearch)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `documents`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `web-path-scanner`, `backup-files`, `active-recon`
+- **Overview**: Feature-rich Python active web path scanner discovering hidden admin panels, backup archives, configuration files, and API endpoints.
+- **Quick-Start / Tradecraft**: `dirsearch -u https://example.com -e php,json,bak,zip`
+
+### [VHostScan](https://github.com/codingo/VHostScan) `[A-Tier]`
+- **ID**: `vhostscan` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`codingo/VHostScan`](https://github.com/codingo/VHostScan)
+- **Inputs**: `ip`, `domain` → **Outputs**: `subdomains`, `urls`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `vhost`, `fuzzy-hashing`, `internal-hosts`, `active`
+- **Overview**: Active virtual-host scanner performing reverse lookups and fuzzy page-length comparison to discover non-public VHosts behind load balancers and CDNs.
+- **Quick-Start / Tradecraft**: `VHostScan -t 198.51.100.10 -b example.com`
+
+---
+
+## Active DNS Resolution & Bruteforce
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**MassDNS**](https://github.com/blechschmidt/massdns) ([GitHub](https://github.com/blechschmidt/massdns)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records, ip_addresses` |
+| **S** | [**puredns**](https://github.com/d3mondev/puredns) ([GitHub](https://github.com/d3mondev/puredns)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records, ip_addresses` |
+| **S** | [**shuffledns**](https://github.com/projectdiscovery/shuffledns) ([GitHub](https://github.com/projectdiscovery/shuffledns)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records, ip_addresses` |
+| **A** | [**AlterX**](https://github.com/projectdiscovery/alterx) ([GitHub](https://github.com/projectdiscovery/alterx)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains` |
+| **B** | [**SubBrute**](https://github.com/TheRook/subbrute) ([GitHub](https://github.com/TheRook/subbrute)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records` |
+| **A** | [**gotator**](https://github.com/Josue87/gotator) ([GitHub](https://github.com/Josue87/gotator)) | CLI | OSS / Free | 🟢 Passive | ✅ | `domain` → `subdomains` |
+| **A** | [**AltDNS**](https://github.com/infosec-au/altdns) ([GitHub](https://github.com/infosec-au/altdns)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `domain` → `subdomains, dns_records` |
+
+### [MassDNS](https://github.com/blechschmidt/massdns) `[S-Tier]`
+- **ID**: `massdns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`blechschmidt/massdns`](https://github.com/blechschmidt/massdns)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Docker · **Tags**: `dns-resolver`, `high-speed`, `subdomain-bruteforce`, `active`
+- **Overview**: High-performance C stub DNS resolver capable of resolving hundreds of thousands of subdomain candidates per second across public resolver pools.
+- **Quick-Start / Tradecraft**: `massdns -r resolvers.txt -t A subdomains.txt -o S -w live_hosts.txt`
+
+### [puredns](https://github.com/d3mondev/puredns) `[S-Tier]`
+- **ID**: `puredns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`d3mondev/puredns`](https://github.com/d3mondev/puredns)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Go · **Tags**: `wildcard-filtering`, `dns-bruteforce`, `massdns`, `active`
+- **Overview**: Fast active domain resolver and subdomain brute-forcing tool atop MassDNS that accurately filters wildcard DNS responses and poisoned resolvers.
+- **Quick-Start / Tradecraft**: `puredns bruteforce wordlist.txt example.com -r resolvers.txt`
+
+### [shuffledns](https://github.com/projectdiscovery/shuffledns) `[S-Tier]`
+- **ID**: `shuffledns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/shuffledns`](https://github.com/projectdiscovery/shuffledns)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `projectdiscovery`, `dns-bruteforce`, `massdns`, `active`
+- **Overview**: ProjectDiscovery Go wrapper around MassDNS for active subdomain brute-forcing and mass wildcard-aware resolution.
+- **Quick-Start / Tradecraft**: `shuffledns -d example.com -w wordlist.txt -r resolvers.txt -mode bruteforce`
+
+### [AlterX](https://github.com/projectdiscovery/alterx) `[A-Tier]`
+- **ID**: `alterx` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/alterx`](https://github.com/projectdiscovery/alterx)
+- **Inputs**: `domain` → **Outputs**: `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `permutations`, `subdomain-alteration`, `projectdiscovery`, `active`
+- **Overview**: Customizable DSL-based subdomain permutation generator designed to pipe smart naming patterns directly into dnsx for active subdomain discovery.
+- **Quick-Start / Tradecraft**: `subfinder -d example.com | alterx | dnsx`
+
+### [SubBrute](https://github.com/TheRook/subbrute) `[B-Tier]`
+- **ID**: `subbrute` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`TheRook/subbrute`](https://github.com/TheRook/subbrute)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `open-resolvers`, `subdomain-bruteforce`, `dns`
+- **Overview**: DNS meta-query spider distributing active subdomain brute-forcing across open DNS resolvers without sending direct UDP traffic to target nameservers.
+- **Quick-Start / Tradecraft**: `python3 subbrute.py example.com`
+
+### [gotator](https://github.com/Josue87/gotator) `[A-Tier]`
+- **ID**: `gotator` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`Josue87/gotator`](https://github.com/Josue87/gotator)
+- **Inputs**: `domain` → **Outputs**: `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `subdomain-permutations`, `altdns`, `go`
+- **Overview**: Fast Go subdomain permutation generator creating environment, region, and numeric variations ready for active puredns/shuffledns resolution.
+- **Quick-Start / Tradecraft**: `gotator -sub subdomains.txt -perm permutations.txt -depth 1`
+
+### [AltDNS](https://github.com/infosec-au/altdns) `[A-Tier]`
+- **ID**: `altdns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`infosec-au/altdns`](https://github.com/infosec-au/altdns)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `alterations`, `subdomain-bruteforce`, `dns`, `active`
+- **Overview**: Subdomain discovery tool generating word/number alterations of known subdomains and optionally resolving all candidates live against DNS.
+- **Quick-Start / Tradecraft**: `altdns -i subdomains.txt -o data_output -w words.txt -r -s resolved.txt`
+
+---
+
+## Active DNS Enumeration
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**DNSRecon**](https://github.com/darkoperator/dnsrecon) ([GitHub](https://github.com/darkoperator/dnsrecon)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip, asn` → `dns_records, subdomains, ip_addresses` |
+| **A** | [**dnsenum**](https://github.com/fwaeytens/dnsenum) ([GitHub](https://github.com/fwaeytens/dnsenum)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, subdomains, ip_addresses` |
+| **A** | [**hakrevdns**](https://github.com/hakluke/hakrevdns) ([GitHub](https://github.com/hakluke/hakrevdns)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `subdomains, dns_records` |
+| **A** | [**hakip2host**](https://github.com/hakluke/hakip2host) ([GitHub](https://github.com/hakluke/hakip2host)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `subdomains, certificates, dns_records` |
+
+### [DNSRecon](https://github.com/darkoperator/dnsrecon) `[S-Tier]`
+- **ID**: `dnsrecon` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`darkoperator/dnsrecon`](https://github.com/darkoperator/dnsrecon)
+- **Inputs**: `domain`, `ip`, `asn` → **Outputs**: `dns_records`, `subdomains`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `axfr`, `zone-transfer`, `dnssec-walk`, `srv`, `active`
+- **Overview**: Classic Python active DNS reconnaissance tool testing AXFR zone transfers, NSEC/NSEC3 zone walking, SRV records, reverse PTR sweeps, and cache snooping.
+- **Quick-Start / Tradecraft**: `dnsrecon -d example.com -a`
+
+### [dnsenum](https://github.com/fwaeytens/dnsenum) `[A-Tier]`
+- **ID**: `dnsenum` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`fwaeytens/dnsenum`](https://github.com/fwaeytens/dnsenum)
+- **Inputs**: `domain` → **Outputs**: `dns_records`, `subdomains`, `ip_addresses`, `whois`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `axfr`, `reverse-dns`, `dns-enum`, `active`
+- **Overview**: Multi-threaded Perl active DNS enumerator performing MX/NS lookups, AXFR zone transfer attempts, dictionary brute-forcing, and C-class reverse sweeps.
+- **Quick-Start / Tradecraft**: `dnsenum example.com`
+
+### [hakrevdns](https://github.com/hakluke/hakrevdns) `[A-Tier]`
+- **ID**: `hakrevdns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`hakluke/hakrevdns`](https://github.com/hakluke/hakrevdns)
+- **Inputs**: `ip`, `asn` → **Outputs**: `subdomains`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `reverse-dns`, `ptr-sweep`, `cidr`, `hakluke`, `active`
+- **Overview**: High-speed Go reverse DNS (PTR) lookup scanner sweeping IPv4 addresses and CIDR netblocks to uncover hidden corporate hostnames and internal naming.
+- **Quick-Start / Tradecraft**: `prips 198.51.100.0/24 | hakrevdns`
+
+### [hakip2host](https://github.com/hakluke/hakip2host) `[A-Tier]`
+- **ID**: `hakip2host` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`hakluke/hakip2host`](https://github.com/hakluke/hakip2host)
+- **Inputs**: `ip`, `asn` → **Outputs**: `subdomains`, `certificates`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `ssl-san`, `ptr`, `ip-to-domain`, `hakluke`, `active`
+- **Overview**: Active IP-to-hostname resolver combining live TLS port 443 SAN/CN certificate extraction with reverse PTR DNS queries across target IP ranges.
+- **Quick-Start / Tradecraft**: `cat ips.txt | hakip2host`
+
+---
+
+## Subdomain Enumeration
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Sublist3r**](https://github.com/aboul3la/Sublist3r) ([GitHub](https://github.com/aboul3la/Sublist3r)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `domain` → `subdomains, open_ports` |
+| **A** | [**Knockpy**](https://github.com/guelfoweb/knock) ([GitHub](https://github.com/guelfoweb/knock)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `domain` → `subdomains, dns_records, certificates` |
+
+### [Sublist3r](https://github.com/aboul3la/Sublist3r) `[A-Tier]`
+- **ID**: `sublist3r` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`aboul3la/Sublist3r`](https://github.com/aboul3la/Sublist3r)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `open_ports`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `subdomains`, `hybrid-recon`, `subbrute`, `ports`
+- **Overview**: Popular Python subdomain discovery tool combining passive search engine/CT scraping with optional integrated SubBrute active DNS brute-forcing (`-b`).
+- **Quick-Start / Tradecraft**: `sublist3r -d example.com -b -p 80,443`
+
+### [Knockpy](https://github.com/guelfoweb/knock) `[A-Tier]`
+- **ID**: `knockpy` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`guelfoweb/knock`](https://github.com/guelfoweb/knock)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`, `certificates`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `subdomains`, `tls-certs`, `bruteforce`, `hybrid`
+- **Overview**: Modular Python tool enumerating subdomains on a target domain through passive reconnaissance and active dictionary + HTTP/HTTPS/TLS certificate checks.
+- **Quick-Start / Tradecraft**: `knockpy -d example.com --recon --bruteforce`
+
+---
+
+## Subdomain Takeover Detection
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**dnsReaper**](https://github.com/punk-security/dnsReaper) ([GitHub](https://github.com/punk-security/dnsReaper)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, subdomains, metadata` |
+| **S** | [**BadDNS (Black Lantern Security)**](https://github.com/blacklanternsecurity/baddns) ([GitHub](https://github.com/blacklanternsecurity/baddns)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, subdomains, metadata` |
+| **A** | [**Subzy**](https://github.com/PentestPad/subzy) ([GitHub](https://github.com/PentestPad/subzy)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `subdomains, dns_records, metadata` |
+| **A** | [**Subjack**](https://github.com/haccer/subjack) ([GitHub](https://github.com/haccer/subjack)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records` |
+| **A** | [**Subdominator**](https://github.com/Stratus-Security/Subdominator) ([GitHub](https://github.com/Stratus-Security/Subdominator)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, dns_records, metadata` |
+| **A** | [**DNSTake**](https://github.com/pwnesia/dnstake) ([GitHub](https://github.com/pwnesia/dnstake)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, subdomains` |
+| **A** | [**second-order**](https://github.com/mhmdiaa/second-order) ([GitHub](https://github.com/mhmdiaa/second-order)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains, secrets` |
+
+### [dnsReaper](https://github.com/punk-security/dnsReaper) `[S-Tier]`
+- **ID**: `dnsreaper` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`punk-security/dnsReaper`](https://github.com/punk-security/dnsReaper)
+- **Inputs**: `domain` → **Outputs**: `dns_records`, `subdomains`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `subdomain-takeover`, `dangling-dns`, `cname`, `active`
+- **Overview**: High-accuracy active DNS and subdomain takeover scanner checking 50+ cloud/SaaS takeover signatures across live DNS records or zone files.
+- **Quick-Start / Tradecraft**: `docker run --rm punksecurity/dnsreaper file --filename subdomains.txt`
+
+### [BadDNS (Black Lantern Security)](https://github.com/blacklanternsecurity/baddns) `[S-Tier]`
+- **ID**: `baddns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`blacklanternsecurity/baddns`](https://github.com/blacklanternsecurity/baddns)
+- **Inputs**: `domain` → **Outputs**: `dns_records`, `subdomains`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `subdomain-takeover`, `ns-takeover`, `mx-takeover`, `bls`
+- **Overview**: Comprehensive active DNS takeover detector auditing CNAME, NS, MX, TXT, and NSEC records plus live HTTP responses for dangling resource hijacks.
+- **Quick-Start / Tradecraft**: `baddns sub.example.com`
+
+### [Subzy](https://github.com/PentestPad/subzy) `[A-Tier]`
+- **ID**: `subzy` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`PentestPad/subzy`](https://github.com/PentestPad/subzy)
+- **Inputs**: `domain`, `url` → **Outputs**: `subdomains`, `dns_records`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `subdomain-takeover`, `cname`, `go`, `active`
+- **Overview**: Fast Go active subdomain takeover verifier matching live HTTP response fingerprints against can-i-take-over-xyz signatures.
+- **Quick-Start / Tradecraft**: `subzy run --targets subdomains.txt`
+
+### [Subjack](https://github.com/haccer/subjack) `[A-Tier]`
+- **ID**: `subjack` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`haccer/subjack`](https://github.com/haccer/subjack)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `subdomain-takeover`, `dangling-cname`, `active`
+- **Overview**: Concurrent Go subdomain takeover scanner inspecting live CNAME records, NXDOMAIN responses, and unclaimed cloud provider error pages.
+- **Quick-Start / Tradecraft**: `subjack -w subdomains.txt -t 50 -ssl -v`
+
+### [Subdominator](https://github.com/Stratus-Security/Subdominator) `[A-Tier]`
+- **ID**: `subdominator` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Stratus-Security/Subdominator`](https://github.com/Stratus-Security/Subdominator)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `dns_records`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `subdomain-takeover`, `dangling-dns`, `active-recon`
+- **Overview**: High-speed low-false-positive active subdomain takeover detector covering cloud storage, SaaS, CDN, and unclaimed DNS delegation vectors.
+- **Quick-Start / Tradecraft**: `Subdominator -l subdomains.txt`
+
+### [DNSTake](https://github.com/pwnesia/dnstake) `[A-Tier]`
+- **ID**: `dnstake` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`pwnesia/dnstake`](https://github.com/pwnesia/dnstake)
+- **Inputs**: `domain` → **Outputs**: `dns_records`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `ns-takeover`, `hosted-zone`, `route53`, `active`
+- **Overview**: Fast Go scanner testing delegated authoritative nameservers (AWS Route53, Cloudflare, DigitalOcean, NS1) for missing hosted DNS zones vulnerable to takeover.
+- **Quick-Start / Tradecraft**: `cat subdomains.txt | dnstake -c 50`
+
+### [second-order](https://github.com/mhmdiaa/second-order) `[A-Tier]`
+- **ID**: `second-order` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`mhmdiaa/second-order`](https://github.com/mhmdiaa/second-order)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `subdomains`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `second-order-takeover`, `broken-links`, `js-hijack`, `active`
+- **Overview**: Active web crawler inspecting embedded `<script>`, `<iframe>`, and `<a>` links on target pages to detect unclaimed external domains and S3 buckets.
+- **Quick-Start / Tradecraft**: `second-order -base https://example.com -config config.json`
+
+---
+
+## Web Tech & WAF Fingerprinting
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**WAFW00F**](https://github.com/EnableSecurity/wafw00f) ([GitHub](https://github.com/EnableSecurity/wafw00f)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `tech_stack, metadata` |
+| **A** | [**cdncheck (ProjectDiscovery)**](https://github.com/projectdiscovery/cdncheck) ([GitHub](https://github.com/projectdiscovery/cdncheck)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `ip, domain` → `tech_stack, ip_addresses, metadata` |
+| **A** | [**wappalyzergo**](https://github.com/projectdiscovery/wappalyzergo) ([GitHub](https://github.com/projectdiscovery/wappalyzergo)) | Library | OSS / Free | 🔴 Active | ✅ | `url, domain` → `tech_stack, metadata` |
+| **A** | [**CMSeeK**](https://github.com/Tuhinshubhra/CMSeeK) ([GitHub](https://github.com/Tuhinshubhra/CMSeeK)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `tech_stack, usernames, urls` |
+| **S** | [**WPScan**](https://github.com/wpscanteam/wpscan) ([GitHub](https://github.com/wpscanteam/wpscan)) | CLI | Freemium | 🔴 Active | ✅ | `url, domain` → `usernames, tech_stack, urls` |
+| **A** | [**Nikto**](https://github.com/sullo/nikto) ([GitHub](https://github.com/sullo/nikto)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain, ip` → `tech_stack, urls, certificates` |
+| **B** | [**WhatWaf**](https://github.com/Ekultek/WhatWaf) ([GitHub](https://github.com/Ekultek/WhatWaf)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `tech_stack, metadata` |
+| **B** | [**identYwaf**](https://github.com/stamparm/identYwaf) ([GitHub](https://github.com/stamparm/identYwaf)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `tech_stack, metadata` |
+
+### [WAFW00F](https://github.com/EnableSecurity/wafw00f) `[S-Tier]`
+- **ID**: `wafw00f` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`EnableSecurity/wafw00f`](https://github.com/EnableSecurity/wafw00f)
+- **Inputs**: `url`, `domain` → **Outputs**: `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `waf-detection`, `fingerprinting`, `http-probing`, `active`
+- **Overview**: Definitive active Web Application Firewall fingerprinter identifying 150+ commercial and cloud WAFs via crafted HTTP probe responses and headers.
+- **Quick-Start / Tradecraft**: `wafw00f https://example.com`
+
+### [cdncheck (ProjectDiscovery)](https://github.com/projectdiscovery/cdncheck) `[A-Tier]`
+- **ID**: `cdncheck` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/cdncheck`](https://github.com/projectdiscovery/cdncheck)
+- **Inputs**: `ip`, `domain` → **Outputs**: `tech_stack`, `ip_addresses`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `cdn`, `waf`, `origin-ip`, `projectdiscovery`
+- **Overview**: Fast utility detecting whether target IPs or hosts belong to CDNs, WAFs, or public cloud providers so active scanners only target true origin servers.
+- **Quick-Start / Tradecraft**: `cat hosts.txt | cdncheck -resp`
+
+### [wappalyzergo](https://github.com/projectdiscovery/wappalyzergo) `[A-Tier]`
+- **ID**: `wappalyzergo` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/wappalyzergo`](https://github.com/projectdiscovery/wappalyzergo)
+- **Inputs**: `url`, `domain` → **Outputs**: `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `wappalyzer`, `tech-fingerprinting`, `http`, `go`
+- **Overview**: High-performance Go library and active HTTP response analyzer identifying CMSs, JS frameworks, analytics trackers, and server stacks.
+- **Quick-Start / Tradecraft**: `httpx -u https://example.com -td # Powered by wappalyzergo`
+
+### [CMSeeK](https://github.com/Tuhinshubhra/CMSeeK) `[A-Tier]`
+- **ID**: `cmseek` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Tuhinshubhra/CMSeeK`](https://github.com/Tuhinshubhra/CMSeeK)
+- **Inputs**: `url`, `domain` → **Outputs**: `tech_stack`, `usernames`, `urls`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `cms-detection`, `wordpress`, `joomla`, `active-recon`
+- **Overview**: Active CMS detection and enumeration suite fingerprinting 180+ Content Management Systems plus WordPress/Joomla users, themes, plugins, and versions.
+- **Quick-Start / Tradecraft**: `python3 cmseek.py -u https://example.com`
+
+### [WPScan](https://github.com/wpscanteam/wpscan) `[S-Tier]`
+- **ID**: `wpscan` · **Type**: `CLI` · **Pricing**: `Freemium` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`wpscanteam/wpscan`](https://github.com/wpscanteam/wpscan)
+- **Inputs**: `url`, `domain` → **Outputs**: `usernames`, `tech_stack`, `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker · **Tags**: `wordpress`, `author-enum`, `plugins`, `active-scanner`
+- **Overview**: Flagship active WordPress reconnaissance scanner enumerating author usernames, installed plugins/themes, XML-RPC, config backups, and version metadata.
+- **Quick-Start / Tradecraft**: `wpscan --url https://example.com --enumerate u,vp,vt`
+
+### [Nikto](https://github.com/sullo/nikto) `[A-Tier]`
+- **ID**: `nikto` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`sullo/nikto`](https://github.com/sullo/nikto)
+- **Inputs**: `url`, `domain`, `ip` → **Outputs**: `tech_stack`, `urls`, `certificates`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Docker · **Tags**: `web-scanner`, `server-headers`, `exposed-files`, `active`
+- **Overview**: Open-source active web server scanner checking 7,000+ dangerous files, server misconfigurations, HTTP headers, and outdated server software.
+- **Quick-Start / Tradecraft**: `nikto -h https://example.com`
+
+### [WhatWaf](https://github.com/Ekultek/WhatWaf) `[B-Tier]`
+- **ID**: `whatwaf` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Ekultek/WhatWaf`](https://github.com/Ekultek/WhatWaf)
+- **Inputs**: `url`, `domain` → **Outputs**: `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `waf`, `firewall-detection`, `http`, `active`
+- **Overview**: Advanced active firewall and WAF detection tool identifying 100+ web application firewalls via HTTP response anomalies and header signatures.
+- **Quick-Start / Tradecraft**: `whatwaf -u https://example.com`
+
+### [identYwaf](https://github.com/stamparm/identYwaf) `[B-Tier]`
+- **ID**: `identywaf` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`stamparm/identYwaf`](https://github.com/stamparm/identYwaf)
+- **Inputs**: `url`, `domain` → **Outputs**: `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `waf-fingerprinting`, `blind-detection`, `active`
+- **Overview**: Blind and non-blind active WAF identification utility scoring HTTP rejection patterns against 80+ firewall signature profiles.
+- **Quick-Start / Tradecraft**: `python3 identYwaf.py https://example.com`
+
+---
+
+## Active Parameter & JS Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Arjun**](https://github.com/s0md3v/Arjun) ([GitHub](https://github.com/s0md3v/Arjun)) | CLI | OSS / Free | 🔴 Active | ✅ | `url` → `urls, metadata` |
+| **S** | [**jsluice (Bishop Fox)**](https://github.com/BishopFox/jsluice) ([GitHub](https://github.com/BishopFox/jsluice)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `url, repo_code` → `urls, secrets, subdomains` |
+| **A** | [**LinkFinder**](https://github.com/GerbenJavado/LinkFinder) ([GitHub](https://github.com/GerbenJavado/LinkFinder)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains` |
+| **S** | [**xnLinkFinder**](https://github.com/xnl-h4ck3r/xnLinkFinder) ([GitHub](https://github.com/xnl-h4ck3r/xnLinkFinder)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains, metadata` |
+| **B** | [**getJS**](https://github.com/003random/getJS) ([GitHub](https://github.com/003random/getJS)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls` |
+| **A** | [**subjs**](https://github.com/lc/subjs) ([GitHub](https://github.com/lc/subjs)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls` |
+
+### [Arjun](https://github.com/s0md3v/Arjun) `[S-Tier]`
+- **ID**: `arjun` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`s0md3v/Arjun`](https://github.com/s0md3v/Arjun)
+- **Inputs**: `url` → **Outputs**: `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `parameter-discovery`, `api-recon`, `http`, `active`
+- **Overview**: Smart HTTP parameter discovery suite finding hidden GET, POST, JSON, and XML query parameters via chunked differential response comparison.
+- **Quick-Start / Tradecraft**: `arjun -u https://api.example.com/v1/user`
+
+### [jsluice (Bishop Fox)](https://github.com/BishopFox/jsluice) `[S-Tier]`
+- **ID**: `jsluice` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`BishopFox/jsluice`](https://github.com/BishopFox/jsluice)
+- **Inputs**: `url`, `repo_code` → **Outputs**: `urls`, `secrets`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `javascript`, `ast`, `endpoints`, `secrets`, `bishopfox`
+- **Overview**: AST-powered Go analyzer extracting API URLs, relative routes, query parameters, cloud buckets, and hardcoded secrets from fetched JavaScript bundles.
+- **Quick-Start / Tradecraft**: `jsluice urls <(curl -s https://example.com/app.js)`
+
+### [LinkFinder](https://github.com/GerbenJavado/LinkFinder) `[A-Tier]`
+- **ID**: `linkfinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`GerbenJavado/LinkFinder`](https://github.com/GerbenJavado/LinkFinder)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `javascript`, `endpoints`, `sourcemaps`, `active`
+- **Overview**: Python script discovering hidden API endpoints, internal routes, and parameters inside live remote JavaScript files and source maps.
+- **Quick-Start / Tradecraft**: `python3 linkfinder.py -i https://example.com/main.js -o cli`
+
+### [xnLinkFinder](https://github.com/xnl-h4ck3r/xnLinkFinder) `[S-Tier]`
+- **ID**: `xnlinkfinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`xnl-h4ck3r/xnLinkFinder`](https://github.com/xnl-h4ck3r/xnLinkFinder)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `subdomains`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `js-recon`, `endpoints`, `wordlist-gen`, `active`
+- **Overview**: Advanced active crawler and JavaScript analyzer harvesting hidden endpoints, custom target wordlists, and API parameters across entire domains.
+- **Quick-Start / Tradecraft**: `xnLinkFinder -i https://example.com -sp https://example.com -d 2`
+
+### [getJS](https://github.com/003random/getJS) `[B-Tier]`
+- **ID**: `getjs` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`003random/getJS`](https://github.com/003random/getJS)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `javascript`, `scraper`, `go`, `active`
+- **Overview**: Fast Go CLI actively fetching web pages and extracting all linked external and inline JavaScript asset URLs for downstream endpoint analysis.
+- **Quick-Start / Tradecraft**: `getJS --url https://example.com --complete`
+
+### [subjs](https://github.com/lc/subjs) `[A-Tier]`
+- **ID**: `subjs` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`lc/subjs`](https://github.com/lc/subjs)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `javascript`, `pipeline`, `endpoints`, `active`
+- **Overview**: Go pipeline tool actively fetching live pages across subdomain lists to extract every referenced JavaScript file URL for secret and route carving.
+- **Quick-Start / Tradecraft**: `cat live_urls.txt | subjs`
+
+---
+
+## Active Web Spiders
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**GoSpider**](https://github.com/jaeles-project/gospider) ([GitHub](https://github.com/jaeles-project/gospider)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains, secrets` |
+
+### [GoSpider](https://github.com/jaeles-project/gospider) `[S-Tier]`
+- **ID**: `gospider` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`jaeles-project/gospider`](https://github.com/jaeles-project/gospider)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `subdomains`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `web-spider`, `s3-extraction`, `js-crawler`, `active`
+- **Overview**: Fast concurrent Go active web spider parsing HTML, JavaScript, sitemaps, and robots.txt while extracting subdomains, AWS S3 buckets, and link graphs.
+- **Quick-Start / Tradecraft**: `gospider -s https://example.com -c 10 -d 2 --other-source`
+
+---
+
+## Active Web Probing
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**httprobe**](https://github.com/tomnomnom/httprobe) ([GitHub](https://github.com/tomnomnom/httprobe)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `urls, open_ports` |
+| **A** | [**meg (tomnomnom)**](https://github.com/tomnomnom/meg) ([GitHub](https://github.com/tomnomnom/meg)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `urls, metadata, documents` |
+| **A** | [**Corsy**](https://github.com/s0md3v/Corsy) ([GitHub](https://github.com/s0md3v/Corsy)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, metadata, tech_stack` |
+| **B** | [**CORScanner**](https://github.com/chenjj/CORScanner) ([GitHub](https://github.com/chenjj/CORScanner)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, metadata` |
+| **B** | [**hakcheckurl**](https://github.com/hakluke/hakcheckurl) ([GitHub](https://github.com/hakluke/hakcheckurl)) | CLI | OSS / Free | 🔴 Active | ✅ | `url` → `urls, metadata` |
+| **B** | [**fff (Fast Fetching Friend)**](https://github.com/tomnomnom/fff) ([GitHub](https://github.com/tomnomnom/fff)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `archived_pages, metadata, secrets` |
+
+### [httprobe](https://github.com/tomnomnom/httprobe) `[A-Tier]`
+- **ID**: `httprobe` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/httprobe`](https://github.com/tomnomnom/httprobe)
+- **Inputs**: `domain` → **Outputs**: `urls`, `open_ports`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `http-probe`, `live-hosts`, `tomnomnom`, `active`
+- **Overview**: Minimalist high-concurrency Go tool taking lists of domains and probing for working live HTTP and HTTPS listeners across standard and custom ports.
+- **Quick-Start / Tradecraft**: `cat subdomains.txt | httprobe -p http:8080 -p https:8443`
+
+### [meg (tomnomnom)](https://github.com/tomnomnom/meg) `[A-Tier]`
+- **ID**: `tomnomnom-meg` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/meg`](https://github.com/tomnomnom/meg)
+- **Inputs**: `domain`, `url` → **Outputs**: `urls`, `metadata`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `polite-probing`, `multi-host`, `tomnomnom`, `active`
+- **Overview**: Low-noise active HTTP fetcher requesting specific paths (/.well-known/security.txt, /robots.txt, /.git/HEAD) across many hosts without flooding any single target.
+- **Quick-Start / Tradecraft**: `meg -d 1000 paths.txt hosts.txt ./out`
+
+### [Corsy](https://github.com/s0md3v/Corsy) `[A-Tier]`
+- **ID**: `corsy` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`s0md3v/Corsy`](https://github.com/s0md3v/Corsy)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `metadata`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `cors`, `origin-reflection`, `http-headers`, `active`
+- **Overview**: Lightweight Python active scanner testing target web endpoints for Cross-Origin Resource Sharing (CORS) trust misconfigurations and origin reflections.
+- **Quick-Start / Tradecraft**: `python3 corsy.py -u https://api.example.com`
+
+### [CORScanner](https://github.com/chenjj/CORScanner) `[B-Tier]`
+- **ID**: `corscanner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`chenjj/CORScanner`](https://github.com/chenjj/CORScanner)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `cors-audit`, `api-security`, `active-recon`
+- **Overview**: Fast multi-threaded Python active CORS misconfiguration scanner auditing lists of domains and API endpoints for overly permissive ACAO/ACAC headers.
+- **Quick-Start / Tradecraft**: `corscanner -i urls.txt -t 50`
+
+### [hakcheckurl](https://github.com/hakluke/hakcheckurl) `[B-Tier]`
+- **ID**: `hakcheckurl` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`hakluke/hakcheckurl`](https://github.com/hakluke/hakcheckurl)
+- **Inputs**: `url` → **Outputs**: `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `status-codes`, `http-probe`, `hakluke`, `active`
+- **Overview**: Fast concurrent Go tool taking URL streams on stdin and actively probing HTTP response status codes across large recon inventories.
+- **Quick-Start / Tradecraft**: `cat urls.txt | hakcheckurl`
+
+### [fff (Fast Fetching Friend)](https://github.com/tomnomnom/fff) `[B-Tier]`
+- **ID**: `tomnomnom-fff` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/fff`](https://github.com/tomnomnom/fff)
+- **Inputs**: `url`, `domain` → **Outputs**: `archived_pages`, `metadata`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Go · **Tags**: `http-archiver`, `headers`, `tomnomnom`, `active`
+- **Overview**: Streamlined active HTTP fetcher saving raw response headers and bodies per URL into structured disk hierarchies for rapid offline grep/secret analysis.
+- **Quick-Start / Tradecraft**: `cat urls.txt | fff -d 50 -S -o responses/`
+
+---
+
+## Root Domain & TLD Discovery
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**tldfinder (ProjectDiscovery)**](https://github.com/projectdiscovery/tldfinder) ([GitHub](https://github.com/projectdiscovery/tldfinder)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `company, domain, keyword` → `subdomains, dns_records, whois` |
+
+### [tldfinder (ProjectDiscovery)](https://github.com/projectdiscovery/tldfinder) `[A-Tier]`
+- **ID**: `tldfinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/tldfinder`](https://github.com/projectdiscovery/tldfinder)
+- **Inputs**: `company`, `domain`, `keyword` → **Outputs**: `subdomains`, `dns_records`, `whois`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `tld-discovery`, `root-domains`, `brand-asm`, `projectdiscovery`
+- **Overview**: Streamlined tool for discovering corporate root domains, Country-Code TLDs, and private brand TLDs through active DNS and passive registry sources.
+- **Quick-Start / Tradecraft**: `tldfinder -d example`
+
+---
+
+## Historical URL Discovery
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**URLFinder (ProjectDiscovery)**](https://github.com/projectdiscovery/urlfinder) ([GitHub](https://github.com/projectdiscovery/urlfinder)) | CLI | OSS / Free | 🟢 Passive | ✅ | `domain` → `urls, subdomains` |
+
+### [URLFinder (ProjectDiscovery)](https://github.com/projectdiscovery/urlfinder) `[A-Tier]`
+- **ID**: `urlfinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/urlfinder`](https://github.com/projectdiscovery/urlfinder)
+- **Inputs**: `domain` → **Outputs**: `urls`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `url-discovery`, `projectdiscovery`, `wayback`, `passive`
+- **Overview**: High-speed passive URL harvester aggregating historical endpoints across CommonCrawl, Wayback Machine, AlienVault OTX, and URLScan.
+- **Quick-Start / Tradecraft**: `urlfinder -d example.com`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🔓 Breaches & Infostealers](./06-breaches-leaks-stealers.md) · [📡 Cyberspace & Network Search ▶](./08-network-ip-iot-search.md)

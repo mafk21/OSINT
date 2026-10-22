@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Syncing a target phone number in messaging apps via an investigator phone can expose your sock-puppet contact card if mutual-contact settings are misconfigured. Disable contact sync or use isolated virtual Android environments.
 
-**Discipline Telemetry**: `25` Verified Tools · `6` S-Tier Flagships · `24` Passive · `19` Free/Open-Source
+**Discipline Telemetry**: `26` Verified Tools · `7` S-Tier Flagships · `24` Passive · `20` Free/Open-Source
 
 ## Subcategories
 - [Phone Number Recon](#phone-number-recon) (7)
@@ -15,6 +15,7 @@
 - [Discord Intelligence](#discord-intelligence) (3)
 - [Caller ID & Crowdsourced Directories](#caller-id-crowdsourced-directories) (2)
 - [WhatsApp Intelligence](#whatsapp-intelligence) (1)
+- [VoIP & SIP Active Recon](#voip-sip-active-recon) (1)
 
 ---
 
@@ -257,6 +258,21 @@
 - **Platforms**: Web · **Tags**: `whatsapp`, `business-profile`, `avatar-extraction`, `phone-pivot`
 - **Overview**: WhatsApp Business & profile reconnaissance via `https://wa.me/<E164_digits>` and WhatsApp Web inside an isolated burner environment—revealing profile photos, status timestamps, and Business catalog/addresses.
 - **Quick-Start / Tradecraft**: `Check WhatsApp registration first via Epieos, then inspect Business catalog/hours from a dedicated burner number with privacy settings locked.`
+
+---
+
+## VoIP & SIP Active Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**SIPVicious (svmap / svwar)**](https://github.com/EnableSecurity/sipvicious) ([GitHub](https://github.com/EnableSecurity/sipvicious)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain, phone` → `phones, open_ports, tech_stack` |
+
+### [SIPVicious (svmap / svwar)](https://github.com/EnableSecurity/sipvicious) `[S-Tier]`
+- **ID**: `sipvicious` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`EnableSecurity/sipvicious`](https://github.com/EnableSecurity/sipvicious)
+- **Inputs**: `ip`, `domain`, `phone`, `asn` → **Outputs**: `phones`, `open_ports`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `voip`, `sip`, `pbx`, `telecom-recon`, `active`
+- **Overview**: Industry-standard active VoIP/SIP reconnaissance suite (svmap, svwar, svreport) for discovering SIP PBXs, user-agents, and valid telephone extension lines.
+- **Quick-Start / Tradecraft**: `sipvicious_svmap 198.51.100.0/24`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 📧 Email Intelligence](./03-email-intelligence.md) · [🪪 People & Public Records ▶](./05-people-public-records.md)

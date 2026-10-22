@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Cloning a public GitHub repo is passive, but running live credential verification (`trufflehog` without `--no-verification`) hits third-party APIs and can trigger canarytoken alerts!
 
-**Discipline Telemetry**: `22` Verified Tools · `9` S-Tier Flagships · `19` Passive · `18` Free/Open-Source
+**Discipline Telemetry**: `37` Verified Tools · `14` S-Tier Flagships · `20` Passive · `33` Free/Open-Source
 
 ## Subcategories
 - [Multi-Cloud Asset Discovery](#multi-cloud-asset-discovery) (4)
@@ -17,6 +17,10 @@
 - [Package & Supply Chain Recon](#package-supply-chain-recon) (3)
 - [API & Workspace Leaks](#api-workspace-leaks) (1)
 - [Dork Automation](#dork-automation) (1)
+- [Exposed VCS & Source Recon](#exposed-vcs-source-recon) (2)
+- [Secret & Code Leaks](#secret-code-leaks) (1)
+- [Cloud Asset & Bucket Enumeration](#cloud-asset-bucket-enumeration) (6)
+- [API & GraphQL Active Recon](#api-graphql-active-recon) (6)
 
 ---
 
@@ -249,6 +253,154 @@
 - **Platforms**: Linux, macOS, Python · **Tags**: `ghdb`, `google-dorks`, `automated-dorking`, `exploit-db`
 - **Overview**: Automates scraping and rate-limited execution of thousands of Exploit-DB Google Hacking Database (GHDB) dorks scoped to a target domain.
 - **Quick-Start / Tradecraft**: `python3 pagodo.py -d example.com -g dorks/all_google_dorks.txt -s -e 35.0`
+
+---
+
+## Exposed VCS & Source Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**git-dumper**](https://github.com/arthaud/git-dumper) ([GitHub](https://github.com/arthaud/git-dumper)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `secrets, emails, usernames` |
+| **A** | [**GitTools (GitFinder / Dumper / Extractor)**](https://github.com/internetwache/GitTools) ([GitHub](https://github.com/internetwache/GitTools)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `secrets, emails, documents` |
+
+### [git-dumper](https://github.com/arthaud/git-dumper) `[S-Tier]`
+- **ID**: `git-dumper` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`arthaud/git-dumper`](https://github.com/arthaud/git-dumper)
+- **Inputs**: `url`, `domain` → **Outputs**: `secrets`, `emails`, `usernames`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `exposed-git`, `source-recovery`, `commit-history`, `active`
+- **Overview**: Active Python tool reconstructing full Git repositories from web-exposed `/.git/` endpoints even when directory listing is disabled on the target web server.
+- **Quick-Start / Tradecraft**: `git-dumper https://example.com/.git ./recovered_repo`
+
+### [GitTools (GitFinder / Dumper / Extractor)](https://github.com/internetwache/GitTools) `[A-Tier]`
+- **ID**: `gittools` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`internetwache/GitTools`](https://github.com/internetwache/GitTools)
+- **Inputs**: `domain`, `url` → **Outputs**: `secrets`, `emails`, `documents`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `exposed-git`, `gitfinder`, `dangling-commits`, `active`
+- **Overview**: Three-part active toolkit: GitFinder scans domain lists for exposed `/.git/HEAD`, GitDumper downloads objects, and GitExtractor recovers dangling commits.
+- **Quick-Start / Tradecraft**: `python3 gitfinder.py -i domains.txt`
+
+---
+
+## Secret & Code Leaks
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**GitGot (Bishop Fox)**](https://github.com/BishopFox/GitGot) ([GitHub](https://github.com/BishopFox/GitGot)) | CLI | OSS / Free | 🟢 Passive | 🔑 | `company, domain, keyword` → `secrets, emails, urls` |
+
+### [GitGot (Bishop Fox)](https://github.com/BishopFox/GitGot) `[A-Tier]`
+- **ID**: `gitgot` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: Required (Account / API Key) · **GitHub**: [`BishopFox/GitGot`](https://github.com/BishopFox/GitGot)
+- **Inputs**: `company`, `domain`, `keyword` → **Outputs**: `secrets`, `emails`, `urls`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `github-dorking`, `secrets`, `bishopfox`, `codeint`
+- **Overview**: Semi-automated, feedback-driven GitHub search tool rapidly triaging public code and gist results for target-specific credentials and secrets.
+- **Quick-Start / Tradecraft**: `python3 gitgot.py -q 'example.com'`
+
+---
+
+## Cloud Asset & Bucket Enumeration
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**CloudFox (Bishop Fox)**](https://github.com/BishopFox/cloudfox) ([GitHub](https://github.com/BishopFox/cloudfox)) | CLI | OSS / Free | 🔴 Active | 🔑 | `company, domain` → `urls, ip_addresses, subdomains` |
+| **A** | [**Cloudlist (ProjectDiscovery)**](https://github.com/projectdiscovery/cloudlist) ([GitHub](https://github.com/projectdiscovery/cloudlist)) | CLI | OSS / Free | 🟡 Hybrid | 🔑 | `company, domain` → `ip_addresses, subdomains, dns_records` |
+| **A** | [**GCPBucketBrute (Rhino Security Labs)**](https://github.com/RhinoSecurityLabs/GCPBucketBrute) ([GitHub](https://github.com/RhinoSecurityLabs/GCPBucketBrute)) | CLI | OSS / Free | 🔴 Active | ✅ | `keyword, company, domain` → `urls, documents, secrets` |
+| **S** | [**MicroBurst (NetSPI)**](https://github.com/NetSPI/MicroBurst) ([GitHub](https://github.com/NetSPI/MicroBurst)) | Framework | OSS / Free | 🔴 Active | ✅ | `company, domain, keyword` → `subdomains, urls, documents` |
+| **B** | [**AWSBucketDump**](https://github.com/jordanpotti/AWSBucketDump) ([GitHub](https://github.com/jordanpotti/AWSBucketDump)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url, keyword` → `documents, secrets, urls` |
+| **B** | [**CloudScraper**](https://github.com/jordanpotti/CloudScraper) ([GitHub](https://github.com/jordanpotti/CloudScraper)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains` |
+
+### [CloudFox (Bishop Fox)](https://github.com/BishopFox/cloudfox) `[S-Tier]`
+- **ID**: `cloudfox` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`BishopFox/cloudfox`](https://github.com/BishopFox/cloudfox)
+- **Inputs**: `company`, `domain` → **Outputs**: `urls`, `ip_addresses`, `subdomains`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `aws`, `azure`, `gcp`, `cloud-recon`, `bishopfox`
+- **Overview**: Cloud situational awareness CLI actively enumerating exposed endpoints, public buckets, IAM trusts, and internet-facing assets across AWS, Azure, and GCP.
+- **Quick-Start / Tradecraft**: `cloudfox aws --profile target endpoints`
+
+### [Cloudlist (ProjectDiscovery)](https://github.com/projectdiscovery/cloudlist) `[A-Tier]`
+- **ID**: `cloudlist` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: Required (Account / API Key) · **GitHub**: [`projectdiscovery/cloudlist`](https://github.com/projectdiscovery/cloudlist)
+- **Inputs**: `company`, `domain` → **Outputs**: `ip_addresses`, `subdomains`, `dns_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `multi-cloud`, `asset-inventory`, `projectdiscovery`, `asm`
+- **Overview**: Multi-cloud inventory harvester pulling live public IPs, DNS records, and compute hostnames across AWS, GCP, Azure, Cloudflare, DigitalOcean, and Fastly.
+- **Quick-Start / Tradecraft**: `cloudlist -pc provider-config.yaml | httpx`
+
+### [GCPBucketBrute (Rhino Security Labs)](https://github.com/RhinoSecurityLabs/GCPBucketBrute) `[A-Tier]`
+- **ID**: `gcpbucketbrute` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`RhinoSecurityLabs/GCPBucketBrute`](https://github.com/RhinoSecurityLabs/GCPBucketBrute)
+- **Inputs**: `keyword`, `company`, `domain` → **Outputs**: `urls`, `documents`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `gcs`, `google-cloud`, `bucket-bruteforce`, `iam`, `active`
+- **Overview**: Active Google Cloud Storage enumerator brute-forcing bucket permutations and invoking unauthenticated `testIamPermissions` to detect public exposure.
+- **Quick-Start / Tradecraft**: `python3 gcpbucketbrute.py -k example -u`
+
+### [MicroBurst (NetSPI)](https://github.com/NetSPI/MicroBurst) `[S-Tier]`
+- **ID**: `microburst` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`NetSPI/MicroBurst`](https://github.com/NetSPI/MicroBurst)
+- **Inputs**: `company`, `domain`, `keyword` → **Outputs**: `subdomains`, `urls`, `documents`, `secrets`
+- **Platforms**: CLI, Windows, Linux, macOS · **Tags**: `azure`, `blob-storage`, `netspi`, `cloud-enum`, `active`
+- **Overview**: PowerShell active Azure reconnaissance toolkit enumerating unauthenticated Azure Blob containers, App Services, Key Vaults, databases, and tenant subdomains.
+- **Quick-Start / Tradecraft**: `Invoke-EnumerateAzureBlobs -Base example`
+
+### [AWSBucketDump](https://github.com/jordanpotti/AWSBucketDump) `[B-Tier]`
+- **ID**: `awsbucketdump` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`jordanpotti/AWSBucketDump`](https://github.com/jordanpotti/AWSBucketDump)
+- **Inputs**: `domain`, `url`, `keyword` → **Outputs**: `documents`, `secrets`, `urls`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `s3`, `aws`, `open-buckets`, `active-recon`
+- **Overview**: Active AWS S3 bucket crawler enumerating publicly listable S3 buckets and filtering object keys for sensitive keywords (.env, backup, credentials, xlsx).
+- **Quick-Start / Tradecraft**: `python3 AWSBucketDump.py -l buckets.txt -g interesting_Keywords.txt`
+
+### [CloudScraper](https://github.com/jordanpotti/CloudScraper) `[B-Tier]`
+- **ID**: `cloudscraper` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`jordanpotti/CloudScraper`](https://github.com/jordanpotti/CloudScraper)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `cloud-buckets`, `s3`, `azure-blob`, `spider`, `active`
+- **Overview**: Active web spider searching target HTML and JavaScript source code for embedded Amazon S3, Azure Blob, and DigitalOcean Spaces cloud storage URLs.
+- **Quick-Start / Tradecraft**: `python3 CloudScraper.py -u https://example.com`
+
+---
+
+## API & GraphQL Active Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Kiterunner (Assetnote)**](https://github.com/assetnote/kiterunner) ([GitHub](https://github.com/assetnote/kiterunner)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, tech_stack, metadata` |
+| **A** | [**sj (swagger-jacker — Bishop Fox)**](https://github.com/BishopFox/sj) ([GitHub](https://github.com/BishopFox/sj)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, metadata, secrets` |
+| **A** | [**graphql-cop**](https://github.com/dolevf/graphql-cop) ([GitHub](https://github.com/dolevf/graphql-cop)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, tech_stack, metadata` |
+| **A** | [**Graphinder (Escape Technologies)**](https://github.com/Escape-Technologies/graphinder) ([GitHub](https://github.com/Escape-Technologies/graphinder)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url` → `urls, subdomains, tech_stack` |
+| **A** | [**Clairvoyance**](https://github.com/nikitastupin/clairvoyance) ([GitHub](https://github.com/nikitastupin/clairvoyance)) | CLI | OSS / Free | 🔴 Active | ✅ | `url` → `metadata, urls` |
+| **S** | [**Nuclei Templates**](https://github.com/projectdiscovery/nuclei-templates) ([GitHub](https://github.com/projectdiscovery/nuclei-templates)) | Dataset / Registry | OSS / Free | 🔴 Active | ✅ | `url, domain, ip` → `tech_stack, secrets, social_profiles` |
+
+### [Kiterunner (Assetnote)](https://github.com/assetnote/kiterunner) `[S-Tier]`
+- **ID**: `kiterunner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`assetnote/kiterunner`](https://github.com/assetnote/kiterunner)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `api-discovery`, `swagger`, `assetnote`, `rest-routes`, `active`
+- **Overview**: Contextual active API route discovery engine built by Assetnote testing HTTP methods, content-types, and OpenAPI/Swagger patterns against modern APIs.
+- **Quick-Start / Tradecraft**: `kr scan https://api.example.com -w routes-large.kite`
+
+### [sj (swagger-jacker — Bishop Fox)](https://github.com/BishopFox/sj) `[A-Tier]`
+- **ID**: `swagger-jacker` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`BishopFox/sj`](https://github.com/BishopFox/sj)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `metadata`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `openapi`, `swagger`, `api-audit`, `bishopfox`, `active`
+- **Overview**: Active OpenAPI/Swagger definition auditor discovering exposed specification files and checking which documented API endpoints respond unauthenticated.
+- **Quick-Start / Tradecraft**: `sj brute -u https://api.example.com`
+
+### [graphql-cop](https://github.com/dolevf/graphql-cop) `[A-Tier]`
+- **ID**: `graphql-cop` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`dolevf/graphql-cop`](https://github.com/dolevf/graphql-cop)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `graphql`, `introspection`, `api-recon`, `active`
+- **Overview**: Active GraphQL endpoint reconnaissance and security auditor testing introspection exposure, GraphiQL consoles, field suggestions, and batching.
+- **Quick-Start / Tradecraft**: `python3 graphql-cop.py -t https://api.example.com/graphql`
+
+### [Graphinder (Escape Technologies)](https://github.com/Escape-Technologies/graphinder) `[A-Tier]`
+- **ID**: `graphinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Escape-Technologies/graphinder`](https://github.com/Escape-Technologies/graphinder)
+- **Inputs**: `domain`, `url` → **Outputs**: `urls`, `subdomains`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `graphql`, `endpoint-discovery`, `subdomains`, `active`
+- **Overview**: Subdomain-wide active GraphQL endpoint finder combining subdomain discovery, JS script analysis, and path probing to locate hidden GraphQL APIs.
+- **Quick-Start / Tradecraft**: `graphinder -d example.com`
+
+### [Clairvoyance](https://github.com/nikitastupin/clairvoyance) `[A-Tier]`
+- **ID**: `clairvoyance` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`nikitastupin/clairvoyance`](https://github.com/nikitastupin/clairvoyance)
+- **Inputs**: `url` → **Outputs**: `metadata`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `graphql`, `schema-recovery`, `field-suggestions`, `active`
+- **Overview**: Active GraphQL schema reconstruction tool recovering types, fields, and arguments via field-suggestion error messages even when introspection is disabled.
+- **Quick-Start / Tradecraft**: `clairvoyance https://api.example.com/graphql -o schema.json`
+
+### [Nuclei Templates](https://github.com/projectdiscovery/nuclei-templates) `[S-Tier]`
+- **ID**: `nuclei-templates` · **Type**: `Dataset / Registry` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/nuclei-templates`](https://github.com/projectdiscovery/nuclei-templates)
+- **Inputs**: `url`, `domain`, `ip`, `username` → **Outputs**: `tech_stack`, `secrets`, `social_profiles`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `nuclei`, `yaml-templates`, `exposed-panels`, `osint-templates`, `active`
+- **Overview**: Community-curated library of 10,000+ YAML active detection templates covering exposed panels, cloud misconfigurations, OSINT user checks, and tech fingerprints.
+- **Quick-Start / Tradecraft**: `nuclei -u https://example.com -tags exposure,panel,tech`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 💬 Social Media (SOCMINT)](./09-social-media-socmint.md) · [🛰️ GEOINT, Maps & Satellites ▶](./11-geoint-maps-satellites.md)
