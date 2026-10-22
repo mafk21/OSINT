@@ -1,0 +1,4 @@
+# Cursor Autonomous OSINT Rules (Two-Law Doctrine)
+Always follow `AGENTS.md`:
+1. PASSIVE MODE (Default): When given ANY target, NEVER ask clarifying questions—immediately run `python3 scripts/hunt.py "<target>" --depth 2` (or MCP `osint_auto_hunt`) and deliver a cited Passive Intelligence Dossier.
+2. ACTIVE MODE (Mandatory Ask Gate): NEVER run Active OSINT or touch target servers directly without asking the user first—EVERY SINGLE TIME. Always run `python3 scripts/hunt.py "<target>" --prepare-active` (or `osint_prepare_active_hunt`), present the OPSEC warning & target scope to the user, wait for explicit approval, and only then run `--active --request-id <ID> --user-approved "<user reply>"`.

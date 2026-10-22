@@ -1,0 +1,386 @@
+[
+  {
+    "id": "person-identity-attribution",
+    "title": "Person & Digital Footprint Attribution",
+    "discipline": "HUMINT / USERINT / EMAILINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "username / email / person_name",
+    "summary": "Build a verified 360-degree profile of an online persona or individual by chaining handle enumeration, email side-channels, breach metadata, and visual cross-verification.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Handle & Profile Discovery",
+        "action": "Run cross-platform username sweeps and extract structured profile metadata (avatars, bios, user IDs, creation dates).",
+        "recommended_tools": ["maigret", "sherlock", "whatsmyname", "blackbird", "socid-extractor"]
+      },
+      {
+        "step": 2,
+        "phase": "Email & Phone Enrichment",
+        "action": "Check discovered emails/phones against silent registration side-channels and Google/Gravatar ecosystems without triggering reset alerts.",
+        "recommended_tools": ["holehe", "ghunt", "epieos", "ignorant", "phoneinfoga"]
+      },
+      {
+        "step": 3,
+        "phase": "Breach & Historical Correlation",
+        "action": "Correlate historical usernames, IP clues, or secondary emails across breach indexes and infostealer telemetry.",
+        "recommended_tools": ["have-i-been-pwned", "intelligence-x", "hudson-rock-cavalier", "dehashed", "h8mail"]
+      },
+      {
+        "step": 4,
+        "phase": "Avatar & Face Cross-Match",
+        "action": "Reverse-search profile photos across face/visual indexes to uncover unlinked accounts using different handles.",
+        "recommended_tools": ["yandex-images", "pimeyes", "facecheck-id", "tineye", "search-by-image"]
+      },
+      {
+        "step": 5,
+        "phase": "Evidence Preservation & Link Graph",
+        "action": "Hash and archive all confirmed profile pages and plot entity links with confidence ratings.",
+        "recommended_tools": ["singlefile", "hunchly", "maltego", "flowsint"]
+      }
+    ]
+  },
+  {
+    "id": "domain-attack-surface-recon",
+    "title": "Passive-First Domain & Infrastructure Attribution",
+    "discipline": "DNSINT / NETINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "domain",
+    "summary": "Map an organization's external infrastructure, hidden origin IPs behind CDNs, historical ownership, and sister domains without sending a single packet to the target.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "RDAP, Historical WHOIS & Sister Domains",
+        "action": "Query current RDAP and historical WHOIS records to find registrant emails, org names, and reverse-WHOIS sister domains.",
+        "recommended_tools": ["icann-lookup", "whoxy", "securitytrails", "viewdns-info", "domaintools"]
+      },
+      {
+        "step": 2,
+        "phase": "Certificate Transparency & Passive Subdomains",
+        "action": "Harvest subdomains and wildcard SANs from Certificate Transparency logs and passive DNS aggregators.",
+        "recommended_tools": ["crt-sh", "subfinder", "owasp-amass", "findomain", "dnsdumpster"]
+      },
+      {
+        "step": 3,
+        "phase": "Origin IP & Banner Pivoting",
+        "action": "Uncover real origin servers behind Cloudflare/WAFs using TLS cert serials, favicon mmh3 hashes, and historical DNS A-records.",
+        "recommended_tools": ["shodan", "censys", "fofa", "netlas", "zoomeye"]
+      },
+      {
+        "step": 4,
+        "phase": "Analytics, AdSense & Source Code Pivoting",
+        "action": "Extract Google Tag Manager, Analytics (`G-`/`UA-`), AdSense, or custom JS snippets to discover undisclosed domains run by the same operator.",
+        "recommended_tools": ["builtwith", "publicwww", "urlscan-io", "nerdydata", "web-check"]
+      },
+      {
+        "step": 5,
+        "phase": "Historical Archive Mining",
+        "action": "Pull forgotten endpoints, leaked config files, and old team pages from historical web crawls.",
+        "recommended_tools": ["wayback-machine", "waymore", "gau", "common-crawl"]
+      }
+    ]
+  },
+  {
+    "id": "photo-video-geolocation-chronolocation",
+    "title": "Photo & Video Geolocation + Chronolocation",
+    "discipline": "GEOINT / IMINT",
+    "difficulty": "Advanced",
+    "starting_selector": "image / video",
+    "summary": "Determine the exact coordinates (geolocation) and capture timestamp (chronolocation) of an unverified photo or video using visual, architectural, geometric, and solar clues.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Metadata & Provenance Triage",
+        "action": "Inspect container metadata (EXIF/XMP/QuickTime atoms), extract keyframes, and search for the earliest public upload on the web.",
+        "recommended_tools": ["exiftool", "invid-weverify", "google-lens", "yandex-images", "forensically"]
+      },
+      {
+        "step": 2,
+        "phase": "Region Narrowing & AI Scene Leads",
+        "action": "Identify country/region indicators (license plates, bollards, road markings, utility poles, scripts, bird calls) and generate candidate regions.",
+        "recommended_tools": ["geohints", "plonk-it", "picarta", "geo-sleuth", "birdnet"]
+      },
+      {
+        "step": 3,
+        "phase": "Vector & Spatial Feature Querying",
+        "action": "Translate visual constraints (e.g., 'gas station within 80m of railway and mosque') into OpenStreetMap Overpass queries.",
+        "recommended_tools": ["overpass-turbo", "bellingcat-osm-search", "overpass-ultra", "peakvisor"]
+      },
+      {
+        "step": 4,
+        "phase": "Satellite & Street-Level Ground Truthing",
+        "action": "Confirm exact camera line-of-sight and historical construction changes using 3D terrain, street-level photos, and multispectral satellite time-series.",
+        "recommended_tools": ["google-earth-pro", "copernicus-browser", "mapillary", "kartaview", "esri-wayback"]
+      },
+      {
+        "step": 5,
+        "phase": "Solar Azimuth & Shadow Chronolocation",
+        "action": "Measure object height vs. shadow length and azimuth angle to verify or narrow the exact date and local time of capture.",
+        "recommended_tools": ["suncalc", "bellingcat-shadowfinder", "shadowmap", "wolfram-alpha"]
+      }
+    ]
+  },
+  {
+    "id": "corporate-beneficial-ownership-sanctions",
+    "title": "Corporate Shell Unmasking, UBO & Sanctions Investigation",
+    "discipline": "FININT / TRANSINT",
+    "difficulty": "Advanced",
+    "starting_selector": "company / person_name",
+    "summary": "Trace complex cross-border corporate hierarchies, uncover Ultimate Beneficial Owners (UBOs), screen against global sanctions/PEP lists, and map physical supply-chain shipments.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Global Registry & LEI Resolution",
+        "action": "Locate incorporation filings, company numbers, registered agents, and direct/ultimate parent Legal Entity Identifiers.",
+        "recommended_tools": ["opencorporates", "gleif-lei-search", "uk-companies-house", "sec-edgar", "north-data"]
+      },
+      {
+        "step": 2,
+        "phase": "Offshore Leaks & Investigative Document Cross-Check",
+        "action": "Pivot officers, addresses, and intermediaries across leaked offshore corporate registries, court filings, and journalism archives.",
+        "recommended_tools": ["occrp-aleph", "icij-offshore-leaks", "openownership", "littlesis", "courtlistener"]
+      },
+      {
+        "step": 3,
+        "phase": "Sanctions, PEP & Debarment Screening",
+        "action": "Screen entities, directors, vessels, and addresses against consolidated OFAC, EU, UN, UK, and PEP watchlists.",
+        "recommended_tools": ["opensanctions", "ofac-sanctions-search", "eu-sanctions-map", "sam-gov"]
+      },
+      {
+        "step": 4,
+        "phase": "Customs, Trade & Procurement Verification",
+        "action": "Map real-world buyers, overseas factories, HS commodity codes, and government contracts via bills of lading and tender databases.",
+        "recommended_tools": ["importyeti", "un-comtrade", "usaspending", "ted-eu-tenders"]
+      }
+    ]
+  },
+  {
+    "id": "crypto-wallet-laundering-trace",
+    "title": "Cryptocurrency Wallet Attribution & Cross-Chain Tracing",
+    "discipline": "CRYPTOINT",
+    "difficulty": "Advanced",
+    "starting_selector": "crypto_address / tx_hash",
+    "summary": "Follow stolen, ransom, or illicit funds across UTXO and EVM blockchains, identify peel chains and cross-chain bridges, and link wallets to off-chain identities or KYC exchanges.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Raw Ledger Inspection & Token Approvals",
+        "action": "Inspect first-funding gas source (faucet/CEX hot wallet), transaction timestamps (activity timezone), and token transfers.",
+        "recommended_tools": ["etherscan", "mempool-space", "blockchair", "solscan", "tronscan"]
+      },
+      {
+        "step": 2,
+        "phase": "Entity Attribution & Risk Screening",
+        "action": "Check 300M+ institutional/community wallet labels, OFAC SDN crypto tags, and scam reports.",
+        "recommended_tools": ["arkham-intelligence", "misttrack", "chainabuse", "opensanctions"]
+      },
+      {
+        "step": 3,
+        "phase": "Visual Hop Graphing & Clustering",
+        "action": "Build multi-hop fund-flow graphs, apply UTXO co-spend clustering, and trace DEX/bridge hops to cash-out deposit addresses.",
+        "recommended_tools": ["breadcrumbs", "graphsense", "metasleuth", "walletexplorer", "bubblemaps"]
+      },
+      {
+        "step": 4,
+        "phase": "Web3 Handle & Off-Chain OSINT Pivot",
+        "action": "Pivot ENS names, Lens/Farcaster handles, NFT mints, and pasted wallet strings across GitHub, X, Telegram, and darknet indexes.",
+        "recommended_tools": ["debank", "grep-app", "intelligence-x", "tgstat"]
+      }
+    ]
+  },
+  {
+    "id": "maritime-shadow-fleet-investigation",
+    "title": "Maritime Vessel, AIS Spoofing & Shadow Fleet Investigation",
+    "discipline": "TRANSINT / GEOINT / FININT",
+    "difficulty": "Advanced",
+    "starting_selector": "vessel_imo / mmsi",
+    "summary": "Investigate suspect cargo vessels or tankers conducting dark-ship port calls, ship-to-ship (STS) transfers, flag-hopping, or sanctions evasion.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Permanent IMO Resolution & Ownership History",
+        "action": "Resolve MMSI/name to permanent 7-digit IMO number and pull historical flag changes, ISM managers, P&I insurers, and PSC detentions.",
+        "recommended_tools": ["equasis", "opensanctions", "itu-mars", "tokyo-paris-mou"]
+      },
+      {
+        "step": 2,
+        "phase": "AIS Track & Dark-Gap Analysis",
+        "action": "Analyze historical AIS tracks, loitering behavior, draught changes (loaded vs. ballast), and transponder gaps.",
+        "recommended_tools": ["global-fishing-watch", "marinetraffic", "vesselfinder", "myshiptracking"]
+      },
+      {
+        "step": 3,
+        "phase": "Optical & SAR Satellite Verification",
+        "action": "Use Sentinel-1 Synthetic Aperture Radar (penetrates clouds/night) and Sentinel-2 optical imagery to spot 'dark' ships during AIS blackouts.",
+        "recommended_tools": ["copernicus-browser", "nasa-worldview", "google-earth-pro", "gpsjam"]
+      }
+    ]
+  },
+  {
+    "id": "aircraft-tail-number-tracking",
+    "title": "Military, State & VIP Aircraft Tail-Number Investigation",
+    "discipline": "TRANSINT / SIGINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "aircraft_hex / tail_number",
+    "summary": "Track LADD/PIA-blocked executive jets, cargo charters, or military aircraft using unfiltered community ADS-B/MLAT receivers, ACARS datalinks, and aircraft registries.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "ICAO 24-bit Hex & Registration Lookup",
+        "action": "Map tail number to ICAO 24-bit Mode-S hex code, airframe serial number, operator, and FAA/civil trust owner.",
+        "recommended_tools": ["faa-n-number-inquiry", "planespotters-net", "opensky-network", "opensanctions"]
+      },
+      {
+        "step": 2,
+        "phase": "Uncensored ADS-B & MLAT Flight Tracking",
+        "action": "Reconstruct live and historical flight legs on unfiltered networks that ignore FAA LADD block requests.",
+        "recommended_tools": ["ads-b-exchange", "airplanes-live", "flightradar24", "flightaware"]
+      },
+      {
+        "step": 3,
+        "phase": "Airfield Imagery & RF Correlation",
+        "action": "Correlate ramp parking via satellite imagery, ATC audio archives, and regional GNSS jamming interference.",
+        "recommended_tools": ["liveatc", "gpsjam", "copernicus-browser"]
+      }
+    ]
+  },
+  {
+    "id": "telegram-discord-extremist-scam-mapping",
+    "title": "Telegram & Discord Network Mapping",
+    "discipline": "PHONEINT / SOCMINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "username / keyword / url",
+    "summary": "Discover, archive, and map interconnected Telegram channels, bots, and Discord servers used by threat actors, fraud rings, or influence operations.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Passive Web Mirror & Catalogue Discovery",
+        "action": "Search public channel indexes and Google CSE dorks (`site:t.me`) without joining any group or exposing an account.",
+        "recommended_tools": ["tgstat", "telemetr-io", "telegago-cse", "telegramdb"]
+      },
+      {
+        "step": 2,
+        "phase": "Forwarding Graph & Bot Token Analysis",
+        "action": "Archive channel messages, build Gephi-ready message-forwarding edge lists, and inspect exposed Telegram bot tokens.",
+        "recommended_tools": ["telepathy", "telethon", "gephi"]
+      },
+      {
+        "step": 3,
+        "phase": "Discord Snowflake & Invite Pivoting",
+        "action": "Decode Discord Snowflake IDs into exact millisecond creation timestamps, inspect invite metadata, and check leaked server archives.",
+        "recommended_tools": ["discord-lookup", "discordleaks"]
+      }
+    ]
+  },
+  {
+    "id": "github-secret-developer-attribution",
+    "title": "Developer Attribution & Git Repository Forensics",
+    "discipline": "CODEINT / EMAILINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "username / repo_code / domain",
+    "summary": "Uncover developer real-world identities, corporate affiliations, timezone habits, and accidentally committed credentials from Git commit histories and public code.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Commit Patch Email & SSH/GPG Key Extraction",
+        "action": "Append `.patch` to commits or scan commit logs to extract raw author/committer emails, PGP key IDs, and SSH public keys (`github.com/<user>.keys`).",
+        "recommended_tools": ["gitrecon", "ghunt", "keys-openpgp-org", "github-code-search"]
+      },
+      {
+        "step": 2,
+        "phase": "Cross-Repo Code & Secret Scanning",
+        "action": "Scan org repos, forks, and dangling commits for leaked secrets, internal hostnames, and unique code patterns.",
+        "recommended_tools": ["trufflehog", "gitleaks", "grep-app", "sourcegraph", "git-hound"]
+      },
+      {
+        "step": 3,
+        "phase": "Cloud Storage & Package Ecosystem Pivot",
+        "action": "Pivot discovered project slugs across npm/PyPI/DockerHub maintainers and AWS/Azure/GCP public buckets.",
+        "recommended_tools": ["cloud-enum", "grayhatwarfare", "deps-dev"]
+      }
+    ]
+  },
+  {
+    "id": "threat-actor-phishing-infra-triage",
+    "title": "Phishing & Malware Infrastructure Pivoting",
+    "discipline": "CTI / DNSINT / NETINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "url / ip / file_hash",
+    "summary": "Triage a suspicious URL, C2 IP, or malware sample and pivot across TLS certificates, JARM fingerprints, DOM hashes, and passive DNS to uncover the actor's entire campaign.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Passive Reputation & Sandbox Lookup",
+        "action": "Query existing hash, URL, and IP telemetry first before submitting anything new that could tip off the adversary.",
+        "recommended_tools": ["virustotal", "urlscan-io", "malwarebazaar", "threatfox", "urlhaus"]
+      },
+      {
+        "step": 2,
+        "phase": "DOM, Favicon, TLS & JARM Pivoting",
+        "action": "Pivot on HTTP body hashes, favicon MurmurHash3 (`mmh3`), JARM TLS fingerprints, and certificate serial numbers to find sibling C2/phishing nodes.",
+        "recommended_tools": ["censys", "shodan", "validin", "pulsedive", "hunt-io"]
+      },
+      {
+        "step": 3,
+        "phase": "Noise Filtering & Threat Actor Context",
+        "action": "Separate mass internet scanners from targeted attacks and map IOCs to known threat groups and MITRE ATT&CK TTPs.",
+        "recommended_tools": ["greynoise", "malpedia", "mitre-attack", "opencti", "intelowl"]
+      }
+    ]
+  },
+  {
+    "id": "darkweb-ransomware-exposure-assessment",
+    "title": "Dark Web, Ransomware & Infostealer Exposure Triage",
+    "discipline": "DARKINT / BREACHINT",
+    "difficulty": "Intermediate",
+    "starting_selector": "domain / email / onion_url",
+    "summary": "Assess whether an organization or executive has compromised employee/customer stealer logs, darknet mentions, or active ransomware extortion listings.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "Ransomware Extortion & Leak-Site Check",
+        "action": "Query clearnet ransomware victim trackers and darknet indexers without directly visiting hostile extortion `.onion` portals.",
+        "recommended_tools": ["ransomlook", "ransomwatch", "ahmia", "intelligence-x"]
+      },
+      {
+        "step": 2,
+        "phase": "Corporate Infostealer Infection Check",
+        "action": "Identify infected employee/user devices compromised by RedLine, Lumma, Raccoon, or Vidar infostealers targeting corporate login URLs.",
+        "recommended_tools": ["hudson-rock-cavalier", "have-i-been-pwned", "dehashed", "leakix"]
+      },
+      {
+        "step": 3,
+        "phase": "Isolated Darknet Deep Dive",
+        "action": "When direct `.onion` inspection is required, execute crawls and triage inside an isolated Tor/Whonix workspace.",
+        "recommended_tools": ["whonix", "tor-browser", "robin-darkweb", "torbot"]
+      }
+    ]
+  },
+  {
+    "id": "wireless-rf-geospatial-triangulation",
+    "title": "Wireless BSSID, Cell Tower & RF Signal Intelligence",
+    "discipline": "SIGINT / GEOINT",
+    "difficulty": "Advanced",
+    "starting_selector": "mac_bssid / rf_frequency / coordinates",
+    "summary": "Geolocate devices, routers, IoT beacons, or radio transmissions by pivoting MAC/BSSID identifiers, cell-tower LAC/CID tuples, and global SDR monitoring nodes.",
+    "steps": [
+      {
+        "step": 1,
+        "phase": "OUI Vendor & BSSID Geolocation",
+        "action": "Resolve Wi-Fi BSSID / Bluetooth MAC addresses to hardware manufacturers and historical wardriven GPS coordinates.",
+        "recommended_tools": ["wigle", "apple-bssid-wps", "wireshark-oui-lookup"]
+      },
+      {
+        "step": 2,
+        "phase": "Cellular Tower & GNSS Interference Mapping",
+        "action": "Map MCC/MNC/LAC/CID cell tower identifiers to physical tower coordinates and inspect regional GPS/GNSS spoofing zones.",
+        "recommended_tools": ["opencellid", "cellmapper", "gpsjam"]
+      },
+      {
+        "step": 3,
+        "phase": "Remote SDR & Orbital Downlink Monitoring",
+        "action": "Monitor HF/VHF utility broadcasts via networked Software-Defined Radios and correlate overhead satellite passes.",
+        "recommended_tools": ["kiwisdr", "websdr", "satnogs", "celestrak"]
+      }
+    ]
+  }
+]
