@@ -52,6 +52,48 @@ SELECTOR_LABELS = {
     "rf_frequency": ("RF Frequency (kHz/MHz)", "`8992 kHz` HFGCS, `433.92 MHz`"),
 }
 
+PRIMARY_DISCIPLINE_FOR_SELECTOR = {
+    "username": "username-enumeration",
+    "email": "email-intelligence",
+    "phone": "phone-messaging-osint",
+    "person_name": "people-public-records",
+    "domain": "domain-dns-asm",
+    "ip": "network-ip-iot-search",
+    "asn": "network-ip-iot-search",
+    "url": "archiving-evidence-docs",
+    "image": "image-video-media-forensics",
+    "video": "image-video-media-forensics",
+    "audio": "image-video-media-forensics",
+    "coordinates": "geoint-maps-satellites",
+    "company": "corporate-financial-sanctions",
+    "crypto_address": "crypto-blockchain-web3",
+    "file_hash": "threat-intel-malware-cti",
+    "vessel_imo": "aviation-maritime-transport",
+    "aircraft_hex": "aviation-maritime-transport",
+    "vin": "aviation-maritime-transport",
+    "mac_bssid": "sigint-wireless-space-rf",
+    "repo_code": "code-cloud-dev-osint",
+    "onion_url": "darkweb-tor-underground",
+    "document": "archiving-evidence-docs",
+    "rf_frequency": "sigint-wireless-space-rf",
+}
+
+
+def pick_top_tools_for_selector(sel: str, matched: list[dict], count: int = 3) -> list[dict]:
+    primary_cat = PRIMARY_DISCIPLINE_FOR_SELECTOR.get(sel)
+    tier_rank = {"S": 0, "A": 1, "B": 2}
+    passive_pool = [t for t in matched if t["opsec"] == "Passive"] or matched
+    ranked = sorted(
+        passive_pool,
+        key=lambda t: (
+            0 if t["category"] == primary_cat else (2 if t["category"] == "all-in-one-frameworks" else 1),
+            tier_rank.get(t["tier"], 2),
+            0 if not t["auth_required"] else 1,
+            t["name"].lower(),
+        ),
+    )
+    return ranked[:count]
+
 
 def load_json(name: str):
     with (DATA_DIR / name).open("r", encoding="utf-8") as fh:
@@ -457,9 +499,7 @@ def build_docs(categories, tools, workflows, dorks, graveyard) -> None:
     for sel in ordered_selectors:
         matched = by_input[sel]
         passive_cnt = sum(1 for t in matched if t["opsec"] == "Passive")
-        s_tools = [t for t in matched if t["tier"] == "S"][:4]
-        if not s_tools:
-            s_tools = matched[:3]
+        s_tools = pick_top_tools_for_selector(sel, matched, count=4)
         top_links = ", ".join(f"[{t['name']}]({t['url']})" for t in s_tools)
         out_counts = Counter(o for t in matched for o in t["outputs"])
         top_outs = ", ".join(f"`{k}`" for k, _ in out_counts.most_common(4))
@@ -578,6 +618,40 @@ def build_docs(categories, tools, workflows, dorks, graveyard) -> None:
     gy_lines.append("")
     (DOCS_DIR / "GRAVEYARD_2026.md").write_text("\n".join(gy_lines) + "\n", encoding="utf-8")
 
+    # 5. FULL_INDEX.md (Single-page Ctrl+F directory of all 540 tools, keeping README.md fast & concise)
+    by_cat: dict[str, list[dict]] = defaultdict(list)
+    for t in tools:
+        by_cat[t["category"]].append(t)
+
+    fi_lines = [
+        "[⬅️ Back to Master README](../README.md)",
+        "",
+        f"# 🗂️ Complete {len(tools)}-Tool OSINT Master Directory",
+        "",
+        "Single-page `Ctrl+F` index of every verified tool in the database. For extended CLI `quick_start` snippets and `Input → Output` mappings, open the linked discipline manual.",
+        "",
+        "Legend: **`S`** = Gold Standard · **`A`** = Specialist · **`B`** = Tactical/Regional · `🟢 Passive` · `🟡 Hybrid` · `🔴 Active` · ✅ = No-Auth · 🔑 = Key/Login.",
+        "",
+    ]
+    for c in categories:
+        c_tools = by_cat[c["id"]]
+        anchor = f"{c['order']:02d}-{c['id']}"
+        fi_lines.append(f"<a id=\"{anchor}\"></a>")
+        fi_lines.append(f"## {c['icon']} {c['order']:02d}. {c['title']} (`{c['code']}`) — [Extended Manual →](../categories/{c['filename']})")
+        fi_lines.append("")
+        fi_lines.append("| Tier | Tool | Subcategory | Type | Pricing | OPSEC | Auth | Description |")
+        fi_lines.append("| :---: | :--- | :--- | :--- | :--- | :--- | :---: | :--- |")
+        for t in c_tools:
+            gh = f" · [GH](https://github.com/{t['github']})" if t["github"] else ""
+            auth_icon = "🔑" if t["auth_required"] else "✅"
+            fi_lines.append(
+                f"| **{t['tier']}** | [**{md_escape(t['name'])}**]({t['url']}){gh} | {md_escape(t['subcategory'])} | "
+                f"{t['type']} | {pricing_short(t['pricing'])} | {opsec_badge(t['opsec'])} | {auth_icon} | {md_escape(t['description'])} |"
+            )
+        fi_lines.append("")
+
+    (DOCS_DIR / "FULL_INDEX.md").write_text("\n".join(fi_lines) + "\n", encoding="utf-8")
+
 
 def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
     by_cat: dict[str, list[dict]] = defaultdict(list)
@@ -589,9 +663,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         for inp in t["inputs"]:
             by_input[inp].append(t)
 
-    s_cnt = sum(1 for t in tools if t["tier"] == "S")
     passive_cnt = sum(1 for t in tools if t["opsec"] == "Passive")
-    free_cnt = sum(1 for t in tools if t["pricing"] in ("Free / Open Source", "Free"))
     oss_cnt = sum(1 for t in tools if t["github"])
     no_auth_cnt = sum(1 for t in tools if not t["auth_required"])
 
@@ -600,89 +672,107 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "",
         "# 🛰️ OSINT MONSTER DATABASE",
         "",
-        "### The Multi-Format Open-Source Intelligence Arsenal, Selector Pivot Engine & Field Manual",
+        "**Autonomous OSINT Hunting Engine · 540-Tool Intelligence Arsenal · Native MCP Server · Field Playbooks**",
         "",
         f"![Verified Tools](https://img.shields.io/badge/Verified_Tools-{len(tools)}-00e5ff?style=for-the-badge) "
         f"![Disciplines](https://img.shields.io/badge/Disciplines-{len(categories)}-7c4dff?style=for-the-badge) "
-        f"![Passive Tools](https://img.shields.io/badge/Passive_Safe-{passive_cnt}-00e676?style=for-the-badge) "
+        f"![Passive Safe](https://img.shields.io/badge/Passive_Safe-{passive_cnt}-00e676?style=for-the-badge) "
         f"![Open Source](https://img.shields.io/badge/GitHub_Repos-{oss_cnt}-ffab00?style=for-the-badge) "
-        "![Formats](https://img.shields.io/badge/Formats-MD_%7C_JSON_%7C_CSV_%7C_SQLite_FTS5_%7C_CLI_%7C_Web-ff5252?style=for-the-badge)",
+        "![Stack](https://img.shields.io/badge/Python_3_Stdlib-Zero_Deps-ff5252?style=for-the-badge)",
         "",
-        "[**⚡ Zero-Question Agent Protocol (`AGENTS.md`)**](./AGENTS.md) · "
-        "[**🧭 Selector Pivot Matrix**](./docs/PIVOT_MATRIX.md) · "
-        "[**🗺️ 12 Investigation Playbooks**](./docs/WORKFLOWS.md) · "
-        "[**🎯 56 Dorks Arsenal**](./docs/DORKS_ARSENAL.md) · "
-        "[**🪦 2026 Graveyard & Replacements**](./docs/GRAVEYARD_2026.md) · "
-        "[**🛡️ OPSEC Tradecraft**](./docs/OPSEC_TRADECRAFT.md) · "
-        "[**➕ Contributing**](./CONTRIBUTING.md)",
+        "[**🤖 Agent Protocol**](./AGENTS.md) · "
+        "[**🗂️ Full 540-Tool Index**](./docs/FULL_INDEX.md) · "
+        "[**🧭 Pivot Matrix**](./docs/PIVOT_MATRIX.md) · "
+        f"[**🗺️ {len(workflows)} Playbooks**](./docs/WORKFLOWS.md) · "
+        f"[**🎯 {len(dorks)} Dorks**](./docs/DORKS_ARSENAL.md) · "
+        "[**🪦 2026 Graveyard**](./docs/GRAVEYARD_2026.md) · "
+        "[**🛡️ OPSEC Guide**](./docs/OPSEC_TRADECRAFT.md)",
         "",
         "</div>",
         "",
         "---",
         "",
-        "## ⚡ Why This Is a Monster Database (Not Just a Link List)",
+        "## ⚡ What's Inside",
         "",
-        f"Most `awesome-osint` repositories are flat lists of unverified links riddled with dead 2019 tools and zero operational context. **OSINT Monster Database** is engineered as a **single-source-of-truth intelligence system** spanning **{len(tools)} strictly validated active tools** across **{len(categories)} intelligence disciplines**:",
+        f"Unlike flat bookmark lists filled with dead links, **OSINT Monster Database** combines a **strictly validated {len(tools)}-tool multi-format catalog** ({no_auth_cnt} keyless/no-auth ready) with a **zero-dependency Python execution engine** (`osint_hunter/`) that AI agents, MCP hosts, and human analysts can run out of the box.",
         "",
-        f"- **OPSEC-Classified**: Every single tool is tagged `🟢 Passive` (**{passive_cnt}** tools — zero packets to target), `🟡 Hybrid`, or `🔴 Active`, plus whether login/API keys are required (**{no_auth_cnt}** keyless/no-auth tools).",
-        "- **Selector Pivot Architecture**: Query by *what evidence you hold right now* (`email`, `username`, `phone`, `domain`, `ip`, `image`, `crypto_address`, `vessel_imo`, `aircraft_hex`, `vin`, `mac_bssid`, `onion_url`, …) and see what downstream intelligence it unlocks.",
-        "- **Every Format Built-In**:",
-        "  - 📄 **GitHub Markdown**: Full 540-tool `Ctrl+F` index below + 20 extended discipline manuals in [`categories/`](./categories/)",
-        "  - 🗃️ **Relational SQLite 3 + FTS5**: [`data/osint.sqlite`](./data/osint.sqlite) ready for instant SQL & full-text search",
-        "  - 📦 **Machine-Readable Exports**: [`data/tools.json`](./data/tools.json), [`data/tools.csv`](./data/tools.csv), [`data/tools.jsonl`](./data/tools.jsonl), validated by [`data/schema.json`](./data/schema.json)",
-        "  - 💻 **Zero-Dependency Python CLI**: [`scripts/osint.py`](./scripts/osint.py) for terminal search, selector pivoting, and target-substituted dorks",
-        "  - 🖥️ **Interactive Web Explorer**: [`web/index.html`](./web/index.html) dark-ops analyst dashboard with multi-facet filtering, pivot chips, playbooks, and custom case-loadout export",
+        "| Capability | Entrypoint | Highlights |",
+        "| :--- | :--- | :--- |",
+        "| **🤖 Autonomous Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | 35+ passive collectors & offline decoders, Wave-2/3 recursive entity pivoting, OASIS **STIX 2.1** & SHA-256 dossiers |",
+        "| **🔌 Native MCP Server** | [`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | `stdio` JSON-RPC 2.0 + Streamable HTTP (`POST /api/mcp`) + OpenAI/Anthropic schemas ([`openai_tools.json`](./data/openai_tools.json)) |",
+        "| **🖥️ Web Command Center** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Live Hunt UI, SVG entity-pivot graph, Active Authorization Modal, Live Dork Forge, & Case Loadout builder |",
+        "| **🗃️ Multi-Format Data** | [`data/`](./data/) · [`scripts/osint.py`](./scripts/osint.py) | `tools.json`, **SQLite FTS5** (`osint.sqlite`), `tools.csv`, `tools.jsonl`, & terminal search/pivot CLI |",
         "",
         "---",
         "",
-        "## 🤖 Autonomous Agent-Ready Architecture (Zero Questions Asked)",
+        "## 🚀 60-Second Quick Start",
         "",
-        "Connect **Claude Code, OpenAI Codex, Cursor, Windsurf, Cline, OpenClaw, Arena Agent, LangGraph, or any MCP host** directly to this repository and drop **any** target (`@handle`, `email`, `domain`, `IP`, `phone`, `crypto_address`, `GitHub repo`, `VIN`, `aircraft ICAO hex`, `vessel IMO/MMSI`, `MAC/BSSID`, `JWT`, `file path`, or natural-language prompt):",
-        "",
-        "- **Two-Law Agent Doctrine ([`AGENTS.md`](./AGENTS.md) · [`CLAUDE.md`](./CLAUDE.md) · [`.cursorrules`](./.cursorrules) · [`SKILL.md`](./SKILL.md))**:\n"
-        "  1. **`🟢 Passive Mode` (Default — Zero Questions)**: Connected agents start hunting immediately on Turn 1 without asking clarifying questions.\n"
-        "  2. **`🔴 Active Mode` (Mandatory User-Approval Gate)**: Hard-enforced in [`osint_hunter/approval.py`](./osint_hunter/approval.py) — **ALWAYS asks the user for explicit permission before every single Active OSINT run** via single-use, target-bound `ACT-XXXXXXXX` approval tokens and logs to `cases/active_audit.jsonl`.",
-        "- **Passive + Active Collector Suite ([`scripts/hunt.py`](./scripts/hunt.py) & [`osint_hunter/`](./osint_hunter/))**:\n"
-        "  - **Passive (`35+` collectors & decoders)**: GitHub profile/commit-email/timezone/SSH/PGP packet carving, npm/PyPI maintainer attribution, 20-site handle probes, DoH DNS, `crt.sh` CT, RDAP, Wayback CDX, Shodan InternetDB, RIPEstat BGP, Tor Onionoo, Gravatar, Proton HKP, Mempool BTC, DexScreener EVM, ITU E.164 phone/carrier, ICAO military/gov hex blocks, Maritime MID & shadow-fleet flags, ISO 3779 VIN, IEEE OUI/EUI-64, JPEG EXIF GPS + DOCX/PDF carving.\n"
-        "  - **Active (`7` direct probes — user-gated)**: Live TLS `:443` X.509 SAN & SHA-256 cert inspector, HTTP redirect/security-header/CSP-domain/GA4-GTM tracker fingerprinter, `/robots.txt` + `/.well-known/security.txt` + OpenID tenant harvester, live `/favicon.ico` **Shodan `mmh3` hash calculator**, TCP service banner reader, live DNS/PTR resolver, and JSON-LD `sameAs` social-graph extractor.",
-        "- **Native MCP Server ([`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py)) + HTTP REST/MCP ([`scripts/server.py`](./scripts/server.py))**: Plugs into any MCP client over `stdio` or Streamable HTTP (`POST /api/mcp`), plus `POST /api/hunt` returning **Markdown Dossiers, Entity Graphs, OASIS STIX 2.1 Bundles, and SHA-256 Evidence Manifests** in `cases/`.",
-        "- **Function-Calling Schemas ([`data/openai_tools.json`](./data/openai_tools.json))**: Drop-in JSON tool definitions for OpenAI, Anthropic, Gemini, and LangChain SDKs.",
-        "",
-        "---",
-        "",
-        "## 🚀 Quick Start: Autonomous Hunt, MCP, CLI, SQLite & Live Web UI",
+        "*Requires only Python 3.9+ standard library — zero `pip install` needed.*",
         "",
         "```bash",
-        "# 1. Passive Mode (Default — Zero Questions, Zero Target Packets)",
+        "# 1. Instant Passive Hunt (Zero questions · Zero packets sent to target servers)",
         "python3 scripts/hunt.py \"@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000\"",
         "",
-        "# 2. Active Mode (ALWAYS Asks Permission First — Single-Use Request ID Gate)",
+        "# 2. Active OSINT Mode (ALWAYS asks permission first via single-use ACT-XXXXXXXX gate)",
         "python3 scripts/hunt.py \"github.com\" --prepare-active",
         "python3 scripts/hunt.py \"github.com\" --active --request-id ACT-XXXXXXXX --user-approved \"yes\"",
         "",
-        "# 3. Launch Interactive Command Center + Live Hunt API + HTTP MCP Server (http://0.0.0.0:8000)",
+        "# 3. Launch Web Command Center + REST Hunt API + HTTP MCP Server (http://0.0.0.0:8000)",
         "python3 scripts/server.py --port 8000",
         "",
-        "# 3. Terminal Arsenal CLI (540 Tools, 24 Selectors, 56 Dorks, 12 Playbooks)",
+        "# 4. Search the 540-Tool Arsenal, Pivot by Selector, or Forge Target Dorks",
         "python3 scripts/osint.py stats",
         "python3 scripts/osint.py pivot email --passive --free",
         "python3 scripts/osint.py dorks --engine Shodan --target example.com",
-        "",
-        "# 4. Query the SQLite FTS5 Database directly",
-        "python3 -c \"import sqlite3; c=sqlite3.connect('data/osint.sqlite'); print(c.execute(\\\"SELECT name, url FROM tools_fts JOIN tools USING(id) WHERE tools_fts MATCH 'infostealer OR ransomware'\\\").fetchall())\"",
         "```",
         "",
         "---",
         "",
-        "## 🧭 Quick Pivot Matrix — \"I Have an X, Where Do I Start?\"",
+        "## 🤖 AI Agent Integration: The Two-Law Doctrine",
         "",
-        "Full 24-selector breakdown in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.md).",
+        "Connect **Claude Code, Codex, Cursor, Windsurf, Cline, OpenClaw, or any MCP client** directly to this repo. Pre-configured manifests ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`SKILL.md`](./SKILL.md)) enforce two strict rules:",
         "",
-        "| Starting Evidence (Selector) | Tools | Top Passive / S-Tier Starting Stack | Pivots Into |",
-        "| :--- | :---: | :--- | :--- |",
+        "| Mode | Agent Behavior | Enforcement & Scope |",
+        "| :--- | :--- | :--- |",
+        "| **`🟢 Passive Mode`** *(Default)* | **Starts hunting on Turn 1 with zero clarifying questions** | Queries 35+ passive APIs & offline decoders (GitHub commit/SSH/PGP packet carving, npm/PyPI, DoH, `crt.sh`, RDAP, Wayback, InternetDB, RIPEstat, E.164, ICAO, MMSI, VIN, OUI, JPEG EXIF GPS). **Zero packets hit target servers.** |",
+        "| **`🔴 Active Mode`** *(Gated)* | **ALWAYS asks your permission before every single run** | Enforced in code ([`osint_hunter/approval.py`](./osint_hunter/approval.py)) via **single-use, target-bound `ACT-XXXXXXXX` tokens**. Unlocks live `:443` TLS SANs, HTTP/CSP/GA4 headers, `robots.txt`/`security.txt`, **Shodan `mmh3` favicon hashes**, & TCP banners. |",
+        "",
+        "Every hunt writes a gitignored forensic bundle under `cases/<UTC_TIMESTAMP>_<SLUG>/` containing `dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, and `manifest.sha256`.",
+        "",
+        "---",
+        "",
+        "## 📚 20 Intelligence Disciplines",
+        "",
+        f"Browse individual manuals below (with CLI `quick_start` commands and `Input → Output` tags) or open the [**Single-Page {len(tools)}-Tool Directory (`docs/FULL_INDEX.md`)**](./docs/FULL_INDEX.md).",
+        "",
+        "| # | Discipline | Tools | Flagship S-Tier Tools |",
+        "| :---: | :--- | :---: | :--- |",
     ]
 
-    featured_pivots = [
+    for c in categories:
+        c_tools = by_cat[c["id"]]
+        flagships = [t for t in c_tools if t["tier"] == "S"][:4] or c_tools[:3]
+        flag_links = ", ".join(f"[{t['name']}]({t['url']})" for t in flagships)
+        lines.append(
+            f"| **{c['order']:02d}** | [{c['icon']} **{c['short_title']}**](./categories/{c['filename']}) (`{c['code']}`) | "
+            f"**{len(c_tools)}** | {flag_links} |"
+        )
+
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 🧭 Quick Pivot Cheat Sheet — *\"I Have X, Where Do I Start?\"*",
+            "",
+            "See all 24 input selectors in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.md) or run `python3 scripts/osint.py pivot <selector> --passive`.",
+            "",
+            "| Starting Selector | Tools | Top Passive Starting Stack | Primary Outputs |",
+            "| :--- | :---: | :--- | :--- |",
+        ]
+    )
+
+    compact_pivots = [
         "username",
         "email",
         "phone",
@@ -690,22 +780,16 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "domain",
         "ip",
         "image",
-        "video",
-        "coordinates",
         "company",
         "crypto_address",
         "vessel_imo",
         "aircraft_hex",
         "vin",
-        "mac_bssid",
-        "file_hash",
-        "repo_code",
-        "onion_url",
     ]
-    for sel in featured_pivots:
+    for sel in compact_pivots:
         matched = by_input[sel]
-        top_s = [t for t in matched if t["tier"] == "S"][:4] or matched[:3]
-        links = ", ".join(f"[**{t['name']}**]({t['url']})" for t in top_s)
+        top_s = pick_top_tools_for_selector(sel, matched, count=3)
+        links = ", ".join(f"[{t['name']}]({t['url']})" for t in top_s)
         outs = Counter(o for t in matched for o in t["outputs"])
         out_str = ", ".join(f"`{k}`" for k, _ in outs.most_common(3))
         label = SELECTOR_LABELS[sel][0]
@@ -718,77 +802,33 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
             "",
             "---",
             "",
-            "## 📚 20 Intelligence Disciplines — Master Navigation",
+            "## 🗂️ Repository Layout",
             "",
-            "| # | Code | Discipline | Tools | S-Tier | Deep-Dive Manual (with CLI Commands) |",
-            "| :---: | :--- | :--- | :---: | :---: | :--- |",
-        ]
-    )
-
-    for c in categories:
-        c_tools = by_cat[c["id"]]
-        c_s = sum(1 for t in c_tools if t["tier"] == "S")
-        anchor = f"{c['order']:02d}-{c['id']}"
-        lines.append(
-            f"| **{c['order']:02d}** | `{c['code']}` | [{c['icon']} **{c['short_title']}**](#{anchor}) | "
-            f"**{len(c_tools)}** | `{c_s}` | [`categories/{c['filename']}`](./categories/{c['filename']}) |"
-        )
-
-    lines.extend(
-        [
+            "```text",
+            "OSINT/",
+            "├── AGENTS.md / CLAUDE.md / SKILL.md / .mcp.json   # Zero-question Passive + User-Gated Active agent rules",
+            "├── osint_hunter/                                  # Autonomous classifier, passive/active collectors & STIX engine",
+            "├── scripts/                                       # hunt.py, osint.py, mcp_server.py, server.py, validate.py, build.py",
+            "├── categories/01-*.md .. 20-*.md                  # 20 deep-dive manuals with CLI quick-starts & OPSEC notes",
+            "├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026",
+            "├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv, tools.jsonl",
+            "└── web/                                           # Zero-build Interactive OSINT Command Center UI",
+            "```",
             "",
             "---",
             "",
-            "## 🗂️ Complete 540-Tool Master Directory",
+            "## 🪦 Critical 2026 Retired / Hijacked Tool Warnings",
             "",
-            "Legend: **`S`** = Industry Gold Standard · **`A`** = Best-in-Class Specialist · **`B`** = Tactical / Regional · "
-            "`🟢 Passive` = Zero packets sent to target · `🟡 Hybrid` = Configurable · `🔴 Active` = Touches target · "
-            "✅ = No Login/Key Required · 🔑 = Account or API Key Required.",
-            "",
-        ]
-    )
-
-    for c in categories:
-        c_tools = by_cat[c["id"]]
-        anchor = f"{c['order']:02d}-{c['id']}"
-        lines.append(f"<a id=\"{anchor}\"></a>")
-        lines.append(f"### {c['icon']} {c['order']:02d}. {c['title']} (`{c['code']}`)")
-        lines.append("")
-        lines.append(
-            f"*{c['description']}* — [**Open Extended Manual & CLI Quick-Starts (`{len(c_tools)}` tools) →**](./categories/{c['filename']})"
-        )
-        lines.append("")
-        lines.append("| Tier | Tool | Subcategory | Type | Pricing | OPSEC | Auth | Description |")
-        lines.append("| :---: | :--- | :--- | :--- | :--- | :--- | :---: | :--- |")
-        for t in c_tools:
-            gh = f" · [GH](https://github.com/{t['github']})" if t["github"] else ""
-            auth_icon = "🔑" if t["auth_required"] else "✅"
-            lines.append(
-                f"| **{t['tier']}** | [**{md_escape(t['name'])}**]({t['url']}){gh} | {md_escape(t['subcategory'])} | "
-                f"{t['type']} | {pricing_short(t['pricing'])} | {opsec_badge(t['opsec'])} | {auth_icon} | {md_escape(t['description'])} |"
-            )
-        lines.append("")
-
-    lines.extend(
-        [
-            "---",
-            "",
-            "## 🪦 Notable Retired / Hijacked OSINT Tools (2026 Quick Check)",
-            "",
-            "Full breakdown in [**`docs/GRAVEYARD_2026.md`**](./docs/GRAVEYARD_2026.md).",
-            "",
-            "- **Sentinel Hub EO Browser** *(Retired Mar 2026)* → Use [**Copernicus Data Space Browser**](https://browser.dataspace.copernicus.eu/)",
-            "- **GeoSpy (`geospy.ai`)** *(Public access closed Apr 2026)* → Use [**Picarta**](https://picarta.ai/), [**geo-sleuth**](https://github.com/Oldcircle/geo-sleuth), & [**Bellingcat OSM Search**](https://osm-search.bellingcat.com/)",
-            "- **CrowdTangle** *(Shut down Aug 2024)* → Use [**Meta Content Library**](https://transparency.meta.com/researchtools/meta-content-library) & [**Who Posted What?**](https://whopostedwhat.com/)",
-            "- **Pushshift / Camas / Unddit** *(Revoked 2023)* → Use [**PullPush**](https://search.pullpush.io/) & [**Arctic Shift**](https://arctic-shift.photon-reddit.com/)",
-            "- **`telegago.com`** *(⚠️ Domain Hijacked!)* → Use ONLY the [**Official Google CSE Link**](https://cse.google.com/cse?cx=006368593537057042503:efxu7xprihg) & [**TGStat**](https://tgstat.com/)",
-            "- **Google `cache:` Operator** *(Retired 2024)* → Use [**Wayback Machine**](https://web.archive.org/), [**archive.today**](https://archive.ph/), & [**Memento TimeTravel**](http://timetravel.mementoweb.org/)",
+            "- ⚠️ **`telegago.com` is hijacked** — use ONLY the [**Official Google CSE Link**](https://cse.google.com/cse?cx=006368593537057042503:efxu7xprihg) & [**TGStat**](https://tgstat.com/).",
+            "- **Sentinel Hub EO Browser** *(Retired Mar 2026)* → [**Copernicus Data Space Browser**](https://browser.dataspace.copernicus.eu/)",
+            "- **GeoSpy (`geospy.ai`)** *(Public web closed Apr 2026)* → [**Picarta**](https://picarta.ai/), [**geo-sleuth**](https://github.com/Oldcircle/geo-sleuth), & [**Bellingcat OSM Search**](https://osm-search.bellingcat.com/)",
+            "- **CrowdTangle** / **Pushshift** → [**Meta Content Library**](https://transparency.meta.com/researchtools/meta-content-library), [**Who Posted What?**](https://whopostedwhat.com/), & [**PullPush**](https://search.pullpush.io/) — full list in [**`docs/GRAVEYARD_2026.md`**](./docs/GRAVEYARD_2026.md).",
             "",
             "---",
             "",
-            "## ⚖️ Legal & Ethical Use Notice",
+            "## ⚖️ Legal & Ethical Use",
             "",
-            "All tools, playbooks, and search operators in this repository are compiled strictly for **authorized security assessments, cyber threat intelligence, journalistic verification, academic research, human-rights documentation, compliance/KYC due diligence, and lawful open-source investigations**. Always verify legal authorization and OPSEC impact ([`docs/OPSEC_TRADECRAFT.md`](./docs/OPSEC_TRADECRAFT.md)) before running active reconnaissance.",
+            "Curated strictly for **authorized security assessments, cyber threat intelligence, journalistic verification, academic research, compliance due diligence, and lawful open-source investigations**. Review [**`docs/OPSEC_TRADECRAFT.md`**](./docs/OPSEC_TRADECRAFT.md) before active probing · [**MIT License**](./LICENSE) · [**Contributing**](./CONTRIBUTING.md).",
         ]
     )
 
@@ -813,7 +853,7 @@ def main() -> int:
 
     print("Build complete:")
     print(f"  - README.md + 20 category manuals in categories/")
-    print(f"  - 4 tactical manuals in docs/ (PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026)")
+    print(f"  - 5 tactical manuals in docs/ (FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026)")
     print(f"  - Multi-format data exports: data/tools.csv, data/tools.jsonl, data/osint.sqlite (FTS5)")
     print(f"  - Web Explorer bundle: web/data.js")
     return 0
