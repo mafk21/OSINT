@@ -1,0 +1,5 @@
+interface:
+  display_name: "OSINT Autonomous Hunter"
+  short_description: "Zero-question Passive OSINT + User-Gated Active Recon engine"
+  brand_color: "#00E5FF"
+  default_prompt: "Investigate @torvalds and https://github.com/torvalds using Passive OSINT and generate a forensic STIX 2.1 dossier."

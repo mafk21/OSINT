@@ -1,0 +1,46 @@
+{
+  "name": "osint-monster",
+  "version": "1.0.0",
+  "description": "Autonomous Passive OSINT Hunter (zero questions on Turn 1) + Mandatory User-Gated Active Recon + 540-Tool Intelligence Arsenal, Selector Pivots & Dork Forge.",
+  "author": {
+    "name": "mafk21",
+    "url": "https://github.com/mafk21/OSINT"
+  },
+  "homepage": "https://github.com/mafk21/OSINT",
+  "repository": "https://github.com/mafk21/OSINT",
+  "license": "MIT",
+  "keywords": [
+    "osint",
+    "recon",
+    "threat-intelligence",
+    "cti",
+    "socmint",
+    "geoint",
+    "dns",
+    "stix2",
+    "dorks",
+    "security"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "OSINT Monster Database",
+    "shortDescription": "Autonomous Passive & User-Gated Active OSINT Hunter + 540-Tool Arsenal",
+    "longDescription": "Equip Codex with a 35+ collector Autonomous Passive OSINT Hunter (executes immediately on Turn 1 with zero clarifying questions), a hard-gated Active Recon engine (always asks permission before sending live packets), and a 540-tool OSINT catalog, selector pivot matrix, playbook engine, and search dork forge.",
+    "developerName": "mafk21",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mafk21/OSINT",
+    "defaultPrompt": [
+      "Investigate @torvalds and https://github.com/torvalds using Passive OSINT and build a forensic STIX 2.1 dossier.",
+      "What are the best passive no-auth OSINT tools to pivot from an email address, phone number, or 17-char VIN?",
+      "Forge Shodan, Censys, Google, and GitHub OSINT dorks for example.com."
+    ],
+    "brandColor": "#00E5FF",
+    "composerIcon": "./.codex-plugin/assets/icon.svg"
+  }
+}

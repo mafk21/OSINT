@@ -19,9 +19,12 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parent
+for _cand in (SCRIPT_DIR, ROOT):
+    if (_cand / "osint_hunter").is_dir() and str(_cand) not in sys.path:
+        sys.path.insert(0, str(_cand))
+        break
 
 from osint_hunter.approval import (  # noqa: E402
     ACTIVE_MODULES_CATALOG,
@@ -58,6 +61,7 @@ def main() -> int:
     parser.add_argument("target", nargs="+", help="Any selector, URL, file path, or natural-language prompt")
     parser.add_argument("-d", "--depth", type=int, default=2, choices=[1, 2, 3], help="Recursive pivot depth (default: 2)")
     parser.add_argument("-m", "--max-pivots", type=int, default=6, help="Max new selectors pivoted per wave (default: 6)")
+    parser.add_argument("--cases-dir", help="Custom output directory for forensic case bundles")
     parser.add_argument("--no-save", action="store_true", help="Do not write dossier/STIX artifacts to cases/")
     parser.add_argument("--json", action="store_true", help="Print structured JSON output")
 
@@ -118,11 +122,12 @@ def main() -> int:
                     print(json.dumps(plan, indent=2, ensure_ascii=False))
                 else:
                     _print_approval_prompt_sheet(plan)
+                    script_cmd = f"python3 {json.dumps(str(Path(__file__).resolve()))}"
                     print(
                         f"\n  [BLOCKED] Active OSINT requires explicit user permission first!\n"
                         f"  1. Ask the user for permission showing the OPSEC scope above.\n"
                         f"  2. After they reply approving it, run:\n"
-                        f"     python3 scripts/hunt.py {json.dumps(raw_target)} --active "
+                        f"     {script_cmd} {json.dumps(raw_target)} --active "
                         f"--request-id {plan['request_id']} --user-approved \"<USER_CONFIRMATION>\"",
                         file=sys.stderr,
                     )
@@ -134,6 +139,7 @@ def main() -> int:
                 depth=args.depth,
                 max_pivots_per_wave=args.max_pivots,
                 save_case=not args.no_save,
+                cases_dir=args.cases_dir,
                 mode="active",
                 approval_request_id=req_id,
                 user_confirmation=user_conf,
@@ -150,6 +156,7 @@ def main() -> int:
             depth=args.depth,
             max_pivots_per_wave=args.max_pivots,
             save_case=not args.no_save,
+            cases_dir=args.cases_dir,
             mode="passive",
         )
 

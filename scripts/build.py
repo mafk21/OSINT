@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import csv
 import json
+import shutil
 import sqlite3
 import subprocess
 import sys
+import zipfile
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -24,6 +26,9 @@ DATA_DIR = ROOT / "data"
 CAT_DIR = ROOT / "categories"
 DOCS_DIR = ROOT / "docs"
 WEB_DIR = ROOT / "web"
+SKILLS_DIR = ROOT / "skills"
+RELEASES_DIR = ROOT / "releases"
+FIXED_ZIP_DT = (2026, 1, 1, 0, 0, 0)
 
 SELECTOR_LABELS = {
     "username": ("Username / Handle", "`@johndoe`, gaming alias"),
@@ -681,7 +686,8 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "![Stack](https://img.shields.io/badge/Python_3_Stdlib-Zero_Deps-ff5252?style=for-the-badge)",
         "",
         "[**🤖 Agent Protocol**](./AGENTS.md) · "
-        "[**🗂️ Full 540-Tool Index**](./docs/FULL_INDEX.md) · "
+        "[**🧩 Skills Setup**](./docs/SKILLS_SETUP.md) · "
+        f"[**🗂️ Full {len(tools)}-Tool Index**](./docs/FULL_INDEX.md) · "
         "[**🧭 Pivot Matrix**](./docs/PIVOT_MATRIX.md) · "
         f"[**🗺️ {len(workflows)} Playbooks**](./docs/WORKFLOWS.md) · "
         f"[**🎯 {len(dorks)} Dorks**](./docs/DORKS_ARSENAL.md) · "
@@ -698,10 +704,35 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "",
         "| Capability | Entrypoint | Highlights |",
         "| :--- | :--- | :--- |",
+        "| **🧩 Portable Agent Skills** | [`skills/`](./skills/) · [`docs/SKILLS_SETUP.md`](./docs/SKILLS_SETUP.md) | Self-contained `osint-hunter` & `osint-arsenal` skills for **Claude Code, Codex, Claude.ai, Cursor & 75+ agents** (no repo clone needed) |",
         "| **🤖 Autonomous Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | 35+ passive collectors & offline decoders, Wave-2/3 recursive entity pivoting, OASIS **STIX 2.1** & SHA-256 dossiers |",
         "| **🔌 Native MCP Server** | [`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | `stdio` JSON-RPC 2.0 + Streamable HTTP (`POST /api/mcp`) + OpenAI/Anthropic schemas ([`openai_tools.json`](./data/openai_tools.json)) |",
         "| **🖥️ Web Command Center** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Live Hunt UI, SVG entity-pivot graph, Active Authorization Modal, Live Dork Forge, & Case Loadout builder |",
         "| **🗃️ Multi-Format Data** | [`data/`](./data/) · [`scripts/osint.py`](./scripts/osint.py) | `tools.json`, **SQLite FTS5** (`osint.sqlite`), `tools.csv`, `tools.jsonl`, & terminal search/pivot CLI |",
+        "",
+        "---",
+        "",
+        "## 🧩 Install as Agent Skills (Claude, Codex, Cursor & 75+ Agents)",
+        "",
+        "Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + User-Gated Active recon engine) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) (540-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and investigate targets from **any directory** without cloning this repo:",
+        "",
+        "```bash",
+        "# Universal Skills CLI (Claude Code, OpenAI Codex, Cursor, OpenCode, Windsurf, Copilot & 75+ agents)",
+        "npx skills add mafk21/OSINT -g",
+        "",
+        "# Claude Code Native Plugin Marketplace (run inside Claude Code)",
+        "/plugin marketplace add mafk21/OSINT",
+        "/plugin install osint-monster@osint-monster",
+        "",
+        "# OpenAI Codex Native $skill-installer (run inside Codex)",
+        "$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-hunter",
+        "$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-arsenal",
+        "",
+        "# Zero-Node Pure-Python Local Installer (from a local checkout)",
+        "python3 scripts/install_skills.py --all",
+        "```",
+        "",
+        "- **Claude.ai Web & Claude Desktop Upload**: Download [**`releases/osint-hunter-skill.zip`**](./releases/osint-hunter-skill.zip) and [**`releases/osint-arsenal-skill.zip`**](./releases/osint-arsenal-skill.zip) and upload in **Settings → Capabilities → Skills**. Full guide in [**`docs/SKILLS_SETUP.md`**](./docs/SKILLS_SETUP.md).",
         "",
         "---",
         "",
@@ -730,7 +761,7 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
         "",
         "## 🤖 AI Agent Integration: The Two-Law Doctrine",
         "",
-        "Connect **Claude Code, Codex, Cursor, Windsurf, Cline, OpenClaw, or any MCP client** directly to this repo. Pre-configured manifests ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`SKILL.md`](./SKILL.md)) enforce two strict rules:",
+        "Whether installed via [**`skills/`**](./skills/) or opened directly in this repo ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`.codex-plugin/`](./.codex-plugin/plugin.json), [`.claude-plugin/`](./.claude-plugin/marketplace.json)), connected agents obey two strict rules:",
         "",
         "| Mode | Agent Behavior | Enforcement & Scope |",
         "| :--- | :--- | :--- |",
@@ -806,12 +837,15 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
             "",
             "```text",
             "OSINT/",
-            "├── AGENTS.md / CLAUDE.md / SKILL.md / .mcp.json   # Zero-question Passive + User-Gated Active agent rules",
+            "├── skills/osint-hunter & skills/osint-arsenal     # Self-contained Agent Skills (Claude, Codex, Cursor & 75+)",
+            "├── .claude-plugin/ & .codex-plugin/ & .agents/    # Native Claude Code & OpenAI Codex plugin marketplaces",
+            "├── releases/*-skill.zip                           # Drag-and-drop skill zips for Claude.ai & Claude Desktop",
+            "├── AGENTS.md / CLAUDE.md / .mcp.json              # Zero-question Passive + User-Gated Active repo manifests",
             "├── osint_hunter/                                  # Autonomous classifier, passive/active collectors & STIX engine",
-            "├── scripts/                                       # hunt.py, osint.py, mcp_server.py, server.py, validate.py, build.py",
+            "├── scripts/                                       # hunt.py, osint.py, install_skills.py, mcp_server.py, server.py",
             "├── categories/01-*.md .. 20-*.md                  # 20 deep-dive manuals with CLI quick-starts & OPSEC notes",
-            "├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026",
-            "├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv, tools.jsonl",
+            "├── docs/                                          # SKILLS_SETUP, FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS",
+            "├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv",
             "└── web/                                           # Zero-build Interactive OSINT Command Center UI",
             "```",
             "",
@@ -835,6 +869,423 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
     (ROOT / "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _write_deterministic_zip(skill_dir: Path, out_zip: Path) -> None:
+    out_zip.parent.mkdir(parents=True, exist_ok=True)
+    files = sorted(
+        p
+        for p in skill_dir.rglob("*")
+        if p.is_file()
+        and "__pycache__" not in p.parts
+        and p.name != ".DS_Store"
+        and not p.name.endswith(".pyc")
+    )
+    with zipfile.ZipFile(out_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+        for file_path in files:
+            arcname = file_path.relative_to(skill_dir.parent).as_posix()
+            info = zipfile.ZipInfo(filename=arcname, date_time=FIXED_ZIP_DT)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = (0o755 if file_path.suffix == ".py" else 0o644) << 16
+            zf.writestr(info, file_path.read_bytes())
+
+
+def build_skills_and_packages(
+    categories: list[dict],
+    tools: list[dict],
+    workflows: list[dict],
+    dorks: list[dict],
+    graveyard: list[dict],
+    intel_tables: dict,
+) -> None:
+    license_txt = (ROOT / "LICENSE").read_text(encoding="utf-8")
+
+    # ── 1. Build self-contained skills/osint-hunter ──────────────────────────
+    hunter_dir = SKILLS_DIR / "osint-hunter"
+    if hunter_dir.exists():
+        shutil.rmtree(hunter_dir)
+    (hunter_dir / "scripts" / "osint_hunter").mkdir(parents=True, exist_ok=True)
+    (hunter_dir / "data").mkdir(parents=True, exist_ok=True)
+    (hunter_dir / "agents").mkdir(parents=True, exist_ok=True)
+    (hunter_dir / "references").mkdir(parents=True, exist_ok=True)
+
+    (hunter_dir / "LICENSE.txt").write_text(license_txt, encoding="utf-8")
+    shutil.copy2(ROOT / "scripts" / "hunt.py", hunter_dir / "scripts" / "hunt.py")
+    for py_file in sorted((ROOT / "osint_hunter").glob("*.py")):
+        shutil.copy2(py_file, hunter_dir / "scripts" / "osint_hunter" / py_file.name)
+
+    for fname, obj in (
+        ("tools.json", tools),
+        ("workflows.json", workflows),
+        ("dorks.json", dorks),
+        ("intel_tables.json", intel_tables),
+    ):
+        (hunter_dir / "data" / fname).write_text(
+            json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+
+    (hunter_dir / "agents" / "openai.yaml").write_text(
+        "\n".join(
+            [
+                "interface:",
+                '  display_name: "OSINT Autonomous Hunter"',
+                '  short_description: "Zero-question Passive OSINT + User-Gated Active Recon engine"',
+                '  brand_color: "#00E5FF"',
+                '  default_prompt: "Investigate @torvalds and https://github.com/torvalds using Passive OSINT and generate a forensic STIX 2.1 dossier."',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    hunter_skill_md = """---
+name: osint-hunter
+description: Autonomous OSINT recon and investigation engine. Use whenever the user provides a username, handle, email, phone number, domain, IP, ASN, URL, crypto wallet, 17-char VIN, aircraft ICAO hex, vessel IMO or MMSI, Wi-Fi BSSID, file hash, JWT, or local file to investigate. Executes 35+ passive collectors and offline decoders immediately on Turn 1 with zero clarifying questions, and enforces a mandatory human permission gate before running Active OSINT probes.
+license: MIT
+compatibility: Python 3.9+ standard library only (zero pip dependencies). Works standalone from any working directory in Claude Code, Codex, Cursor, Claude.ai, and 75+ agents.
+---
+
+# Autonomous OSINT Hunter (`osint-hunter`)
+
+This skill bundles a complete, zero-dependency Python 3 OSINT execution engine (`scripts/hunt.py` + `scripts/osint_hunter/`) and offline lookup tables (`data/`). You can execute it from **any directory** without cloning the main repository.
+
+## Locating `hunt.py`
+
+Resolve the bundled `scripts/hunt.py` relative to this `SKILL.md` file (or via `${CLAUDE_SKILL_DIR}` when set):
+
+```bash
+HUNT_PY="${CLAUDE_SKILL_DIR:+${CLAUDE_SKILL_DIR}/scripts/hunt.py}"
+if [ -z "$HUNT_PY" ] || [ ! -f "$HUNT_PY" ]; then
+  for d in "./skills/osint-hunter" "$HOME/.claude/skills/osint-hunter" "$HOME/.codex/skills/osint-hunter" "$HOME/.agents/skills/osint-hunter" ".agents/skills/osint-hunter" ".claude/skills/osint-hunter" ".codex/skills/osint-hunter" "$HOME/.cursor/skills/osint-hunter" "/mnt/skills/user/osint-hunter" "/mnt/skills/private/osint-hunter"; do
+    [ -f "$d/scripts/hunt.py" ] && HUNT_PY="$d/scripts/hunt.py" && break
+  done
+fi
+```
+
+---
+
+## Law 1: Passive OSINT — Immediate Turn-1 Execution (Zero Questions)
+
+When the user supplies **any target** (handle, email, phone, domain, IP, ASN, URL, wallet, VIN, aircraft hex, vessel IMO/MMSI, BSSID, SHA-256, JWT, or local file):
+
+1. **DO NOT ask clarifying questions.** Do not ask "Would you like me to investigate?" or "Which tools should I use?".
+2. **Immediately run Passive OSINT** on Turn 1:
+   ```bash
+   python3 "$HUNT_PY" "<target_or_prompt>" --depth 2
+   ```
+3. **Zero packets are sent to target-owned infrastructure** in Passive Mode. All 35+ collectors query passive public APIs (GitHub commit/SSH/PGP packet carving, npm/PyPI, DoH, `crt.sh`, RDAP, Wayback CDX, Shodan InternetDB, RIPEstat, Nominatim, Bitcoin/EVM RPC) and deterministic offline decoders (ITU E.164, ICAO 24-bit military/country hex, ITU MID/IMO checksum, ISO 3779 VIN, IEEE OUI/BSSID, JWT, EXIF GPS, PDF/DOCX/ZIP metadata).
+4. Present a structured **Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, `manifest.sha256`), entity pivots discovered, and target-forged search dorks.
+
+---
+
+## Law 2: Active OSINT — ALWAYS Ask User Permission Before Every Run (Hard Gate)
+
+Active OSINT sends **direct TCP/TLS/HTTP/DNS packets** to target infrastructure (`:443` X.509 SANs, live HTTP/CSP/analytics headers, `/robots.txt`, `/.well-known/security.txt`, OpenID tenant config, Shodan `mmh3` `/favicon.ico` hash, OpenGraph/JSON-LD `sameAs`, TCP service banners).
+
+**Even if the user explicitly asks for "active recon", "deep scan", or "live probe", you MUST ask for confirmation before EVERY single active run:**
+
+1. **Step 1 — Prepare Single-Use Authorization Token (Sends ZERO Packets)**:
+   ```bash
+   python3 "$HUNT_PY" "<target>" --prepare-active
+   ```
+2. **Step 2 — Stop & Ask the User for Explicit Permission**:
+   Use your platform's question/confirmation UI (e.g. `ask_user`) or ask clearly in chat, disclosing:
+   - Exact target host(s) / IP(s) to be contacted directly
+   - Planned active probing modules (from `--prepare-active` output)
+   - OPSEC warning (target servers/WAF/IDS will log this machine's egress IP and TLS fingerprint)
+3. **Step 3 — Execute ONLY After Explicit User Approval**:
+   ```bash
+   python3 "$HUNT_PY" "<target>" --active --request-id ACT-XXXXXXXX --user-approved "<verbatim_user_reply>"
+   ```
+   Each `ACT-XXXXXXXX` token is **single-use**, **target-bound**, and expires in 15 minutes. A new active run always requires a fresh `--prepare-active` + fresh user approval.
+
+For full collector and active-gate details, read `references/ACTIVE_GATE_AND_MODULES.md`.
+"""
+    (hunter_dir / "SKILL.md").write_text(hunter_skill_md, encoding="utf-8")
+
+    (hunter_dir / "references" / "ACTIVE_GATE_AND_MODULES.md").write_text(
+        "\n".join(
+            [
+                "# OSINT Hunter — Collector & Active Gate Reference",
+                "",
+                "## Passive Collectors & Offline Decoders (Law 1 — Instant, 0 Target Packets)",
+                "- **Offline Decoders**: ITU E.164 phone + NANPA/carrier hints, ICAO 24-bit hex + military block flag, Maritime IMO checksum + MMSI MID flag state, ISO 3779 17-char VIN WMI/year/check-digit, IEEE OUI MAC + Wi-Fi BSSID bit analysis, JWT header/payload/expiry, local JPEG EXIF GPS + PNG/PDF/DOCX/XLSX/ZIP author carving.",
+                "- **Passive Public APIs**: GitHub profile + `.patch` commit email leak + `.keys` SSH + `.gpg` OpenPGP UID carving, GitLab, Keybase cryptographic proofs, Reddit JSON, HackerNews Firebase, npm & PyPI maintainer registries, Gravatar SHA-256, Google DoH (`A`/`AAAA`/`MX`/`TXT`/`NS`/`SOA`/`CAA`) + DMARC/SPF/BIMId, `crt.sh` Certificate Transparency, IANA RDAP, Wayback CDX + sensitive path scan, HackerTarget passive hosts, URLhaus, Shodan InternetDB, RIPEstat BGP/ASN, Nominatim reverse geocode, Mempool.space BTC & Ethereum JSON-RPC.",
+                "",
+                "## Gated Active Modules (Law 2 — Requires Single-Use `ACT-XXXXXXXX` Approval)",
+                "1. `active_dns_live_resolver` — Live forward & reverse PTR resolution.",
+                "2. `active_tls_cert_inspector` — Direct `:443` TLS handshake, X.509 SANs, issuer, serial, SHA-256 thumbprint.",
+                "3. `active_http_fingerprint_and_headers` — Redirect chain, Server/X-Powered-By, HSTS/CSP host extraction, GA4/GTM/AdSense/Meta Pixel IDs.",
+                "4. `active_wellknown_and_robots_harvester` — Live `/robots.txt`, `/.well-known/security.txt`, `/.well-known/openid-configuration`, `/humans.txt`.",
+                "5. `active_favicon_hash_extractor` — Live `/favicon.ico` Shodan MurmurHash3 (`http.favicon.hash:<mmh3>`) & SHA-256.",
+                "6. `active_tcp_service_banner_probe` — Non-intrusive TCP banner read on common ports (`21, 22, 25, 80, 443, 8080, 8443`).",
+                "7. `active_url_jsonld_opengraph` — Live HTML OpenGraph, JSON-LD `sameAs` social links, `mailto:` & `tel:` contacts.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    # ── 2. Build self-contained skills/osint-arsenal ─────────────────────────
+    arsenal_dir = SKILLS_DIR / "osint-arsenal"
+    if arsenal_dir.exists():
+        shutil.rmtree(arsenal_dir)
+    (arsenal_dir / "scripts").mkdir(parents=True, exist_ok=True)
+    (arsenal_dir / "data").mkdir(parents=True, exist_ok=True)
+    (arsenal_dir / "agents").mkdir(parents=True, exist_ok=True)
+    (arsenal_dir / "references").mkdir(parents=True, exist_ok=True)
+
+    (arsenal_dir / "LICENSE.txt").write_text(license_txt, encoding="utf-8")
+    shutil.copy2(ROOT / "scripts" / "osint.py", arsenal_dir / "scripts" / "osint.py")
+
+    for fname, obj in (
+        ("categories.json", categories),
+        ("tools.json", tools),
+        ("workflows.json", workflows),
+        ("dorks.json", dorks),
+        ("graveyard.json", graveyard),
+    ):
+        (arsenal_dir / "data" / fname).write_text(
+            json.dumps(obj, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
+
+    (arsenal_dir / "agents" / "openai.yaml").write_text(
+        "\n".join(
+            [
+                "interface:",
+                '  display_name: "OSINT 540-Tool Arsenal & Dork Forge"',
+                '  short_description: "Search 540 OSINT tools, selector pivots, playbooks & search dorks"',
+                '  brand_color: "#7C4DFF"',
+                '  default_prompt: "Show me the top passive no-auth OSINT tools to pivot from an email address and forge target search dorks."',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    arsenal_skill_md = f"""---
+name: osint-arsenal
+description: Search and pivot across {len(tools)} verified OSINT tools, {len(categories)} intelligence disciplines, 24 input-to-output selector chains, {len(dorks)} Google/Shodan/Censys/FOFA/GitHub dorks, {len(workflows)} investigation playbooks, and 2026 dead or hijacked tool graveyard warnings. Use when selecting OSINT tools for any clue, planning investigation tradecraft, generating search engine dorks, or checking working replacements for retired tools.
+license: MIT
+compatibility: Python 3.9+ standard library only (zero pip dependencies). Also includes Markdown reference sheets for non-shell environments.
+---
+
+# OSINT {len(tools)}-Tool Arsenal, Pivot Advisor & Dork Forge (`osint-arsenal`)
+
+This skill bundles the complete validated **{len(tools)}-tool OSINT Monster Database**, **{len(workflows)} multi-hop playbooks**, **{len(dorks)} search dorks**, and **2026 Graveyard warnings** inside `data/` + `scripts/osint.py`.
+
+## Locating `osint.py`
+
+```bash
+OSINT_PY="${{CLAUDE_SKILL_DIR:+${{CLAUDE_SKILL_DIR}}/scripts/osint.py}}"
+if [ -z "$OSINT_PY" ] || [ ! -f "$OSINT_PY" ]; then
+  for d in "./skills/osint-arsenal" "$HOME/.claude/skills/osint-arsenal" "$HOME/.codex/skills/osint-arsenal" "$HOME/.agents/skills/osint-arsenal" ".agents/skills/osint-arsenal" ".claude/skills/osint-arsenal" ".codex/skills/osint-arsenal" "$HOME/.cursor/skills/osint-arsenal" "/mnt/skills/user/osint-arsenal" "/mnt/skills/private/osint-arsenal"; do
+    [ -f "$d/scripts/osint.py" ] && OSINT_PY="$d/scripts/osint.py" && break
+  done
+fi
+```
+
+## Core Commands
+
+```bash
+# 1. Selector Pivot ("I have X, what passive free tools give me Y?")
+python3 "$OSINT_PY" pivot email --passive --free
+python3 "$OSINT_PY" pivot username --no-auth --tier S
+python3 "$OSINT_PY" pivot domain --passive --limit 15
+
+# 2. Full-Text Tool Search Across {len(tools)} Verified Tools
+python3 "$OSINT_PY" search telegram --passive
+python3 "$OSINT_PY" search satellite --free --no-auth
+python3 "$OSINT_PY" search --category geoint-maps-satellites --tier S
+
+# 3. Forge Target-Parameterized Google / Shodan / Censys / FOFA / GitHub Dorks
+python3 "$OSINT_PY" dorks --target example.com
+python3 "$OSINT_PY" dorks --engine Shodan --target example.com
+
+# 4. Multi-Hop Investigation Playbooks & 2026 Dead/Hijacked Tool Graveyard
+python3 "$OSINT_PY" workflows
+python3 "$OSINT_PY" graveyard
+python3 "$OSINT_PY" stats
+```
+
+## Supported Selector Types for `pivot`
+
+`username`, `email`, `phone`, `person_name`, `domain`, `ip`, `asn`, `url`, `image`, `video`, `audio`, `coordinates`, `company`, `crypto_address`, `file_hash`, `vessel_imo`, `aircraft_hex`, `vin`, `mac_bssid`, `repo_code`, `onion_url`, `document`, `rf_frequency`, `keyword`.
+
+## Bundled Markdown References (No-Shell Fallback)
+
+If bash execution is unavailable, read directly from this skill directory:
+- `references/PIVOT_CHEATSHEET.md` — Top specialist passive S-Tier starting stacks per selector
+- `references/WORKFLOWS_QUICKREF.md` — {len(workflows)} multi-hop OSINT investigation playbooks
+- `references/GRAVEYARD_2026.md` — Retired, paywalled, and hijacked OSINT domains to avoid (including the `telegago.com` hijack warning)
+"""
+    (arsenal_dir / "SKILL.md").write_text(arsenal_skill_md, encoding="utf-8")
+
+    # Bundled lightweight Markdown references for osint-arsenal
+    by_input: dict[str, list[dict]] = defaultdict(list)
+    for t in tools:
+        for inp in t["inputs"]:
+            by_input[inp].append(t)
+
+    piv_ref = [
+        "# Selector Pivot Cheat Sheet (24 Selectors)",
+        "",
+        "| Selector | Tools | Specialist Passive Starting Stack | Primary Outputs |",
+        "| :--- | :---: | :--- | :--- |",
+    ]
+    for sel in SELECTOR_LABELS:
+        if sel not in by_input:
+            continue
+        matched = by_input[sel]
+        top_s = pick_top_tools_for_selector(sel, matched, count=4)
+        links = ", ".join(f"[{t['name']}]({t['url']})" for t in top_s)
+        outs = Counter(o for t in matched for o in t["outputs"])
+        out_str = ", ".join(f"`{k}`" for k, _ in outs.most_common(3))
+        piv_ref.append(f"| `{sel}` ({SELECTOR_LABELS[sel][0]}) | `{len(matched)}` | {links} | {out_str} |")
+    (arsenal_dir / "references" / "PIVOT_CHEATSHEET.md").write_text("\n".join(piv_ref) + "\n", encoding="utf-8")
+
+    wf_ref = [f"# {len(workflows)} OSINT Investigation Playbooks", ""]
+    for wf in workflows:
+        wf_ref.append(f"## {wf['title']} (`{wf['id']}` — Seed: `{wf['starting_selector']}`)")
+        wf_ref.append(f"*{wf['summary']}*")
+        for s in wf["steps"]:
+            wf_ref.append(f"{s['step']}. **{s['phase']}**: {s['action']} (`{', '.join(s['recommended_tools'])}`)")
+        wf_ref.append("")
+    (arsenal_dir / "references" / "WORKFLOWS_QUICKREF.md").write_text("\n".join(wf_ref) + "\n", encoding="utf-8")
+
+    shutil.copy2(DOCS_DIR / "GRAVEYARD_2026.md", arsenal_dir / "references" / "GRAVEYARD_2026.md")
+
+    # ── 3. Build deterministic zip packages for Claude.ai / Claude Desktop ───
+    _write_deterministic_zip(hunter_dir, RELEASES_DIR / "osint-hunter-skill.zip")
+    _write_deterministic_zip(arsenal_dir, RELEASES_DIR / "osint-arsenal-skill.zip")
+
+    # ── 4. Build docs/SKILLS_SETUP.md ────────────────────────────────────────
+    setup_md = f"""# 🧩 Agent Skills & Plugin Setup Guide (Claude, Codex, Cursor & 75+ Agents)
+
+[⬅️ Back to Main Atlas](../README.md) · [`skills/osint-hunter`](../skills/osint-hunter/SKILL.md) · [`skills/osint-arsenal`](../skills/osint-arsenal/SKILL.md)
+
+You do **not** need to clone or work inside this repository to use **OSINT Monster Database**. Both skills in [`skills/`](../skills/) bundle their own zero-dependency Python 3 runtime and compact intelligence datasets so they work **globally from any folder**.
+
+---
+
+## 📦 Included Skills
+
+| Skill | Folder & Zip | What It Gives Your Agent |
+| :--- | :--- | :--- |
+| **`osint-hunter`** | [`skills/osint-hunter/`](../skills/osint-hunter/) · [`osint-hunter-skill.zip`](../releases/osint-hunter-skill.zip) | **Autonomous Recon Engine**: Runs 35+ passive collectors & offline decoders immediately on Turn 1 (zero questions), writes STIX 2.1 + SHA-256 dossiers, and enforces a mandatory human permission gate (`ACT-XXXXXXXX`) before Active OSINT probing. |
+| **`osint-arsenal`** | [`skills/osint-arsenal/`](../skills/osint-arsenal/) · [`osint-arsenal-skill.zip`](../releases/osint-arsenal-skill.zip) | **{len(tools)}-Tool Tradecraft & Dork Forge**: Searches all {len(tools)} verified tools, maps 24 `Input → Output` selector pivots, runs {len(workflows)} playbooks, forges {len(dorks)} Google/Shodan/Censys/FOFA/GitHub dorks, and flags 2026 hijacked/dead tools. |
+
+---
+
+## 1️⃣ Universal One-Liner (`npx skills` — 75+ Coding Agents)
+
+Works with **Claude Code**, **OpenAI Codex**, **Cursor**, **OpenCode**, **Windsurf**, **Cline**, **GitHub Copilot**, **Goose**, **Roo**, **Kiro**, and 70+ other agents:
+
+```bash
+# Install both skills globally (auto-detects your installed agents)
+npx skills add mafk21/OSINT -g
+
+# Or target specific agents explicitly:
+npx skills add mafk21/OSINT -g -a claude-code -a codex -a cursor
+
+# Or install only one skill:
+npx skills add mafk21/OSINT -g --skill osint-hunter
+npx skills add mafk21/OSINT -g --skill osint-arsenal
+```
+
+---
+
+## 2️⃣ Claude Code (Native `/plugin` Marketplace)
+
+Inside any **Claude Code** session, register this repository as a plugin marketplace and install in two slash commands:
+
+```text
+/plugin marketplace add mafk21/OSINT
+/plugin install osint-monster@osint-monster
+```
+
+*(Prefer installing just one? Run `/plugin install osint-hunter@osint-monster` or `/plugin install osint-arsenal@osint-monster`.)*
+
+---
+
+## 3️⃣ OpenAI Codex (CLI & Codex App)
+
+### Method A — Codex Built-in `$skill-installer`
+Paste either or both commands directly into **Codex**:
+
+```text
+$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-hunter
+$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-arsenal
+```
+*(Restart Codex after installation so it picks up the newly installed skills + `agents/openai.yaml` metadata.)*
+
+### Method B — `npx skills` Targeting Codex
+```bash
+npx skills add mafk21/OSINT -g -a codex
+```
+
+### Method C — Codex Plugin Manifest
+This repo also ships native OpenAI Codex plugin manifests ([`.codex-plugin/plugin.json`](../.codex-plugin/plugin.json) and [`.agents/plugins/marketplace.json`](../.agents/plugins/marketplace.json)) bundling both `./skills/` and `./.mcp.json`.
+
+---
+
+## 4️⃣ Claude.ai Web & Claude Desktop (Drag-and-Drop `.zip` Upload)
+
+For **Claude Pro, Max, Team, and Enterprise** users on **claude.ai** or **Claude Desktop**:
+
+1. Download the pre-packaged skill archives from [`releases/`](../releases/):
+   - [**`releases/osint-hunter-skill.zip`**](../releases/osint-hunter-skill.zip)
+   - [**`releases/osint-arsenal-skill.zip`**](../releases/osint-arsenal-skill.zip)
+2. Open Claude → **Settings → Capabilities → Skills** (ensure Code Execution is enabled).
+3. Click **Upload skill** and select each `.zip` file.
+4. Start any chat and drop a handle, domain, email, VIN, aircraft hex, or investigation question!
+
+---
+
+## 5️⃣ Zero-Node Pure-Python Local Installer (`install_skills.py`)
+
+Don't want to use Node/`npx`? Run the zero-dependency Python installer from a local clone:
+
+```bash
+# Install globally to ~/.claude/skills, ~/.codex/skills, ~/.cursor/skills & ~/.agents/skills
+python3 scripts/install_skills.py --all
+
+# Or install only to Claude Code or Codex
+python3 scripts/install_skills.py --claude
+python3 scripts/install_skills.py --codex
+
+# Or install into a specific case/project folder
+python3 scripts/install_skills.py --project ~/investigations/case-2026
+
+# Check installation status or uninstall cleanly
+python3 scripts/install_skills.py --list
+python3 scripts/install_skills.py --uninstall --all
+```
+
+---
+
+## 6️⃣ Alternative: Global MCP Server Registration
+
+If you also want native Model Context Protocol tools (`osint_passive_hunt`, `osint_prepare_active_hunt`, `osint_execute_active_hunt`, `osint_search_arsenal`, `osint_forge_dorks`) exposed directly to your agent:
+
+```bash
+# Claude Code global MCP registration
+claude mcp add --scope user osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py
+
+# OpenAI Codex global MCP registration
+codex mcp add osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py
+```
+
+---
+
+## 🛡️ How the Two-Law Safety Doctrine Works Inside Skills
+
+- **`🟢 Passive Mode` (Default — Zero Questions)**: Give Claude or Codex any target (`"Investigate @torvalds and +966501234567"`). The `osint-hunter` skill immediately runs passive collection on Turn 1 without asking clarifying questions and writes a forensic bundle into `./cases/<case_id>/`.
+- **`🔴 Active Mode` (Hard-Gated — Always Asks First)**: Even if you say `"Run active recon on example.com"`, the skill **cannot** send direct packets until it first runs `--prepare-active`, shows you the exact hosts + OPSEC exposure, waits for your explicit approval, and consumes a single-use `ACT-XXXXXXXX` token.
+"""
+    (DOCS_DIR / "SKILLS_SETUP.md").write_text(setup_md, encoding="utf-8")
+
+
 def main() -> int:
     val = subprocess.run([sys.executable, str(ROOT / "scripts" / "validate.py")], cwd=str(ROOT))
     if val.returncode != 0:
@@ -845,15 +1296,18 @@ def main() -> int:
     workflows = load_json("workflows.json")
     dorks = load_json("dorks.json")
     graveyard = load_json("graveyard.json")
+    intel_tables = load_json("intel_tables.json")
 
     build_exports(categories, tools, workflows, dorks, graveyard)
     build_category_pages(categories, tools)
     build_docs(categories, tools, workflows, dorks, graveyard)
+    build_skills_and_packages(categories, tools, workflows, dorks, graveyard, intel_tables)
     build_readme(categories, tools, workflows, dorks, graveyard)
 
     print("Build complete:")
     print(f"  - README.md + 20 category manuals in categories/")
-    print(f"  - 5 tactical manuals in docs/ (FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026)")
+    print(f"  - 6 tactical manuals in docs/ (SKILLS_SETUP, FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026)")
+    print(f"  - 2 portable Agent Skills in skills/ (osint-hunter, osint-arsenal) + zip bundles in releases/")
     print(f"  - Multi-format data exports: data/tools.csv, data/tools.jsonl, data/osint.sqlite (FTS5)")
     print(f"  - Web Explorer bundle: web/data.js")
     return 0

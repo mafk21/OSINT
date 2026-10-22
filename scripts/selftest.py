@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import subprocess
 import sys
+import tempfile
 import time
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -98,7 +102,91 @@ def main() -> int:
     mcp_names = {t["name"] for t in tools_res["result"]["tools"]}
     assert {"osint_auto_hunt", "osint_prepare_active_hunt", "osint_execute_active_hunt"}.issubset(mcp_names)
 
-    print("SELFTEST PASS: Schema, Classifier, Decoders, Active Gate & MCP Server verified.")
+    # 6. Agent Skills, Claude/Codex Plugin Marketplaces & Standalone Out-of-Repo Zip Isolation Test
+    assert not (ROOT / "SKILL.md").exists(), "Root SKILL.md must not exist (blocks npx skills subdir discovery)"
+    claude_mp = json.loads((ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    assert claude_mp["name"] == "osint-monster" and len(claude_mp["plugins"]) >= 3
+    codex_plugin = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert codex_plugin["skills"] == "./skills/" and (ROOT / ".codex-plugin" / "assets" / "icon.svg").is_file()
+    codex_mp = json.loads((ROOT / ".agents" / "plugins" / "marketplace.json").read_text(encoding="utf-8"))
+    assert codex_mp["plugins"][0]["name"] == "osint-monster"
+
+    allowed_fm_keys = {"name", "description", "license", "allowed-tools", "metadata", "compatibility"}
+    for sname in ("osint-hunter", "osint-arsenal"):
+        sdir = ROOT / "skills" / sname
+        smd = (sdir / "SKILL.md").read_text(encoding="utf-8")
+        m = re.match(r"^---\n(.*?)\n---\n", smd, re.DOTALL)
+        assert m, f"{sname}/SKILL.md missing YAML frontmatter"
+        fm_keys = set()
+        fm_map = {}
+        for line in m.group(1).splitlines():
+            if ":" in line and not line.startswith(" "):
+                k, v = line.split(":", 1)
+                fm_keys.add(k.strip())
+                fm_map[k.strip()] = v.strip().strip('"')
+        assert fm_keys.issubset(allowed_fm_keys), f"Unexpected frontmatter keys in {sname}: {fm_keys - allowed_fm_keys}"
+        assert fm_map.get("name") == sname, f"Skill name mismatch in {sname}"
+        desc = fm_map.get("description", "")
+        assert 20 < len(desc) <= 1024 and "<" not in desc and ">" not in desc, f"Invalid description in {sname}"
+        assert (sdir / "agents" / "openai.yaml").is_file(), f"Missing openai.yaml in {sname}"
+
+    with tempfile.TemporaryDirectory(prefix="osint_skill_iso_") as tmp:
+        tmp_path = Path(tmp)
+        installed_dir = tmp_path / "installed_skills"
+        work_cwd = tmp_path / "user_workspace"
+        state_dir = tmp_path / "state"
+        installed_dir.mkdir()
+        work_cwd.mkdir()
+        state_dir.mkdir()
+
+        for sname in ("osint-hunter", "osint-arsenal"):
+            zpath = ROOT / "releases" / f"{sname}-skill.zip"
+            assert zpath.is_file(), f"Missing release archive: {zpath}"
+            with zipfile.ZipFile(zpath, "r") as zf:
+                names = zf.namelist()
+                assert f"{sname}/SKILL.md" in names, f"{sname}/SKILL.md missing at zip root"
+                zf.extractall(installed_dir)
+
+        env = {**os.environ, "OSINT_STATE_DIR": str(state_dir)}
+
+        # Run standalone osint-hunter from empty user_workspace outside repo!
+        hunt_script = installed_dir / "osint-hunter" / "scripts" / "hunt.py"
+        p_passive = subprocess.run(
+            [sys.executable, str(hunt_script), "+966501234567 aircraft AE01D5 VIN 5YJ3E1EA7KF317000", "--depth", "1"],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        assert p_passive.returncode == 0, f"Standalone passive skill failed: {p_passive.stderr}"
+        created_cases = list((work_cwd / "cases").glob("*"))
+        assert len(created_cases) == 1 and (created_cases[0] / "stix2_bundle.json").is_file()
+
+        # Verify standalone osint-hunter blocks unapproved --active with exit code 2
+        p_active_block = subprocess.run(
+            [sys.executable, str(hunt_script), "example.com", "--active"],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert p_active_block.returncode == 2, "Standalone skill MUST block unapproved --active!"
+
+        # Run standalone osint-arsenal from empty user_workspace outside repo!
+        arsenal_script = installed_dir / "osint-arsenal" / "scripts" / "osint.py"
+        p_arsenal = subprocess.run(
+            [sys.executable, str(arsenal_script), "pivot", "email", "--passive", "--free", "--json"],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert p_arsenal.returncode == 0 and len(json.loads(p_arsenal.stdout)) >= 10
+
+    print("SELFTEST PASS: Schema, Classifier, Decoders, Active Gate, MCP & Standalone Portable Skills verified.")
     return 0
 
 

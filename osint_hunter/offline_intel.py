@@ -14,9 +14,9 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 from .classify import EMAIL_RE, EVM_RE, IPV4_RE, URL_RE, VIN_TRANSLITERATION, VIN_WEIGHTS, is_valid_imo
+from .paths import DATA_DIR
 
-ROOT = Path(__file__).resolve().parent.parent
-with (ROOT / "data" / "intel_tables.json").open("r", encoding="utf-8") as _fh:
+with (DATA_DIR / "intel_tables.json").open("r", encoding="utf-8") as _fh:
     INTEL_TABLES = json.load(_fh)
 
 VIN_YEAR_MAP = {

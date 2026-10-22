@@ -16,11 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .classify import extract_selectors
-
-ROOT = Path(__file__).resolve().parent.parent
-CASES_DIR = ROOT / "cases"
-APPROVALS_FILE = CASES_DIR / ".active_approvals.json"
-AUDIT_LOG_FILE = CASES_DIR / "active_audit.jsonl"
+from .paths import get_state_dir
 
 APPROVAL_TTL_SECONDS = 900  # 15 minutes
 MIN_HUMAN_TURN_DELAY_SECONDS = 1.5
@@ -73,16 +69,18 @@ def _canonical_target_hash(raw_target: str) -> str:
 
 
 def _load_store() -> dict:
-    if not APPROVALS_FILE.exists():
+    approvals_file = get_state_dir() / ".active_approvals.json"
+    if not approvals_file.exists():
         return {}
     try:
-        return json.loads(APPROVALS_FILE.read_text(encoding="utf-8"))
+        return json.loads(approvals_file.read_text(encoding="utf-8"))
     except Exception:
         return {}
 
 
 def _save_store(store: dict) -> None:
-    CASES_DIR.mkdir(parents=True, exist_ok=True)
+    state_dir = get_state_dir()
+    approvals_file = state_dir / ".active_approvals.json"
     now = time.time()
     # Prune expired entries automatically
     cleaned = {
@@ -90,16 +88,16 @@ def _save_store(store: dict) -> None:
         for k, v in store.items()
         if isinstance(v, dict) and (now - v.get("created_epoch", 0)) < APPROVAL_TTL_SECONDS
     }
-    APPROVALS_FILE.write_text(json.dumps(cleaned, indent=2) + "\n", encoding="utf-8")
+    approvals_file.write_text(json.dumps(cleaned, indent=2) + "\n", encoding="utf-8")
 
 
 def append_active_audit_log(entry: dict) -> None:
-    CASES_DIR.mkdir(parents=True, exist_ok=True)
+    audit_log_file = get_state_dir() / "active_audit.jsonl"
     record = {
         "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         **entry,
     }
-    with AUDIT_LOG_FILE.open("a", encoding="utf-8") as fh:
+    with audit_log_file.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
