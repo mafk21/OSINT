@@ -275,7 +275,9 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
             flags=re.IGNORECASE,
         ).strip(" \"'`")
 
-        if re.fullmatch(r"[a-zA-Z0-9-]{1,39}/[a-zA-Z0-9._-]{1,80}", cleaned):
+        if DOMAIN_RE.fullmatch(cleaned.removeprefix("www.")):
+            _add(results, seen, "domain", cleaned.lower().removeprefix("www."), 0.96, "Explicit target domain")
+        elif re.fullmatch(r"[a-zA-Z0-9-]{1,39}/[a-zA-Z0-9._-]{1,80}", cleaned):
             owner, _ = cleaned.split("/", 1)
             _add(results, seen, "repo_code", cleaned, 0.97, "owner/repo slug")
             _add(results, seen, "username", owner, 0.88, "Repository owner handle")

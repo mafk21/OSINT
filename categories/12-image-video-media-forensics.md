@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Uploading sensitive or unreleased investigation photos to cloud reverse-image or face-search engines (Yandex, PimEyes, VirusTotal-style sandboxes) can cache or index the image; strip borders/EXIF and crop carefully.
 
-**Discipline Telemetry**: `24` Verified Tools · `10` S-Tier Flagships · `24` Passive · `20` Free/Open-Source
+**Discipline Telemetry**: `25` Verified Tools · `10` S-Tier Flagships · `25` Passive · `21` Free/Open-Source
 
 ## Subcategories
 - [Metadata & Container Forensics](#metadata-container-forensics) (3)
@@ -17,6 +17,7 @@
 - [Bioacoustic & Audio Forensics](#bioacoustic-audio-forensics) (2)
 - [Conflict & Remnant Verification](#conflict-remnant-verification) (1)
 - [AI & Deepfake Detection](#ai-deepfake-detection) (2)
+- [Document & Image De-obfuscation](#document-image-de-obfuscation) (1)
 
 ---
 
@@ -265,6 +266,21 @@
 - **Platforms**: Chrome, Web · **Tags**: `voice-cloning-detection`, `audio-forensics`, `synthetic-speech`, `disinformation`
 - **Overview**: Browser extension and audio authenticity verifier analyzing live web audio/video speeches, voicemails, and leaked recordings for ElevenLabs/TTS synthetic voice-cloning artifacts.
 - **Quick-Start / Tradecraft**: `Sample clean 10+ second speech segments free of heavy background music for accurate synthetic-voice scoring.`
+
+---
+
+## Document & Image De-obfuscation
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Unredacter (Bishop Fox)**](https://github.com/BishopFox/unredacter) ([GitHub](https://github.com/BishopFox/unredacter)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `image` → `metadata, secrets` |
+
+### [Unredacter (Bishop Fox)](https://github.com/BishopFox/unredacter) `[A-Tier]`
+- **ID**: `unredacter` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`BishopFox/unredacter`](https://github.com/BishopFox/unredacter)
+- **Inputs**: `image` → **Outputs**: `metadata`, `secrets`
+- **Platforms**: Linux, macOS, Windows, Node.js · **Tags**: `depixelation`, `redaction-forensics`, `bishopfox`, `imint`
+- **Overview**: Forensic image analysis tool demonstrating deterministic recovery of sensitive text hidden behind mosaic pixelation filters in screenshots and documents.
+- **Quick-Start / Tradecraft**: `npm start # Load cropped pixelated text block in Unredacter`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🛰️ GEOINT, Maps & Satellites](./11-geoint-maps-satellites.md) · [✈️ Aviation, Maritime & Transport ▶](./13-aviation-maritime-transport.md)

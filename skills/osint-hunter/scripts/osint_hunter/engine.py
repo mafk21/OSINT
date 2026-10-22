@@ -90,6 +90,7 @@ def recommend_arsenal_for_selectors(
     recommendations = {}
     active_recommendations = {}
     action_commands = []
+    active_action_commands = []
 
     templates = INTEL_TABLES.get("action_templates", {})
     for stype in selector_types:
@@ -105,6 +106,22 @@ def recommend_arsenal_for_selectors(
                         "command": t_cfg["cmd"].replace("{target}", v),
                     }
                 )
+
+    if include_active:
+        act_templates = INTEL_TABLES.get("active_action_templates", {})
+        for stype in selector_types:
+            vals = target_values.get(stype) or []
+            for t_cfg in act_templates.get(stype, []):
+                for v in vals[:2]:
+                    active_action_commands.append(
+                        {
+                            "selector_type": stype,
+                            "target": v,
+                            "tool_id": t_cfg["tool_id"],
+                            "label": t_cfg["label"],
+                            "command": t_cfg["cmd"].replace("{target}", v),
+                        }
+                    )
 
     for mtype in sorted(set(mapped_types)):
         matched = [
@@ -160,6 +177,7 @@ def recommend_arsenal_for_selectors(
 
     return {
         "parameterized_commands": action_commands[:18],
+        "active_parameterized_commands": active_action_commands[:20],
         "passive_tools_by_selector": recommendations,
         "active_tools_by_selector": active_recommendations,
         "matched_playbooks": matched_workflows,
@@ -306,7 +324,7 @@ def render_markdown_dossier(report: dict) -> str:
             lines.append(f"- **[{d['engine']}] {d['title']}**: `{d['query']}`")
         lines.append("")
 
-    lines.extend(["---", "", "## 5. Recommended Passive S-Tier Tools from 540-Tool Arsenal", ""])
+    lines.extend(["---", "", f"## 5. Recommended Passive S-Tier Tools from {len(ALL_TOOLS)}-Tool Arsenal", ""])
     for stype, tlist in report["arsenal"]["passive_tools_by_selector"].items():
         if not tlist:
             continue
@@ -316,14 +334,21 @@ def render_markdown_dossier(report: dict) -> str:
             lines.append(f"- **[`{t['tier']}`] [{t['name']}]({t['url']})** ({t['pricing']}, {auth}) — `{t['quick_start']}`")
         lines.append("")
 
+    act_cmds = report["arsenal"].get("active_parameterized_commands") or []
     act_map = report["arsenal"].get("active_tools_by_selector") or {}
-    if any(act_map.values()):
-        lines.extend(["---", "", "## 6. Unlocked Active & Hybrid Tools (User-Authorized Mode)", ""])
+    if act_cmds or any(act_map.values()):
+        lines.extend(["---", "", "## 6. Unlocked Active & Hybrid Recon Arsenal (User-Authorized Mode)", ""])
+        if act_cmds:
+            lines.extend(["### 🔴 Parameterized Active CLI Playbook", "", "```bash"])
+            for c in act_cmds:
+                lines.append(f"# [ACTIVE · {c['selector_type']}] {c['label']} ({c['tool_id']})")
+                lines.append(c["command"])
+            lines.extend(["```", ""])
         for stype, tlist in act_map.items():
             if not tlist:
                 continue
             lines.append(f"### Selector `{stype}` (🔴 Active / 🟡 Hybrid)")
-            for t in tlist[:6]:
+            for t in tlist[:8]:
                 lines.append(f"- **[`{t['tier']}`] [{t['name']}]({t['url']})** (`{t['opsec']}`, {t['pricing']}) — `{t['quick_start']}`")
             lines.append("")
 

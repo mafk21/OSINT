@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Searching Shodan, Censys, FOFA, ZoomEye, Netlas, or GreyNoise queries pre-indexed scan databases and is completely passive with zero packets sent to the target IP.
 
-**Discipline Telemetry**: `30` Verified Tools · `9` S-Tier Flagships · `29` Passive · `16` Free/Open-Source
+**Discipline Telemetry**: `53` Verified Tools · `19` S-Tier Flagships · `31` Passive · `39` Free/Open-Source
 
 ## Subcategories
 - [Cyberspace Banner Search Engines](#cyberspace-banner-search-engines) (12)
@@ -15,6 +15,14 @@
 - [VPN, Proxy & Anonymizer Intel](#vpn,-proxy-anonymizer-intel) (1)
 - [Internet Outage & Censorship Telemetry](#internet-outage-censorship-telemetry) (4)
 - [Active Network Discovery](#active-network-discovery) (1)
+- [Active Port & Banner Scanners](#active-port-banner-scanners) (5)
+- [CIDR & Subnet Slicing](#cidr-subnet-slicing) (1)
+- [Internet-Wide Active Research](#internet-wide-active-research) (3)
+- [Service & Protocol Fingerprinting](#service-protocol-fingerprinting) (3)
+- [TLS & Crypto Active Auditors](#tls-crypto-active-auditors) (2)
+- [LAN & Enterprise Service Enum](#lan-enterprise-service-enum) (7)
+- [Traffic Inspection & Replay](#traffic-inspection-replay) (1)
+- [Vulnerability & CPE Intelligence](#vulnerability-cpe-intelligence) (1)
 
 ---
 
@@ -297,6 +305,246 @@
 - **Platforms**: Linux, macOS, Windows, Docker · **Tags**: `port-scanner`, `nse-scripts`, `banner-grabbing`, `active-recon`
 - **Overview**: Universal open-source network mapper and NSE scripting engine for authorized service banner grabbing, TLS cert extraction (`ssl-cert`), HTTP title enumeration, and OS fingerprinting.
 - **Quick-Start / Tradecraft**: `nmap -sV --script=ssl-cert,http-title,http-favicon -p 80,443,8080,8443 target.example.com  # Active!`
+
+---
+
+## Active Port & Banner Scanners
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Masscan**](https://github.com/robertdavidgraham/masscan) ([GitHub](https://github.com/robertdavidgraham/masscan)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `open_ports, ip_addresses, certificates` |
+| **S** | [**RustScan**](https://github.com/bee-san/RustScan) ([GitHub](https://github.com/bee-san/RustScan)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack` |
+| **S** | [**Naabu (ProjectDiscovery)**](https://github.com/projectdiscovery/naabu) ([GitHub](https://github.com/projectdiscovery/naabu)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain, asn` → `open_ports, ip_addresses` |
+| **A** | [**nmap-vulners NSE**](https://github.com/vulnersCom/nmap-vulners) ([GitHub](https://github.com/vulnersCom/nmap-vulners)) | Library | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack, malware_iocs` |
+| **A** | [**Vulscan (Nmap Offline CVE NSE)**](https://github.com/scipag/vulscan) ([GitHub](https://github.com/scipag/vulscan)) | Library | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack, malware_iocs` |
+
+### [Masscan](https://github.com/robertdavidgraham/masscan) `[S-Tier]`
+- **ID**: `masscan` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`robertdavidgraham/masscan`](https://github.com/robertdavidgraham/masscan)
+- **Inputs**: `ip`, `asn` → **Outputs**: `open_ports`, `ip_addresses`, `certificates`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `port-scanner`, `syn-scan`, `banner-grabbing`, `cidr`, `active`
+- **Overview**: Asynchronous TCP SYN packet scanner capable of sweeping entire CIDR blocks or global IPv4 space in minutes with optional TCP/SSL banner grabbing.
+- **Quick-Start / Tradecraft**: `sudo masscan 198.51.100.0/24 -p80,443,22,8080 --banners --rate 1000`
+
+### [RustScan](https://github.com/bee-san/RustScan) `[S-Tier]`
+- **ID**: `rustscan` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`bee-san/RustScan`](https://github.com/bee-san/RustScan)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `rust`, `port-scanner`, `nmap-pipeline`, `active`
+- **Overview**: Modern async Rust active port scanner checking all 65,535 TCP ports in seconds and automatically piping open ports into Nmap service scripts.
+- **Quick-Start / Tradecraft**: `rustscan -a example.com -- -sV -sC`
+
+### [Naabu (ProjectDiscovery)](https://github.com/projectdiscovery/naabu) `[S-Tier]`
+- **ID**: `naabu` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/naabu`](https://github.com/projectdiscovery/naabu)
+- **Inputs**: `ip`, `domain`, `asn` → **Outputs**: `open_ports`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `port-scanner`, `projectdiscovery`, `syn-scan`, `active`
+- **Overview**: Reliable Go SYN/CONNECT active port scanner featuring CDN/WAF IP exclusion, Nmap integration, ASN/CIDR input support, and JSON pipeline output.
+- **Quick-Start / Tradecraft**: `naabu -host example.com -top-ports 1000 -exclude-cdn`
+
+### [nmap-vulners NSE](https://github.com/vulnersCom/nmap-vulners) `[A-Tier]`
+- **ID**: `nmap-vulners` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`vulnersCom/nmap-vulners`](https://github.com/vulnersCom/nmap-vulners)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `nmap-nse`, `cve-mapping`, `service-scan`, `active`
+- **Overview**: Nmap Scripting Engine (NSE) plugin correlating live `-sV` service banners from active scans directly against CVE and exploit intelligence.
+- **Quick-Start / Tradecraft**: `nmap -sV --script vulners example.com`
+
+### [Vulscan (Nmap Offline CVE NSE)](https://github.com/scipag/vulscan) `[A-Tier]`
+- **ID**: `vulscan-nse` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`scipag/vulscan`](https://github.com/scipag/vulscan)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `nmap-nse`, `offline-cve`, `active-scan`
+- **Overview**: Offline-DB Nmap NSE module enriching active service-version scans (`nmap -sV`) with local NVD, Exploit-DB, and OSVDB vulnerability tables.
+- **Quick-Start / Tradecraft**: `nmap -sV --script=vulscan/vulscan.nse example.com`
+
+---
+
+## CIDR & Subnet Slicing
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**mapcidr**](https://github.com/projectdiscovery/mapcidr) ([GitHub](https://github.com/projectdiscovery/mapcidr)) | CLI | OSS / Free | 🟢 Passive | ✅ | `asn, ip` → `ip_addresses` |
+
+### [mapcidr](https://github.com/projectdiscovery/mapcidr) `[A-Tier]`
+- **ID**: `mapcidr` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/mapcidr`](https://github.com/projectdiscovery/mapcidr)
+- **Inputs**: `asn`, `ip` → **Outputs**: `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `cidr`, `subnet`, `projectdiscovery`, `netblocks`
+- **Overview**: Subnet utility for slicing, aggregating, shuffling, and filtering CIDR netblocks prior to active port and HTTP sweeps.
+- **Quick-Start / Tradecraft**: `mapcidr -cidr 198.51.100.0/24 -sbc 64`
+
+---
+
+## Internet-Wide Active Research
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**ZMap**](https://github.com/zmap/zmap) ([GitHub](https://github.com/zmap/zmap)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `open_ports, ip_addresses` |
+| **S** | [**ZGrab 2.0**](https://github.com/zmap/zgrab2) ([GitHub](https://github.com/zmap/zgrab2)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, certificates, tech_stack` |
+| **A** | [**ZDNS**](https://github.com/zmap/zdns) ([GitHub](https://github.com/zmap/zdns)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip` → `dns_records, ip_addresses` |
+
+### [ZMap](https://github.com/zmap/zmap) `[S-Tier]`
+- **ID**: `zmap` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`zmap/zmap`](https://github.com/zmap/zmap)
+- **Inputs**: `ip`, `asn` → **Outputs**: `open_ports`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `zmap`, `internet-measurement`, `stateless-scan`, `active`
+- **Overview**: Fast single-packet stateless network scanner built for academic and enterprise Internet-wide active measurement surveys.
+- **Quick-Start / Tradecraft**: `sudo zmap -p 443 198.51.100.0/24 -o open_443.csv`
+
+### [ZGrab 2.0](https://github.com/zmap/zgrab2) `[S-Tier]`
+- **ID**: `zgrab2` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`zmap/zgrab2`](https://github.com/zmap/zgrab2)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `certificates`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Go · **Tags**: `banner-grabber`, `ics-scada`, `tls`, `ssh`, `zmap`, `active`
+- **Overview**: Stateful Go application-layer active banner grabber supporting HTTP, TLS, SSH, SMTP, FTP, IMAP, MySQL, Postgres, Redis, Siemens S7, Modbus, and BACnet.
+- **Quick-Start / Tradecraft**: `echo 198.51.100.10 | zgrab2 tls`
+
+### [ZDNS](https://github.com/zmap/zdns) `[A-Tier]`
+- **ID**: `zdns` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`zmap/zdns`](https://github.com/zmap/zdns)
+- **Inputs**: `domain`, `ip` → **Outputs**: `dns_records`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Go · **Tags**: `dns-scanner`, `zmap`, `bulk-dns`, `active`
+- **Overview**: High-speed Go active DNS lookup utility built by the ZMap project outputting rich JSON telemetry including authority chains and resolver trace.
+- **Quick-Start / Tradecraft**: `echo example.com | zdns A --name-servers=8.8.8.8:53`
+
+---
+
+## Service & Protocol Fingerprinting
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**fingerprintx (Praetorian)**](https://github.com/praetorian-inc/fingerprintx) ([GitHub](https://github.com/praetorian-inc/fingerprintx)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack, certificates` |
+| **S** | [**ssh-audit**](https://github.com/jtesta/ssh-audit) ([GitHub](https://github.com/jtesta/ssh-audit)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `tech_stack, open_ports, metadata` |
+| **B** | [**rmiscout (Bishop Fox)**](https://github.com/BishopFox/rmiscout) ([GitHub](https://github.com/BishopFox/rmiscout)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack, metadata` |
+
+### [fingerprintx (Praetorian)](https://github.com/praetorian-inc/fingerprintx) `[S-Tier]`
+- **ID**: `fingerprintx` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`praetorian-inc/fingerprintx`](https://github.com/praetorian-inc/fingerprintx)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`, `certificates`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `service-fingerprinting`, `praetorian`, `non-standard-ports`, `active`
+- **Overview**: Standalone Go active service fingerprinter identifying 40+ TCP/UDP protocols (HTTP, SSH, RDP, RTSP, MQTT, Kafka, JDWP, IPSec, SNMP) on arbitrary ports.
+- **Quick-Start / Tradecraft**: `naabu -host example.com -silent | fingerprintx --json`
+
+### [ssh-audit](https://github.com/jtesta/ssh-audit) `[S-Tier]`
+- **ID**: `ssh-audit` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`jtesta/ssh-audit`](https://github.com/jtesta/ssh-audit)
+- **Inputs**: `ip`, `domain` → **Outputs**: `tech_stack`, `open_ports`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `ssh`, `kexinit`, `banner-fingerprinting`, `os-detection`, `active`
+- **Overview**: Zero-dependency Python active SSH server & client fingerprinter grabbing SSH banners, host-key algorithms, KEX/MAC lists, and inferring OS/distro builds.
+- **Quick-Start / Tradecraft**: `ssh-audit -j example.com`
+
+### [rmiscout (Bishop Fox)](https://github.com/BishopFox/rmiscout) `[B-Tier]`
+- **ID**: `rmiscout` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`BishopFox/rmiscout`](https://github.com/BishopFox/rmiscout)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `java-rmi`, `service-enum`, `bishopfox`, `active`
+- **Overview**: Active Java RMI registry inspector enumerating exposed RMI object names and method signatures across enterprise application ports.
+- **Quick-Start / Tradecraft**: `rmiscout.sh wordlist -i names.txt 198.51.100.10 1099`
+
+---
+
+## TLS & Crypto Active Auditors
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**testssl.sh**](https://github.com/drwetter/testssl.sh) ([GitHub](https://github.com/drwetter/testssl.sh)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `certificates, tech_stack, metadata` |
+| **A** | [**SSLyze**](https://github.com/nabla-c0d3/sslyze) ([GitHub](https://github.com/nabla-c0d3/sslyze)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, ip` → `certificates, subdomains, metadata` |
+
+### [testssl.sh](https://github.com/drwetter/testssl.sh) `[S-Tier]`
+- **ID**: `testssl-sh` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`drwetter/testssl.sh`](https://github.com/drwetter/testssl.sh)
+- **Inputs**: `domain`, `ip`, `url` → **Outputs**: `certificates`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Docker · **Tags**: `tls`, `ssl`, `x509`, `starttls`, `ciphers`, `active`
+- **Overview**: Gold-standard portable Bash active SSL/TLS scanner inspecting protocols (SSLv2–TLSv1.3), ciphers, X.509 chains, STARTTLS services, ALPN, and flaws.
+- **Quick-Start / Tradecraft**: `testssl.sh --fast https://example.com`
+
+### [SSLyze](https://github.com/nabla-c0d3/sslyze) `[A-Tier]`
+- **ID**: `sslyze` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`nabla-c0d3/sslyze`](https://github.com/nabla-c0d3/sslyze)
+- **Inputs**: `domain`, `ip` → **Outputs**: `certificates`, `subdomains`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `ssl`, `tls`, `certificates`, `ocsp`, `active`
+- **Overview**: Fast Python CLI and library for active SSL/TLS server configuration scanning, certificate SAN extraction, OCSP stapling checks, and elliptic curve enumeration.
+- **Quick-Start / Tradecraft**: `sslyze example.com:443 --json_out=tls_report.json`
+
+---
+
+## LAN & Enterprise Service Enum
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**arp-scan**](https://github.com/royhills/arp-scan) ([GitHub](https://github.com/royhills/arp-scan)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip` → `ip_addresses, metadata, tech_stack` |
+| **S** | [**NetExec (nxc)**](https://github.com/Pennyw0rth/NetExec) ([GitHub](https://github.com/Pennyw0rth/NetExec)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `open_ports, tech_stack, usernames` |
+| **A** | [**enum4linux-ng**](https://github.com/cddmp/enum4linux-ng) ([GitHub](https://github.com/cddmp/enum4linux-ng)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `usernames, tech_stack, metadata` |
+| **A** | [**SMBMap**](https://github.com/ShawnDEvans/smbmap) ([GitHub](https://github.com/ShawnDEvans/smbmap)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `documents, metadata, open_ports` |
+| **A** | [**onesixtyone**](https://github.com/trailofbits/onesixtyone) ([GitHub](https://github.com/trailofbits/onesixtyone)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `tech_stack, open_ports, metadata` |
+| **A** | [**windapsearch**](https://github.com/ropnop/windapsearch) ([GitHub](https://github.com/ropnop/windapsearch)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `usernames, emails, person_records` |
+| **S** | [**Impacket Network Protocol Scripts**](https://github.com/fortra/impacket) ([GitHub](https://github.com/fortra/impacket)) | Framework | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `tech_stack, usernames, metadata` |
+
+### [arp-scan](https://github.com/royhills/arp-scan) `[A-Tier]`
+- **ID**: `arp-scan` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`royhills/arp-scan`](https://github.com/royhills/arp-scan)
+- **Inputs**: `ip` → **Outputs**: `ip_addresses`, `metadata`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `arp`, `mac-oui`, `layer2`, `lan-discovery`, `active`
+- **Overview**: Active Layer-2 ARP packet scanner discovering all live hosts on local Ethernet/Wi-Fi segments and mapping MAC hardware addresses to IEEE OUI vendors.
+- **Quick-Start / Tradecraft**: `sudo arp-scan --localnet`
+
+### [NetExec (nxc)](https://github.com/Pennyw0rth/NetExec) `[S-Tier]`
+- **ID**: `netexec` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Pennyw0rth/NetExec`](https://github.com/Pennyw0rth/NetExec)
+- **Inputs**: `ip`, `domain` → **Outputs**: `open_ports`, `tech_stack`, `usernames`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `smb`, `ldap`, `active-directory`, `winrm`, `active-enum`
+- **Overview**: Community-maintained successor to CrackMapExec performing rapid active SMB, LDAP, WinRM, MSSQL, RDP, SSH, and FTP host/domain/signing metadata enumeration.
+- **Quick-Start / Tradecraft**: `nxc smb 198.51.100.0/24`
+
+### [enum4linux-ng](https://github.com/cddmp/enum4linux-ng) `[A-Tier]`
+- **ID**: `enum4linux-ng` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`cddmp/enum4linux-ng`](https://github.com/cddmp/enum4linux-ng)
+- **Inputs**: `ip`, `domain` → **Outputs**: `usernames`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `smb`, `rpc`, `netbios`, `samba`, `active-enum`
+- **Overview**: Modern Python rewrite of enum4linux actively enumerating Windows/Samba SMB/RPC/NetBIOS shares, OS versions, AD domain SIDs, and users with JSON export.
+- **Quick-Start / Tradecraft**: `enum4linux-ng -A 198.51.100.10 -oJ smb_recon`
+
+### [SMBMap](https://github.com/ShawnDEvans/smbmap) `[A-Tier]`
+- **ID**: `smbmap` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`ShawnDEvans/smbmap`](https://github.com/ShawnDEvans/smbmap)
+- **Inputs**: `ip`, `domain` → **Outputs**: `documents`, `metadata`, `open_ports`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `smb`, `null-session`, `shares`, `active`
+- **Overview**: Active SMB share enumeration tool listing drive permissions, anonymous/null-session shares, and directory trees across target hosts and subnets.
+- **Quick-Start / Tradecraft**: `smbmap -H 198.51.100.10 -u '' -p ''`
+
+### [onesixtyone](https://github.com/trailofbits/onesixtyone) `[A-Tier]`
+- **ID**: `onesixtyone` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`trailofbits/onesixtyone`](https://github.com/trailofbits/onesixtyone)
+- **Inputs**: `ip`, `asn` → **Outputs**: `tech_stack`, `open_ports`, `metadata`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `snmp`, `udp-161`, `router-recon`, `trailofbits`, `active`
+- **Overview**: Fast UDP/161 active SNMP scanner maintained by Trail of Bits for discovering exposed SNMP community strings and sysDescr hardware/OS banners.
+- **Quick-Start / Tradecraft**: `onesixtyone -c communities.txt -i hosts.txt`
+
+### [windapsearch](https://github.com/ropnop/windapsearch) `[A-Tier]`
+- **ID**: `windapsearch` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`ropnop/windapsearch`](https://github.com/ropnop/windapsearch)
+- **Inputs**: `ip`, `domain` → **Outputs**: `usernames`, `emails`, `person_records`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `ldap`, `active-directory`, `domain-controller`, `active`
+- **Overview**: Fast Go CLI actively querying LDAP/LDAPS domain controllers to enumerate Active Directory domain naming contexts, users, SPNs, and computers.
+- **Quick-Start / Tradecraft**: `windapsearch -d dc.example.com -m metadata`
+
+### [Impacket Network Protocol Scripts](https://github.com/fortra/impacket) `[S-Tier]`
+- **ID**: `impacket-recon` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`fortra/impacket`](https://github.com/fortra/impacket)
+- **Inputs**: `ip`, `domain` → **Outputs**: `tech_stack`, `usernames`, `metadata`, `open_ports`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `ntlm-info`, `rpc`, `smb`, `os-version`, `active`
+- **Overview**: Canonical Python network protocol suite featuring `rpcdump.py`, `samrdump.py`, `DumpNTLMInfo.py`, and `lookupsid.py` for active Windows/SMB/RPC OS/domain fingerprinting.
+- **Quick-Start / Tradecraft**: `DumpNTLMInfo.py 198.51.100.10`
+
+---
+
+## Traffic Inspection & Replay
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Proxify (ProjectDiscovery)**](https://github.com/projectdiscovery/proxify) ([GitHub](https://github.com/projectdiscovery/proxify)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, metadata, secrets` |
+
+### [Proxify (ProjectDiscovery)](https://github.com/projectdiscovery/proxify) `[A-Tier]`
+- **ID**: `proxify` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/proxify`](https://github.com/projectdiscovery/proxify)
+- **Inputs**: `url`, `domain` → **Outputs**: `urls`, `metadata`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `mitm-proxy`, `http-capture`, `projectdiscovery`, `active`
+- **Overview**: Portable MITM HTTP/HTTPS/SOCKS5 capture and traffic-dumping proxy recording every endpoint and header touched during active browser recon.
+- **Quick-Start / Tradecraft**: `proxify -http-addr 127.0.0.1:8888 -output traffic_logs/`
+
+---
+
+## Vulnerability & CPE Intelligence
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**vulnx (ProjectDiscovery)**](https://github.com/projectdiscovery/vulnx) ([GitHub](https://github.com/projectdiscovery/vulnx)) | CLI | OSS / Free | 🟢 Passive | ✅ | `keyword` → `malware_iocs, tech_stack, metadata` |
+
+### [vulnx (ProjectDiscovery)](https://github.com/projectdiscovery/vulnx) `[A-Tier]`
+- **ID**: `vulnx-cli` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/vulnx`](https://github.com/projectdiscovery/vulnx)
+- **Inputs**: `keyword` → **Outputs**: `malware_iocs`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `cve`, `kev`, `epss`, `projectdiscovery`
+- **Overview**: Fast CLI querying CVE, EPSS, KEV, CPE, and Nuclei template coverage across fingerprinted server versions discovered during active recon.
+- **Quick-Start / Tradecraft**: `vulnx search 'openssh' --json`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🌐 Domains, DNS & ASM](./07-domain-dns-asm.md) · [💬 Social Media (SOCMINT) ▶](./09-social-media-socmint.md)

@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: When connecting LLM agents to MCP OSINT servers, review whether active/noisy tools are disabled by default (e.g. `OpenOSINT` passive mode) and avoid sending sensitive PII to cloud LLM providers without zero-data-retention.
 
-**Discipline Telemetry**: `28` Verified Tools · `11` S-Tier Flagships · `26` Passive · `24` Free/Open-Source
+**Discipline Telemetry**: `34` Verified Tools · `11` S-Tier Flagships · `26` Passive · `30` Free/Open-Source
 
 ## Subcategories
 - [Analyst Decoders & Swiss-Army Knives](#analyst-decoders-swiss-army-knives) (1)
@@ -16,6 +16,7 @@
 - [AI Audio & Translation Tools](#ai-audio-translation-tools) (1)
 - [OSINT MCP Servers & AI Agents](#osint-mcp-servers-ai-agents) (8)
 - [Sock Puppet & Identity Compartmentalization](#sock-puppet-identity-compartmentalization) (2)
+- [Active Recon MCP Servers](#active-recon-mcp-servers) (6)
 
 ---
 
@@ -289,6 +290,61 @@
 - **Platforms**: Web, Docker, Chrome, Firefox · **Tags**: `sock-puppet-emails`, `compartmentalization`, `open-source`, `proton`
 - **Overview**: Open-source email-aliasing infrastructure generating unique compartmentalized burner/sock-puppet email addresses per OSINT platform so leaked database breaches never correlate back to the analyst.
 - **Quick-Start / Tradecraft**: `Never reuse an email address across two investigation portals or sock-puppet accounts!`
+
+---
+
+## Active Recon MCP Servers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**pentest-mcp**](https://github.com/DMontgomery40/pentest-mcp) ([GitHub](https://github.com/DMontgomery40/pentest-mcp)) | AI / MCP | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `open_ports, urls, tech_stack` |
+| **A** | [**nuclei-mcp**](https://github.com/addcontent/nuclei-mcp) ([GitHub](https://github.com/addcontent/nuclei-mcp)) | AI / MCP | OSS / Free | 🔴 Active | ✅ | `domain, url, ip` → `tech_stack, malware_iocs, metadata` |
+| **A** | [**FofaMap (AI Asset Mapping + Gated Nuclei)**](https://github.com/asaotomo/FofaMap) ([GitHub](https://github.com/asaotomo/FofaMap)) | AI / MCP | OSS / Free | 🟡 Hybrid | 🔑 | `domain, ip, company` → `open_ports, subdomains, tech_stack` |
+| **B** | [**AutoRedTeam-Orchestrator**](https://github.com/Coff0xc/AutoRedTeam-Orchestrator) ([GitHub](https://github.com/Coff0xc/AutoRedTeam-Orchestrator)) | AI / MCP | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `subdomains, open_ports, urls` |
+| **B** | [**BlitzStrike MCP Toolbelt**](https://github.com/shinthink/blitzstrike) ([GitHub](https://github.com/shinthink/blitzstrike)) | AI / MCP | OSS / Free | 🔴 Active | ✅ | `domain, ip, url` → `open_ports, subdomains, tech_stack` |
+| **B** | [**ExternalAttacker-MCP**](https://github.com/MorDavid/ExternalAttacker-MCP) ([GitHub](https://github.com/MorDavid/ExternalAttacker-MCP)) | AI / MCP | OSS / Free | 🔴 Active | ✅ | `domain, ip, company` → `subdomains, dns_records, open_ports` |
+
+### [pentest-mcp](https://github.com/DMontgomery40/pentest-mcp) `[A-Tier]`
+- **ID**: `pentest-mcp` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`DMontgomery40/pentest-mcp`](https://github.com/DMontgomery40/pentest-mcp)
+- **Inputs**: `domain`, `ip`, `url` → **Outputs**: `open_ports`, `urls`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Docker, Node.js · **Tags**: `mcp`, `nmap`, `gobuster`, `active-recon`, `ai-agent`
+- **Overview**: Model Context Protocol (MCP) server exposing authorized active reconnaissance and assessment tools (nmap, gobuster, nikto) to Claude and MCP-compatible agents.
+- **Quick-Start / Tradecraft**: `npx pentest-mcp`
+
+### [nuclei-mcp](https://github.com/addcontent/nuclei-mcp) `[A-Tier]`
+- **ID**: `nuclei-mcp` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`addcontent/nuclei-mcp`](https://github.com/addcontent/nuclei-mcp)
+- **Inputs**: `domain`, `url`, `ip` → **Outputs**: `tech_stack`, `malware_iocs`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `mcp`, `nuclei`, `projectdiscovery`, `active-recon`
+- **Overview**: MCP server bridging ProjectDiscovery's Nuclei template engine so AI agents can run targeted active exposure, tech-detection, and misconfiguration checks.
+- **Quick-Start / Tradecraft**: `go run github.com/addcontent/nuclei-mcp@latest`
+
+### [FofaMap (AI Asset Mapping + Gated Nuclei)](https://github.com/asaotomo/FofaMap) `[A-Tier]`
+- **ID**: `fofamap` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: Required (Account / API Key) · **GitHub**: [`asaotomo/FofaMap`](https://github.com/asaotomo/FofaMap)
+- **Inputs**: `domain`, `ip`, `company`, `keyword` → **Outputs**: `open_ports`, `subdomains`, `tech_stack`, `certificates`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `fofa`, `mcp`, `skill`, `human-gated-active`, `asm`
+- **Overview**: Evidence-driven cyberspace asset mapping agent supporting natural-language FOFA queries, CLI/MCP/Skill modes, and human-approved active Nuclei verification.
+- **Quick-Start / Tradecraft**: `python3 fofamap.py -q 'domain="example.com"'`
+
+### [AutoRedTeam-Orchestrator](https://github.com/Coff0xc/AutoRedTeam-Orchestrator) `[B-Tier]`
+- **ID**: `autoredteam-orchestrator` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Coff0xc/AutoRedTeam-Orchestrator`](https://github.com/Coff0xc/AutoRedTeam-Orchestrator)
+- **Inputs**: `domain`, `ip`, `url` → **Outputs**: `subdomains`, `open_ports`, `urls`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `mcp`, `orchestrator`, `active-recon`, `ai-agent`
+- **Overview**: MCP-native reconnaissance and authorized security assessment workbench combining SDK, CLI, and MCP tool orchestration across active recon pipelines.
+- **Quick-Start / Tradecraft**: `python3 -m autoredteam_orchestrator`
+
+### [BlitzStrike MCP Toolbelt](https://github.com/shinthink/blitzstrike) `[B-Tier]`
+- **ID**: `blitzstrike` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`shinthink/blitzstrike`](https://github.com/shinthink/blitzstrike)
+- **Inputs**: `domain`, `ip`, `url` → **Outputs**: `open_ports`, `subdomains`, `tech_stack`, `urls`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `mcp`, `active-recon`, `security-audit`, `ai-agent`
+- **Overview**: Universal Model Context Protocol security-audit and high-speed active reconnaissance toolbelt connecting terminal scanners to LLM agents.
+- **Quick-Start / Tradecraft**: `npx blitzstrike`
+
+### [ExternalAttacker-MCP](https://github.com/MorDavid/ExternalAttacker-MCP) `[B-Tier]`
+- **ID**: `externalattacker-mcp` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`MorDavid/ExternalAttacker-MCP`](https://github.com/MorDavid/ExternalAttacker-MCP)
+- **Inputs**: `domain`, `ip`, `company` → **Outputs**: `subdomains`, `dns_records`, `open_ports`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `easm`, `mcp`, `attack-surface`, `active-recon`
+- **Overview**: Modular external attack surface mapping MCP server integrating subdomain discovery, DNS resolution, port probing, and HTTP tech fingerprinting for AI agents.
+- **Quick-Start / Tradecraft**: `python3 server.py # ExternalAttacker MCP`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 📻 SIGINT, Wireless, SDR & Space](./19-sigint-wireless-space-rf.md)

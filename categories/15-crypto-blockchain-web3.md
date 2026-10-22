@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: On-chain queries through public explorers are passive, but never connect a personal Web3 wallet (MetaMask/Phantom) to investigation pages or interact with suspect tokens/airdrops.
 
-**Discipline Telemetry**: `24` Verified Tools · `8` S-Tier Flagships · `24` Passive · `14` Free/Open-Source
+**Discipline Telemetry**: `27` Verified Tools · `10` S-Tier Flagships · `24` Passive · `17` Free/Open-Source
 
 ## Subcategories
 - [Attribution & Entity Visualizers](#attribution-entity-visualizers) (3)
@@ -17,6 +17,7 @@
 - [DeFi & Insider Supply Visualization](#defi-insider-supply-visualization) (2)
 - [AML & Exploit Tracing](#aml-exploit-tracing) (3)
 - [Crypto Tradecraft Manuals](#crypto-tradecraft-manuals) (1)
+- [Active EVM RPC & Contract Recon](#active-evm-rpc-contract-recon) (3)
 
 ---
 
@@ -265,6 +266,37 @@
 - **Platforms**: Web · **Tags**: `crypto-tradecraft`, `bridge-tracing`, `mixer-heuristics`, `methodology`
 - **Overview**: Comprehensive practitioner-maintained methodology and tool index for crypto hack post-mortems, mixer heuristics, Tornado Cash timing correlation, and cross-chain bridge tracing.
 - **Quick-Start / Tradecraft**: `Reference when tracing funds across THORChain, Mayan, Across, Stargate, or non-EVM swap services.`
+
+---
+
+## Active EVM RPC & Contract Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Foundry Cast (`cast`)**](https://github.com/foundry-rs/foundry) ([GitHub](https://github.com/foundry-rs/foundry)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `crypto_address, domain` → `tx_graph, metadata, secrets` |
+| **S** | [**Slither (Trail of Bits)**](https://github.com/crytic/slither) ([GitHub](https://github.com/crytic/slither)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `crypto_address, repo_code` → `metadata, entity_graph, malware_iocs` |
+| **A** | [**Cryo (Paradigm)**](https://github.com/paradigmxyz/cryo) ([GitHub](https://github.com/paradigmxyz/cryo)) | CLI | OSS / Free | 🔴 Active | ✅ | `crypto_address` → `tx_graph, metadata` |
+
+### [Foundry Cast (`cast`)](https://github.com/foundry-rs/foundry) `[S-Tier]`
+- **ID**: `foundry-cast` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`foundry-rs/foundry`](https://github.com/foundry-rs/foundry)
+- **Inputs**: `crypto_address`, `domain` → **Outputs**: `tx_graph`, `metadata`, `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `evm`, `rpc`, `storage-slots`, `ens`, `smart-contracts`
+- **Overview**: Fast Rust EVM command-line Swiss-army knife querying live RPC nodes, reading private storage slots, resolving ENS, decompiling bytecode, and tracing txs.
+- **Quick-Start / Tradecraft**: `cast storage 0xContractAddress 0 --rpc-url https://eth.llamarpc.com`
+
+### [Slither (Trail of Bits)](https://github.com/crytic/slither) `[S-Tier]`
+- **ID**: `slither-analyzer` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`crytic/slither`](https://github.com/crytic/slither)
+- **Inputs**: `crypto_address`, `repo_code` → **Outputs**: `metadata`, `entity_graph`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `solidity`, `smart-contract-osint`, `trailofbits`, `rugpull-analysis`
+- **Overview**: Static analysis framework pulling live verified Solidity/Vyper contracts directly by chain address to map admin privileges, upgrade proxies, and drainers.
+- **Quick-Start / Tradecraft**: `slither 0xdAC17F958D2ee523a2206206994597C13D831ec7 --print human-summary`
+
+### [Cryo (Paradigm)](https://github.com/paradigmxyz/cryo) `[A-Tier]`
+- **ID**: `paradigm-cryo` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`paradigmxyz/cryo`](https://github.com/paradigmxyz/cryo)
+- **Inputs**: `crypto_address` → **Outputs**: `tx_graph`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Rust · **Tags**: `evm-rpc`, `parquet`, `blockchain-forensics`, `paradigm`, `active`
+- **Overview**: High-throughput Rust EVM data extractor pulling blocks, internal traces, ERC-20 transfers, and contract logs directly from live RPC endpoints into Parquet/JSON.
+- **Quick-Start / Tradecraft**: `cryo logs --contract 0xAddress --rpc https://eth.llamarpc.com`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🏛️ Corporate, Finance & Sanctions](./14-corporate-financial-sanctions.md) · [🧅 Dark Web & Underground ▶](./16-darkweb-tor-underground.md)

@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Submitting a target's private/unindexed URL to `web.archive.org/save` or `archive.today` causes their crawler to fetch the URL immediately and makes the snapshot publicly discoverable!
 
-**Discipline Telemetry**: `23` Verified Tools · `8` S-Tier Flagships · `15` Passive · `19` Free/Open-Source
+**Discipline Telemetry**: `27` Verified Tools · `9` S-Tier Flagships · `16` Passive · `23` Free/Open-Source
 
 ## Subcategories
 - [Historical Web Archives](#historical-web-archives) (6)
@@ -16,6 +16,8 @@
 - [Academic & Grey Literature](#academic-grey-literature) (3)
 - [Visual Recon Screenshotters](#visual-recon-screenshotters) (2)
 - [Document Metadata Extraction](#document-metadata-extraction) (2)
+- [Visual Recon & Screenshotting](#visual-recon-screenshotting) (3)
+- [Web Evidence Preservation](#web-evidence-preservation) (1)
 
 ---
 
@@ -249,6 +251,52 @@
 - **Platforms**: Linux, macOS, Windows, Python · **Tags**: `pdf-forensics`, `static-triage`, `incremental-updates`, `didier-stevens`
 - **Overview**: Battle-tested Python forensics scripts statically inspecting raw PDF object trees (`/JS`, `/JavaScript`, `/OpenAction`, `/Launch`, `/EmbeddedFile`, XMP streams, revision history) without rendering the PDF!
 - **Quick-Start / Tradecraft**: `pdfid.py suspect.pdf && pdf-parser.py --stats suspect.pdf  # Zero-execution static inspection!`
+
+---
+
+## Visual Recon & Screenshotting
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Aquatone**](https://github.com/michenriksen/aquatone) ([GitHub](https://github.com/michenriksen/aquatone)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, url, ip` → `archived_pages, tech_stack, urls` |
+| **A** | [**Eyeballer (Bishop Fox)**](https://github.com/BishopFox/eyeballer) ([GitHub](https://github.com/BishopFox/eyeballer)) | CLI | OSS / Free | 🟢 Passive | ✅ | `image` → `metadata, urls` |
+| **A** | [**WitnessMe**](https://github.com/byt3bl33d3r/WitnessMe) ([GitHub](https://github.com/byt3bl33d3r/WitnessMe)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain, url` → `archived_pages, tech_stack, urls` |
+
+### [Aquatone](https://github.com/michenriksen/aquatone) `[A-Tier]`
+- **ID**: `aquatone` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`michenriksen/aquatone`](https://github.com/michenriksen/aquatone)
+- **Inputs**: `domain`, `url`, `ip` → **Outputs**: `archived_pages`, `tech_stack`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `screenshots`, `visual-recon`, `clustering`, `active`
+- **Overview**: Visual HTTP/HTTPS active flyover tool taking headless Chrome screenshots across large host lists and clustering visually identical web interfaces.
+- **Quick-Start / Tradecraft**: `cat hosts.txt | aquatone -out ./aquatone_report`
+
+### [Eyeballer (Bishop Fox)](https://github.com/BishopFox/eyeballer) `[A-Tier]`
+- **ID**: `eyeballer` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`BishopFox/eyeballer`](https://github.com/BishopFox/eyeballer)
+- **Inputs**: `image` → **Outputs**: `metadata`, `urls`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `screenshot-triage`, `cnn`, `bishopfox`, `visual-recon`
+- **Overview**: Convolutional neural network for triaging thousands of active recon screenshots to automatically surface login portals, old-looking apps, and custom pages.
+- **Quick-Start / Tradecraft**: `eyeballer.py --weights bishop-fox-pretrained-v3.h5 evaluate ./screenshots/`
+
+### [WitnessMe](https://github.com/byt3bl33d3r/WitnessMe) `[A-Tier]`
+- **ID**: `witnessme` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`byt3bl33d3r/WitnessMe`](https://github.com/byt3bl33d3r/WitnessMe)
+- **Inputs**: `ip`, `domain`, `url` → **Outputs**: `archived_pages`, `tech_stack`, `urls`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `headless-chrome`, `screenshots`, `web-inventory`, `active`
+- **Overview**: Async headless Chromium web inventory and active screenshot tool storing HTTP headers, DOM titles, and screenshots inside a browsable local database.
+- **Quick-Start / Tradecraft**: `wme screenshot 198.51.100.0/24`
+
+---
+
+## Web Evidence Preservation
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Monolith**](https://github.com/Y2Z/monolith) ([GitHub](https://github.com/Y2Z/monolith)) | CLI | OSS / Free | 🔴 Active | ✅ | `url` → `archived_pages, documents` |
+
+### [Monolith](https://github.com/Y2Z/monolith) `[S-Tier]`
+- **ID**: `monolith` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`Y2Z/monolith`](https://github.com/Y2Z/monolith)
+- **Inputs**: `url` → **Outputs**: `archived_pages`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `single-file-html`, `evidence-capture`, `rust`, `active`
+- **Overview**: Fast Rust CLI fetching a live target webpage and embedding all external CSS, images, frames, and fonts into a single self-contained forensic HTML file.
+- **Quick-Start / Tradecraft**: `monolith https://example.com -o evidence.html`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🛡️ Threat Intel, Malware & IOCs](./17-threat-intel-malware-cti.md) · [📻 SIGINT, Wireless, SDR & Space ▶](./19-sigint-wireless-space-rf.md)

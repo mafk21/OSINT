@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Querying WiGLE, OpenCelliD, CelesTrak, and KiwiSDR receivers online is passive. Local RF collection with SDR hardware is passive receive-only, but must comply with local telecommunications laws.
 
-**Discipline Telemetry**: `21` Verified Tools · `9` S-Tier Flagships · `21` Passive · `19` Free/Open-Source
+**Discipline Telemetry**: `30` Verified Tools · `15` S-Tier Flagships · `25` Passive · `28` Free/Open-Source
 
 ## Subcategories
 - [Wi-Fi, Bluetooth & Cell Geolocation](#wi-fi,-bluetooth-cell-geolocation) (5)
@@ -14,6 +14,10 @@
 - [RF & Infrastructure Maps](#rf-infrastructure-maps) (6)
 - [Browser Software-Defined Radio (SDR)](#browser-software-defined-radio-sdr) (2)
 - [SDR & Local RF Suites](#sdr-local-rf-suites) (4)
+- [Wi-Fi, BLE & Wireless Recon](#wi-fi,-ble-wireless-recon) (4)
+- [Packet Crafting & Active Probing](#packet-crafting-active-probing) (1)
+- [SDR Aviation & Maritime RF](#sdr-aviation-maritime-rf) (2)
+- [Software Defined Radio](#software-defined-radio) (2)
 
 ---
 
@@ -217,6 +221,106 @@
 - **Platforms**: Linux · **Tags**: `passive-ble-wifi`, `local-rf-situational-awareness`, `oui-classification`
 - **Overview**: Passive wireless situational-intelligence mapper detecting and classifying nearby Wi-Fi APs, BLE beacons, vehicles, cameras, IoT devices, and cell towers locally without transmitting.
 - **Quick-Start / Tradecraft**: `Use passively in authorized physical-security assessments to catalog nearby wireless/BLE emitters.`
+
+---
+
+## Wi-Fi, BLE & Wireless Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Kismet Wireless**](https://github.com/kismetwireless/kismet) ([GitHub](https://github.com/kismetwireless/kismet)) | Framework | OSS / Free | 🟡 Hybrid | ✅ | `mac_bssid, rf_frequency, coordinates` → `signal_telemetry, geolocation, metadata` |
+| **S** | [**bettercap**](https://github.com/bettercap/bettercap) ([GitHub](https://github.com/bettercap/bettercap)) | Framework | OSS / Free | 🔴 Active | ✅ | `mac_bssid, ip` → `signal_telemetry, ip_addresses, metadata` |
+| **S** | [**Aircrack-ng Suite (airodump-ng)**](https://github.com/aircrack-ng/aircrack-ng) ([GitHub](https://github.com/aircrack-ng/aircrack-ng)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `mac_bssid` → `signal_telemetry, geolocation, metadata` |
+| **A** | [**Project Ubertooth**](https://github.com/greatscottgadgets/ubertooth) ([GitHub](https://github.com/greatscottgadgets/ubertooth)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `mac_bssid, rf_frequency` → `signal_telemetry, metadata` |
+
+### [Kismet Wireless](https://github.com/kismetwireless/kismet) `[S-Tier]`
+- **ID**: `kismet` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`kismetwireless/kismet`](https://github.com/kismetwireless/kismet)
+- **Inputs**: `mac_bssid`, `rf_frequency`, `coordinates` → **Outputs**: `signal_telemetry`, `geolocation`, `metadata`
+- **Platforms**: Web, CLI, Linux, macOS, Docker · **Tags**: `wifi`, `wardriving`, `ble`, `zigbee`, `sigint`
+- **Overview**: Flagship wireless network and device detector, sniffer, wardriving logger, and WIDS supporting 802.11 Wi-Fi, Bluetooth/BLE, Zigbee, ADS-B, and RTL-SDR.
+- **Quick-Start / Tradecraft**: `sudo kismet -c wlan0`
+
+### [bettercap](https://github.com/bettercap/bettercap) `[S-Tier]`
+- **ID**: `bettercap` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`bettercap/bettercap`](https://github.com/bettercap/bettercap)
+- **Inputs**: `mac_bssid`, `ip` → **Outputs**: `signal_telemetry`, `ip_addresses`, `metadata`
+- **Platforms**: Web, CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `ble-recon`, `wifi-recon`, `lan-discovery`, `active`, `go`
+- **Overview**: Swiss-army active reconnaissance framework in Go for 802.11 Wi-Fi access points/clients, Bluetooth Low Energy (BLE) GATT characteristics, 2.4GHz HID, and LANs.
+- **Quick-Start / Tradecraft**: `sudo bettercap -eval 'ble.recon on; wifi.recon on'`
+
+### [Aircrack-ng Suite (airodump-ng)](https://github.com/aircrack-ng/aircrack-ng) `[S-Tier]`
+- **ID**: `aircrack-ng` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`aircrack-ng/aircrack-ng`](https://github.com/aircrack-ng/aircrack-ng)
+- **Inputs**: `mac_bssid` → **Outputs**: `signal_telemetry`, `geolocation`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `80211`, `airodump-ng`, `bssid`, `probe-requests`, `sigint`
+- **Overview**: Complete 802.11 wireless assessment suite featuring `airodump-ng` for live BSSID, ESSID, client MAC probe-request, channel, and GPS wardriving capture.
+- **Quick-Start / Tradecraft**: `sudo airodump-ng wlan0mon --write capture`
+
+### [Project Ubertooth](https://github.com/greatscottgadgets/ubertooth) `[A-Tier]`
+- **ID**: `ubertooth` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`greatscottgadgets/ubertooth`](https://github.com/greatscottgadgets/ubertooth)
+- **Inputs**: `mac_bssid`, `rf_frequency` → **Outputs**: `signal_telemetry`, `metadata`
+- **Platforms**: CLI, Linux, macOS · **Tags**: `bluetooth`, `ble`, `2.4ghz`, `greatscottgadgets`, `sigint`
+- **Overview**: Open-source 2.4 GHz wireless platform and CLI tools (`ubertooth-rx`, `ubertooth-btle`) monitoring Bluetooth Basic Rate (LAP/UAP) and BLE traffic.
+- **Quick-Start / Tradecraft**: `ubertooth-btle -f`
+
+---
+
+## Packet Crafting & Active Probing
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Scapy**](https://github.com/secdev/scapy) ([GitHub](https://github.com/secdev/scapy)) | Library | OSS / Free | 🔴 Active | ✅ | `ip, domain, mac_bssid` → `open_ports, signal_telemetry, ip_addresses` |
+
+### [Scapy](https://github.com/secdev/scapy) `[S-Tier]`
+- **ID**: `scapy` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`secdev/scapy`](https://github.com/secdev/scapy)
+- **Inputs**: `ip`, `domain`, `mac_bssid` → **Outputs**: `open_ports`, `signal_telemetry`, `ip_addresses`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `packet-crafting`, `traceroute`, `80211`, `active-probing`
+- **Overview**: Interactive Python packet manipulation program and library forging, transmitting, sniffing, tracerouting, and decoding custom Layer-2/3/4/802.11 frames.
+- **Quick-Start / Tradecraft**: `sudo scapy`
+
+---
+
+## SDR Aviation & Maritime RF
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**readsb (1090 MHz ADS-B Decoder)**](https://github.com/wiedehopf/readsb) ([GitHub](https://github.com/wiedehopf/readsb)) | CLI | OSS / Free | 🟢 Passive | ✅ | `rf_frequency, aircraft_hex` → `flight_tracks, signal_telemetry, geolocation` |
+| **S** | [**AIS-catcher**](https://github.com/jvde-github/AIS-catcher) ([GitHub](https://github.com/jvde-github/AIS-catcher)) | CLI | OSS / Free | 🟢 Passive | ✅ | `rf_frequency, vessel_imo` → `vessel_tracks, signal_telemetry, geolocation` |
+
+### [readsb (1090 MHz ADS-B Decoder)](https://github.com/wiedehopf/readsb) `[S-Tier]`
+- **ID**: `readsb` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`wiedehopf/readsb`](https://github.com/wiedehopf/readsb)
+- **Inputs**: `rf_frequency`, `aircraft_hex` → **Outputs**: `flight_tracks`, `signal_telemetry`, `geolocation`
+- **Platforms**: Web, CLI, Linux, Docker · **Tags**: `adsb`, `1090mhz`, `mode-s`, `rtl-sdr`, `aviation-sigint`
+- **Overview**: Actively maintained Mode-S / ADS-B / TIS-B 1090 MHz SDR receiver and decoder powering modern airplanes.live and ADS-B Exchange feeder stations.
+- **Quick-Start / Tradecraft**: `readsb --device-type rtlsdr --net`
+
+### [AIS-catcher](https://github.com/jvde-github/AIS-catcher) `[S-Tier]`
+- **ID**: `ais-catcher` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`jvde-github/AIS-catcher`](https://github.com/jvde-github/AIS-catcher)
+- **Inputs**: `rf_frequency`, `vessel_imo` → **Outputs**: `vessel_tracks`, `signal_telemetry`, `geolocation`
+- **Platforms**: Web, CLI, Linux, macOS, Windows, Docker · **Tags**: `ais`, `vhf-maritime`, `rtl-sdr`, `vessels`, `sigint`
+- **Overview**: High-sensitivity VHF maritime Automatic Identification System (161.975 / 162.025 MHz) SDR decoder with built-in live vessel map web UI and JSON output.
+- **Quick-Start / Tradecraft**: `AIS-catcher -N 8100`
+
+---
+
+## Software Defined Radio
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Gqrx SDR**](https://github.com/gqrx-sdr/gqrx) ([GitHub](https://github.com/gqrx-sdr/gqrx)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `rf_frequency` → `signal_telemetry` |
+| **A** | [**SigDigger**](https://github.com/BatchDrake/SigDigger) ([GitHub](https://github.com/BatchDrake/SigDigger)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `rf_frequency, audio` → `signal_telemetry, metadata` |
+
+### [Gqrx SDR](https://github.com/gqrx-sdr/gqrx) `[A-Tier]`
+- **ID**: `gqrx` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`gqrx-sdr/gqrx`](https://github.com/gqrx-sdr/gqrx)
+- **Inputs**: `rf_frequency` → **Outputs**: `signal_telemetry`
+- **Platforms**: Linux, macOS · **Tags**: `sdr`, `waterfall`, `gnuradio`, `hackrf`, `rtlsdr`
+- **Overview**: Open-source GNU Radio-powered software defined radio receiver with waterfall spectrum analyzer supporting RTL-SDR, Airspy, HackRF, BladeRF, and USRP.
+- **Quick-Start / Tradecraft**: `gqrx # Launch SDR waterfall & receiver`
+
+### [SigDigger](https://github.com/BatchDrake/SigDigger) `[A-Tier]`
+- **ID**: `sigdigger` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`BatchDrake/SigDigger`](https://github.com/BatchDrake/SigDigger)
+- **Inputs**: `rf_frequency`, `audio` → **Outputs**: `signal_telemetry`, `metadata`
+- **Platforms**: Linux, macOS, Windows · **Tags**: `rf-analysis`, `demodulation`, `sdr`, `sigint`
+- **Overview**: Qt digital signal analyzer for blind unknown RF protocol reverse-engineering, FSK/PSK/ASK demodulation, and satellite/telemetry inspection.
+- **Quick-Start / Tradecraft**: `SigDigger`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🗄️ Archiving, Evidence & Docs](./18-archiving-evidence-docs.md) · [🤖 AI Agents, MCP & OPSEC ▶](./20-ai-agents-mcp-opsec.md)

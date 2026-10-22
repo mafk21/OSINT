@@ -48,17 +48,32 @@ python3 scripts/hunt.py "<TARGET>" --active --request-id ACT-XXXXXXXX --user-app
 
 ---
 
-## 3. Active OSINT Modules Reference (`osint_hunter/active_collectors.py`)
+## 3. 22 Built-In Active OSINT Modules (`osint_hunter/active_collectors.py`)
 
 | Module ID | Direct Probe Action | High-Value Intelligence Extracted |
 | :--- | :--- | :--- |
 | `active_dns_live_resolver` | Live DNS + reverse PTR query | Live A/AAAA IPs & cloud load-balancer reverse PTR hostnames |
+| `active_dns_zone_transfer_axfr` | Authoritative TCP `:53` DNS `AXFR` test | Detects misconfigured zone transfers leaking complete internal DNS inventories |
+| `active_dns_srv_and_federation` | Live DNS `SRV`, `_dmarc`, `_mta-sts`, Autodiscover | SIP/VoIP, XMPP, Kerberos/LDAP, M365 Federation & Exchange endpoints |
+| `active_subdomain_takeover_cname_audit` | Common subdomain CNAME resolution vs 22 signatures | Dangling AWS S3, GitHub Pages, Azure, Heroku, Fastly & Vercel CNAMEs |
 | `active_tls_cert_inspector` | Direct `:443` TLS handshake | Live X.509 issuer/subject, SHA-256 cert fingerprint, Censys pivot & **all SAN sibling domains** |
+| `active_tls_protocol_alpn_matrix` | Multi-version TLS 1.0–1.3 & ALPN (`h2`/`http/1.1`) | Negotiated cipher suites, deprecated TLS versions & HTTP/2 support |
+| `active_jarm_tls_fingerprint` | 10-probe custom TLS `ClientHello` socket sweep | Exact **62-char Salesforce JARM** fingerprint for Shodan/Censys C2 & stack hunting |
 | `active_http_fingerprint_and_headers` | Controlled HTTP/S redirect walk | Full `301/302` chain, `Server`, `CSP` whitelisted domains, `Onion-Location`, **GA4 / GTM / UA / AdSense IDs** |
-| `active_wellknown_and_robots_harvester` | `GET /robots.txt`, `/.well-known/security.txt`, `openid-configuration`, `/humans.txt` | Disallowed admin paths, security contacts, PGP keys, OAuth/Entra tenant endpoints |
-| `active_favicon_hash_extractor` | `GET /favicon.ico` | Exact **Shodan `http.favicon.hash:<mmh3>`** (32-bit signed MurmurHash3) to unmask origin IPs behind CDNs |
-| `active_tcp_service_banner_probe` | Brief TCP connect on `21,22,25,80,443,8080,8443` | Open port map & SSH/SMTP/FTP version banners (`OpenSSH_9.x Ubuntu` OS patch fingerprinting) |
+| `active_http_methods_cors_and_waf` | `OPTIONS` + arbitrary `Origin` CORS + WAF check | Allowed HTTP verbs, **CORS credential reflection**, & 16+ WAF/CDN signatures |
+| `active_wellknown_and_robots_harvester` | `GET /robots.txt`, `security.txt`, `openid-configuration` | Disallowed admin paths, security contacts, PGP keys, OAuth/Entra tenant endpoints |
+| `active_mobile_app_and_fediverse_links` | `apple-app-site-association`, `assetlinks.json`, `webfinger` | Official iOS Team/Bundle IDs, Android package cert SHA-256 & Mastodon/OIDC links |
+| `active_sitemap_and_feed_harvester` | `sitemap.xml`, `sitemap_index.xml`, `/feed`, `/atom.xml` | Indexed route structure, child sitemaps & RSS author/generator metadata |
+| `active_api_openapi_and_graphql_discovery` | `/openapi.json`, `/swagger.json`, `/actuator/info`, `/graphql` | Public API specifications, version strings & GraphQL `__typename` exposure |
+| `active_exposed_vcs_and_env_check` | Non-intrusive `HEAD`/`Range` on `/.git/HEAD`, `/.DS_Store` | Exposed Git/SVN metadata, `package.json`, `composer.json` & Spring Actuator leaks |
+| `active_js_bundle_cloud_and_endpoint_carver` | Live `<script src>` bundle inspection (up to 6 bundles) | Embedded `/api/v*` routes, `wss://` sockets, S3/GCS/Azure URLs & sourceMap refs |
+| `active_favicon_hash_extractor` | `GET /favicon.ico` | Exact **Shodan `http.favicon.hash:<mmh3>`** (32-bit signed MurmurHash3) to unmask origin IPs |
 | `active_url_jsonld_opengraph` | Live HTML DOM metadata parse | OpenGraph tags & `schema.org` JSON-LD `sameAs` official social graph |
+| `active_cloud_bucket_permutation_probe` | HTTPS `HEAD`/`GET` across AWS S3, GCS & Azure Blob | Public/protected cloud storage buckets matching target brand slug |
+| `active_tcp_service_banner_probe` | Concurrent TCP probe across **20 common ports** | Open port matrix (`21,22,25,53,80,443,445,3306,3389,5432,6379,8080,8443,9200,27017...`) & banners |
+| `active_ssh_hostkey_and_kex_probe` | Raw RFC 4253 SSH `KEXINIT` packet parse (`:22`) | Exact OpenSSH OS package banner + KEX, host-key & MAC algorithm fingerprints |
+| `active_smtp_ehlo_starttls_inspector` | Live MX `:25` `EHLO` + `STARTTLS` TLS cert inspection | Mail server hostname, `AUTH`/`VRFY` verbs & MX X.509 SAN hostnames |
+| `active_username_live_platform_probe` | Live HTTP checks across **16 developer/social sites** | Verified accounts on GitHub, GitLab, Codeberg, DockerHub, Crates.io, HuggingFace, Mastodon, Linktree & more |
 
 ---
 

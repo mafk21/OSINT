@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Platforms like LinkedIn, TikTok, and Instagram notify users of profile views or suggest 'People You May Know' if sock puppets share browser fingerprints, IPs, or phone numbers.
 
-**Discipline Telemetry**: `28` Verified Tools · `10` S-Tier Flagships · `28` Passive · `23` Free/Open-Source
+**Discipline Telemetry**: `31` Verified Tools · `11` S-Tier Flagships · `28` Passive · `26` Free/Open-Source
 
 ## Subcategories
 - [Cross-Platform Academic & Disinfo Suites](#cross-platform-academic-disinfo-suites) (1)
@@ -20,6 +20,9 @@
 - [Regional Social Networks (VK / OK / Weibo)](#regional-social-networks-vk-ok-weibo) (1)
 - [Decentralized Social OSINT](#decentralized-social-osint) (1)
 - [Cross-Platform Social Search](#cross-platform-social-search) (2)
+- [Media & Profile Archivers](#media-profile-archivers) (1)
+- [X / Twitter OSINT](#x-twitter-osint) (1)
+- [Fediverse & Decentralized Social](#fediverse-decentralized-social) (1)
 
 ---
 
@@ -321,6 +324,51 @@
 - **Platforms**: Web · **Tags**: `multi-network`, `hashtag-monitoring`, `real-time-mentions`
 - **Overview**: Real-time multi-network social search engine querying public mentions, hashtags, and sentiment across X, Facebook, YouTube, Instagram, Tumblr, Reddit, Flickr, Dailymotion, and VKontakte.
 - **Quick-Start / Tradecraft**: `Run keyword/brand sweeps across 10+ networks simultaneously at https://www.social-searcher.com/.`
+
+---
+
+## Media & Profile Archivers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**gallery-dl**](https://github.com/mikf/gallery-dl) ([GitHub](https://github.com/mikf/gallery-dl)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, username` → `archived_pages, metadata, urls` |
+
+### [gallery-dl](https://github.com/mikf/gallery-dl) `[S-Tier]`
+- **ID**: `gallery-dl` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`mikf/gallery-dl`](https://github.com/mikf/gallery-dl)
+- **Inputs**: `url`, `username` → **Outputs**: `archived_pages`, `metadata`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `media-preservation`, `socmint`, `json-metadata`, `active`
+- **Overview**: Command-line active media and JSON metadata downloader supporting 300+ imageboards, social platforms, Bluesky, Reddit, Mastodon, Flickr, and Tumblr.
+- **Quick-Start / Tradecraft**: `gallery-dl --write-metadata https://bsky.app/profile/example.bsky.social`
+
+---
+
+## X / Twitter OSINT
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**twscrape**](https://github.com/vladkens/twscrape) ([GitHub](https://github.com/vladkens/twscrape)) | CLI | OSS / Free | 🔴 Active | 🔑 | `username, keyword, url` → `social_profiles, usernames, urls` |
+
+### [twscrape](https://github.com/vladkens/twscrape) `[A-Tier]`
+- **ID**: `twscrape` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`vladkens/twscrape`](https://github.com/vladkens/twscrape)
+- **Inputs**: `username`, `keyword`, `url` → **Outputs**: `social_profiles`, `usernames`, `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `twitter`, `x-osint`, `graphql-scraper`, `active`
+- **Overview**: Async Python X/Twitter GraphQL API scraper rotating authenticated session pools to collect timelines, followers, search operators, and user IDs.
+- **Quick-Start / Tradecraft**: `twscrape user_tweets elonmusk --limit 50`
+
+---
+
+## Fediverse & Decentralized Social
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**ATProto SDK & CLI (Bluesky)**](https://github.com/MarshalX/atproto) ([GitHub](https://github.com/MarshalX/atproto)) | Library | OSS / Free | 🟡 Hybrid | ✅ | `username, domain, keyword` → `social_profiles, dns_records, entity_graph` |
+
+### [ATProto SDK & CLI (Bluesky)](https://github.com/MarshalX/atproto) `[A-Tier]`
+- **ID**: `atproto-sdk` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`MarshalX/atproto`](https://github.com/MarshalX/atproto)
+- **Inputs**: `username`, `domain`, `keyword` → **Outputs**: `social_profiles`, `dns_records`, `entity_graph`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `bluesky`, `atproto`, `did-plc`, `firehose`, `socmint`
+- **Overview**: Python AT Protocol SDK and CLI querying Bluesky DID documents, PLC audit logs, live Jetstream/Firehose feeds, and social graphs.
+- **Quick-Start / Tradecraft**: `pip install atproto && atproto-cli`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 📡 Cyberspace & Network Search](./08-network-ip-iot-search.md) · [💻 Code, Secrets & Cloud OSINT ▶](./10-code-cloud-dev-osint.md)
