@@ -1,0 +1,222 @@
+[
+  {
+    "order": 1,
+    "id": "all-in-one-frameworks",
+    "code": "ALL-SOURCE",
+    "icon": "🧰",
+    "filename": "01-all-in-one-frameworks.md",
+    "title": "All-in-One Frameworks, Link Analysis & Global Situational Dashboards",
+    "short_title": "Frameworks & Link Analysis",
+    "description": "Multi-source OSINT automation engines, entity-relationship graph visualizers, reconnaissance orchestrators, and real-time multi-domain situational awareness platforms.",
+    "opsec_notes": "Automated frameworks like SpiderFoot, BBOT, and Recon-ng bundle both passive API queries and active HTTP/DNS probes. Always enforce passive-only presets when target alerting is unacceptable."
+  },
+  {
+    "order": 2,
+    "id": "username-enumeration",
+    "code": "USERINT",
+    "icon": "🕵️",
+    "filename": "02-username-enumeration.md",
+    "title": "Username Enumeration & Digital Footprint Mapping",
+    "short_title": "Username & Handle Recon",
+    "description": "Cross-platform handle discovery engines, profile metadata extractors, and account correlation datasets spanning 500 to 6,000+ social networks, forums, and developer platforms.",
+    "opsec_notes": "Username scanners generate high-volume HTTP requests from your IP to hundreds of platforms; route scans through a VPN/Tor or residential proxy pool and manually verify hits to rule out handle collisions."
+  },
+  {
+    "order": 3,
+    "id": "email-intelligence",
+    "code": "EMAILINT",
+    "icon": "📧",
+    "filename": "03-email-intelligence.md",
+    "title": "Email Intelligence, Account Enumeration & Corporate Address Discovery",
+    "short_title": "Email Intelligence",
+    "description": "Account registration checkers (password-reset/OAuth side-channels), Google workspace/GAIA profilers, corporate email pattern harvesters, reputation scorers, and SMTP/MX verifiers.",
+    "opsec_notes": "Some password-reset enumeration modules can trigger 'password reset requested' emails or SMS alerts on poorly designed websites. Stick to silent registration-check tools (e.g., Holehe passive modules, Epieos, GHunt) for covert work."
+  },
+  {
+    "order": 4,
+    "id": "phone-messaging-osint",
+    "code": "PHONEINT",
+    "icon": "📱",
+    "filename": "04-phone-messaging-osint.md",
+    "title": "Phone Number, Carrier & Messaging App Intelligence (Telegram, Discord, WhatsApp)",
+    "short_title": "Phone & Messaging OSINT",
+    "description": "HLR/CNAM/carrier lookup frameworks, phone-to-account enumerators, and deep intelligence toolkits for Telegram channels/groups, Discord snowflake IDs/servers, and WhatsApp profiles.",
+    "opsec_notes": "Syncing a target phone number in messaging apps via an investigator phone can expose your sock-puppet contact card if mutual-contact settings are misconfigured. Disable contact sync or use isolated virtual Android environments."
+  },
+  {
+    "order": 5,
+    "id": "people-public-records",
+    "code": "HUMINT",
+    "icon": "🪪",
+    "filename": "05-people-public-records.md",
+    "title": "People Search, Public Records, Voter, Court & Genealogy Databases",
+    "short_title": "People & Public Records",
+    "description": "Identity resolution engines, federal and state court dockets, voter/property registries, genealogy archives, missing-persons toolkits, and international wanted/interpol notices.",
+    "opsec_notes": "Public-record portals and commercial people-search aggregators log searcher IP addresses and account sessions; never query sensitive targets from personal networks or non-compartmentalized accounts."
+  },
+  {
+    "order": 6,
+    "id": "breaches-leaks-stealers",
+    "code": "BREACHINT",
+    "icon": "🔓",
+    "filename": "06-breaches-leaks-stealers.md",
+    "title": "Data Breaches, Infostealer Logs, Paste Sites & Leak Archives",
+    "short_title": "Breaches & Infostealers",
+    "description": "Historical credential breach indexes, infostealer malware infection telemetry, public whistleblowing document troves, ransomware leak trackers, and paste-site monitors.",
+    "opsec_notes": "Verify legal authorization in your jurisdiction before downloading or querying raw credential dumps. Prefer metadata/exposure verification APIs (HIBP, Hudson Rock Cavalier, IntelX) over unvetted underground bots."
+  },
+  {
+    "order": 7,
+    "id": "domain-dns-asm",
+    "code": "DNSINT",
+    "icon": "🌐",
+    "filename": "07-domain-dns-asm.md",
+    "title": "Domain, DNS, Certificate Transparency & Attack Surface Management",
+    "short_title": "Domains, DNS & ASM",
+    "description": "Passive DNS history, RDAP/WHOIS attribution, Certificate Transparency (CT) log monitors, subdomain enumerators, typosquatting detectors, and web technology profilers.",
+    "opsec_notes": "Querying Certificate Transparency (`crt.sh`), passive DNS (`SecurityTrails`), and RDAP is 100% passive. Running `httpx`, `Katana`, or DNS brute-forcing touches target servers and leaves logs."
+  },
+  {
+    "order": 8,
+    "id": "network-ip-iot-search",
+    "code": "NETINT",
+    "icon": "📡",
+    "filename": "08-network-ip-iot-search.md",
+    "title": "Cyberspace Search Engines, IP, ASN, BGP & Internet Telemetry",
+    "short_title": "Cyberspace & Network Search",
+    "description": "Internet-wide port/banner search engines, exposed IoT/ICS/OT device indexes, BGP/ASN routing analyzers, residential proxy/VPN detectors, and global internet outage monitors.",
+    "opsec_notes": "Searching Shodan, Censys, FOFA, ZoomEye, Netlas, or GreyNoise queries pre-indexed scan databases and is completely passive with zero packets sent to the target IP."
+  },
+  {
+    "order": 9,
+    "id": "social-media-socmint",
+    "code": "SOCMINT",
+    "icon": "💬",
+    "filename": "09-social-media-socmint.md",
+    "title": "Social Media Intelligence (SOCMINT) — X, Instagram, Reddit, TikTok, LinkedIn, YouTube",
+    "short_title": "Social Media (SOCMINT)",
+    "description": "Platform-specific collection, deleted-post recovery, social graph mapping, timestamp extraction, location-based post discovery, and cross-platform social listening tools.",
+    "opsec_notes": "Platforms like LinkedIn, TikTok, and Instagram notify users of profile views or suggest 'People You May Know' if sock puppets share browser fingerprints, IPs, or phone numbers."
+  },
+  {
+    "order": 10,
+    "id": "code-cloud-dev-osint",
+    "code": "CODEINT",
+    "icon": "💻",
+    "filename": "10-code-cloud-dev-osint.md",
+    "title": "Source Code, GitHub Recon, Secret Scanning & Multi-Cloud Enumeration",
+    "short_title": "Code, Secrets & Cloud OSINT",
+    "description": "Git commit author attribution, leaked API key/secret verifiers, global HTML/JS source code search engines (analytics/adsense ID pivoting), and public AWS/Azure/GCP bucket enumerators.",
+    "opsec_notes": "Cloning a public GitHub repo is passive, but running live credential verification (`trufflehog` without `--no-verification`) hits third-party APIs and can trigger canarytoken alerts!"
+  },
+  {
+    "order": 11,
+    "id": "geoint-maps-satellites",
+    "code": "GEOINT",
+    "icon": "🛰️",
+    "filename": "11-geoint-maps-satellites.md",
+    "title": "Geospatial Intelligence (GEOINT), Satellite Imagery, Mapping & Chronolocation",
+    "short_title": "GEOINT, Maps & Satellites",
+    "description": "Multispectral & SAR satellite imagery browsers, Overpass/OpenStreetMap feature query engines, street-level ground-truth archives, solar shadow calculators, terrain skyline matchers, and conflict maps.",
+    "opsec_notes": "GEOINT platforms are purely passive against real-world targets, though commercial tasking orders on high-resolution constellations may appear in archive catalogs unless private tasking is purchased."
+  },
+  {
+    "order": 12,
+    "id": "image-video-media-forensics",
+    "code": "IMINT",
+    "icon": "🔬",
+    "filename": "12-image-video-media-forensics.md",
+    "title": "Image, Video, Facial Recognition, Audio & Digital Media Forensics (IMINT)",
+    "short_title": "Image, Video & Media Forensics",
+    "description": "Reverse image and facial recognition search engines, EXIF/XMP metadata extractors, Error Level Analysis (ELA) & clone-detection labs, video keyframe verifiers, deepfake detectors, and bioacoustic/audio analyzers.",
+    "opsec_notes": "Uploading sensitive or unreleased investigation photos to cloud reverse-image or face-search engines (Yandex, PimEyes, VirusTotal-style sandboxes) can cache or index the image; strip borders/EXIF and crop carefully."
+  },
+  {
+    "order": 13,
+    "id": "aviation-maritime-transport",
+    "code": "TRANSINT",
+    "icon": "✈️",
+    "filename": "13-aviation-maritime-transport.md",
+    "title": "Aviation, Maritime, Rail, Supply Chain & Vehicle/VIN Intelligence",
+    "short_title": "Aviation, Maritime & Transport",
+    "description": "Uncensored ADS-B/MLAT flight trackers, AIS vessel & dark-fleet monitors, GNSS/GPS jamming maps, maritime ownership & port-state control registries, bills-of-lading customs databases, and VIN/plate tools.",
+    "opsec_notes": "Prefer unfiltered ADS-B networks (`ADS-B Exchange`, `airplanes.live`) when tracking state, military, or LADD-blocked private aircraft censored on commercial flight apps."
+  },
+  {
+    "order": 14,
+    "id": "corporate-financial-sanctions",
+    "code": "FININT",
+    "icon": "🏛️",
+    "filename": "14-corporate-financial-sanctions.md",
+    "title": "Corporate Registries, Beneficial Ownership, Sanctions, Trade & Financial OSINT",
+    "short_title": "Corporate, Finance & Sanctions",
+    "description": "Global company registries, beneficial ownership (PSC/UBO) databases, offshore leak archives, consolidated OFAC/EU/UN/PEP sanctions screens, SEC/procurement filings, and patent/trademark portals.",
+    "opsec_notes": "Official corporate registries in a few jurisdictions (e.g., certain European/Asian portals) require citizen eID login and log who accessed a company dossier; check registry anonymity rules first."
+  },
+  {
+    "order": 15,
+    "id": "crypto-blockchain-web3",
+    "code": "CRYPTOINT",
+    "icon": "⛓️",
+    "filename": "15-crypto-blockchain-web3.md",
+    "title": "Cryptocurrency, Blockchain Forensics, DeFi & On-Chain Attribution",
+    "short_title": "Crypto & Blockchain OSINT",
+    "description": "Multi-chain entity attribution platforms, visual transaction flow graphers, UTXO wallet clusterers, AML/OFAC risk screeners, smart-contract/rug analyzers, and ENS/Web3 identity resolvers.",
+    "opsec_notes": "On-chain queries through public explorers are passive, but never connect a personal Web3 wallet (MetaMask/Phantom) to investigation pages or interact with suspect tokens/airdrops."
+  },
+  {
+    "order": 16,
+    "id": "darkweb-tor-underground",
+    "code": "DARKINT",
+    "icon": "🧅",
+    "filename": "16-darkweb-tor-underground.md",
+    "title": "Dark Web, Tor (.onion), I2P & Ransomware / Underground Monitoring",
+    "short_title": "Dark Web & Underground",
+    "description": "Clearnet-to-Tor `.onion` search engines, darknet crawlers, AI dark-web triage agents, ransomware extortion group trackers, Tor relay telemetry, and PGP keyserver attribution tools.",
+    "opsec_notes": "Never browse live `.onion` hidden services from a host browser or Tor2Web proxy. Use Tor Browser inside Whonix/Tails or an isolated disposable VM with JavaScript set to Safest."
+  },
+  {
+    "order": 17,
+    "id": "threat-intel-malware-cti",
+    "code": "CTI",
+    "icon": "🛡️",
+    "filename": "17-threat-intel-malware-cti.md",
+    "title": "Cyber Threat Intelligence (CTI), Malware Sandboxes, Phishing & IOC Pivoting",
+    "short_title": "Threat Intel, Malware & IOCs",
+    "description": "Multi-engine file/URL scanners, interactive malware sandboxes, Abuse.ch botnet/C2 feeds, JARM/favicon/certificate pivot engines, APT encyclopedias, and STIX/TAXII threat intelligence platforms.",
+    "opsec_notes": "NEVER upload confidential incident documents or custom adversary implants to public VirusTotal/URLScan/Hybrid Analysis without realizing threat actors monitor public submissions for their own hashes and URLs!"
+  },
+  {
+    "order": 18,
+    "id": "archiving-evidence-docs",
+    "code": "ARCHINT",
+    "icon": "🗄️",
+    "filename": "18-archiving-evidence-docs.md",
+    "title": "Web Archiving, Forensic Evidence Capture, Document Metadata & Grey Literature",
+    "short_title": "Archiving, Evidence & Docs",
+    "description": "Historical web caches, tamper-evident forensic browser recorders (WARC/WACZ/SHA-256), headless screenshotters, document metadata extractors, FOIA portals, and academic/scientific search engines.",
+    "opsec_notes": "Submitting a target's private/unindexed URL to `web.archive.org/save` or `archive.today` causes their crawler to fetch the URL immediately and makes the snapshot publicly discoverable!"
+  },
+  {
+    "order": 19,
+    "id": "sigint-wireless-space-rf",
+    "code": "SIGINT",
+    "icon": "📻",
+    "filename": "19-sigint-wireless-space-rf.md",
+    "title": "Signals Intelligence (SIGINT), Wi-Fi/BLE/Cellular Geolocation, SDR & Orbital Space Tracking",
+    "short_title": "SIGINT, Wireless, SDR & Space",
+    "description": "Global BSSID/Wi-Fi/Bluetooth/Cell-tower geolocation databases, browser-accessible HF/VHF Software-Defined Radios (KiwiSDR/WebSDR), orbital TLE satellite trackers, and amateur ground-station networks.",
+    "opsec_notes": "Querying WiGLE, OpenCelliD, CelesTrak, and KiwiSDR receivers online is passive. Local RF collection with SDR hardware is passive receive-only, but must comply with local telecommunications laws."
+  },
+  {
+    "order": 20,
+    "id": "ai-agents-mcp-opsec",
+    "code": "AI-OPSEC",
+    "icon": "🤖",
+    "filename": "20-ai-agents-mcp-opsec.md",
+    "title": "AI-Powered OSINT Agents, MCP Servers, Browser Extensions & Investigator OPSEC",
+    "short_title": "AI Agents, MCP & OPSEC",
+    "description": "Model Context Protocol (MCP) OSINT servers for AI agents, autonomous geolocation & recon skills, context-menu IOC browser extensions, OSINT Linux distributions, and hardened OPSEC/sock-puppet infrastructure.",
+    "opsec_notes": "When connecting LLM agents to MCP OSINT servers, review whether active/noisy tools are disabled by default (e.g. `OpenOSINT` passive mode) and avoid sending sensitive PII to cloud LLM providers without zero-data-retention."
+  }
+]

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSINT Monster Database — Analyst Command Center</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge">🛰️</div>
+        <div>
+          <h1>OSINT MONSTER DATABASE <span class="version-pill">v2026.10</span></h1>
+          <div class="brand-sub">Multi-Discipline Intelligence Directory · Selector Pivot Engine · Dork Forge · Field Playbooks</div>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" id="mainNav">
+        <button class="nav-tab active" data-view="hunter">⚡ Autonomous Hunter <span class="tab-count">LIVE</span></button>
+        <button class="nav-tab" data-view="arsenal">🗂️ Tool Arsenal <span class="tab-count" id="navCntTools">0</span></button>
+        <button class="nav-tab" data-view="pivots">🧭 Pivot Matrix <span class="tab-count" id="navCntPivots">24</span></button>
+        <button class="nav-tab" data-view="workflows">🗺️ Playbooks <span class="tab-count" id="navCntWorkflows">0</span></button>
+        <button class="nav-tab" data-view="dorks">🎯 Live Dork Forge <span class="tab-count" id="navCntDorks">0</span></button>
+        <button class="nav-tab" data-view="graveyard">🪦 2026 Graveyard <span class="tab-count" id="navCntGraveyard">0</span></button>
+        <button class="nav-tab" data-view="loadout">⭐ Case Loadout <span class="tab-count" id="navCntLoadout">0</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <section class="telemetry-bar" id="telemetryBar"></section>
+
+  <main class="container">
+    <!-- VIEW 0: AUTONOMOUS HUNTER CONSOLE -->
+    <section class="view-panel active" id="view-hunter">
+      <div class="hunter-hero">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <h2 style="margin:0; font-size:19px;">⚡ Autonomous OSINT Hunter (Instant Passive + User-Gated Active Recon)</h2>
+            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
+              <strong>🟢 Passive Mode</strong> runs immediately with zero questions and zero target packets. <strong>🔴 Active Mode</strong> adds live TLS X.509 SANs, HTTP/CSP headers, <code>security.txt</code>, Shodan <code>mmh3</code> favicon hashes &amp; TCP banners — and <strong>ALWAYS asks your explicit permission before sending a single packet</strong>.
+            </div>
+          </div>
+          <span class="badge opsec-Passive" id="opsecHeaderBadge" style="font-size:12px; padding:5px 10px;">🟢 Passive Default · Active Hard-Gated</span>
+        </div>
+
+        <div class="hunter-input-row">
+          <input type="text" id="huntTargetInput" class="hunter-input" placeholder="Paste ANY selector or prompt: https://github.com/torvalds, +966501234567, aircraft AE01D5, MMSI 613123456..." />
+          <select id="huntModeSelect" class="select-ctrl" style="border-color:var(--green);">
+            <option value="passive" selected>🟢 Passive Mode (Instant · Zero Questions)</option>
+            <option value="active">🔴 Active + Passive (Ask Permission First)</option>
+          </select>
+          <select id="huntDepthSelect" class="select-ctrl">
+            <option value="1">Depth 1 (Direct Sweep)</option>
+            <option value="2" selected>Depth 2 (Auto-Pivot Graph)</option>
+            <option value="3">Depth 3 (Deep Recursive)</option>
+          </select>
+          <button id="launchHuntBtn" class="btn-hunt">⚡ HUNT NOW</button>
+        </div>
+
+        <div id="liveDetectedRow" style="margin-top:9px; font-size:12px; color:var(--text-2); min-height:22px;"></div>
+
+        <div class="preset-row">
+          <span style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">Instant Demo Targets:</span>
+          <button class="sel-pill" data-hunt-preset="@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000, BSSID 60:60:1F:AA:BB:CC">🛰️ Multi-Domain Tactical Sweep (6 Selectors)</button>
+          <button class="sel-pill" data-hunt-preset="sindresorhus">👤 Dev &amp; npm Attribution (sindresorhus)</button>
+          <button class="sel-pill" data-hunt-preset="requests">📦 PyPI / Repo Attribution (requests)</button>
+          <button class="sel-pill" data-hunt-preset="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045">💎 EVM Wallet Sweep</button>
+        </div>
+      </div>
+
+      <div id="huntResultsArea">
+        <div class="agent-connect-grid">
+          <div class="collector-card">
+            <h3 style="margin:0 0 6px;">🤖 Plug Any AI Agent In — Zero Questions Asked</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;"><code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.cursorrules</code>, and <code>SKILL.md</code> instruct Claude Code, Codex, Cursor, Windsurf, OpenClaw, and Arena Agents to start hunting on Turn 1 without asking anything:</p>
+            <div class="code-block">python3 scripts/hunt.py "ANY_TARGET_OR_PROMPT" --depth 2</div>
+          </div>
+          <div class="collector-card">
+            <h3 style="margin:0 0 6px;">🔌 Native MCP Server (stdio + Streamable HTTP)</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Auto-discovered via <code>.mcp.json</code> for Claude Desktop / Cursor / Cline, or over HTTP POST <code>/api/mcp</code>:</p>
+            <div class="code-block">python3 scripts/mcp_server.py   # stdio JSON-RPC 2.0</div>
+          </div>
+          <div class="collector-card">
+            <h3 style="margin:0 0 6px;">⚡ REST Hunt API Endpoint</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Trigger full multi-wave hunts &amp; receive OASIS STIX 2.1 bundles from LangGraph, CrewAI, n8n, or webhooks:</p>
+            <div class="code-block">POST /api/hunt  {"target": "torvalds", "depth": 2}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 1: ARSENAL -->
+    <section class="view-panel" id="view-arsenal">
+      <div class="arsenal-layout">
+        <aside class="sidebar">
+          <div class="sidebar-title">
+            <span>Disciplines (20)</span>
+            <a href="#" id="resetCatLink" style="font-size:11px;">All</a>
+          </div>
+          <div id="categoryList"></div>
+        </aside>
+
+        <div>
+          <div class="filter-console">
+            <div class="search-row">
+              <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search 540+ OSINT tools, tags, CLI commands, capabilities (press / to focus)..." autocomplete="off" />
+                <span class="kbd-hint">/</span>
+              </div>
+
+              <select class="select-ctrl" id="typeSelect">
+                <option value="">All Tool Types</option>
+              </select>
+
+              <select class="select-ctrl" id="outputSelect">
+                <option value="">Produces Output...</option>
+              </select>
+
+              <select class="select-ctrl" id="sortSelect">
+                <option value="tier">Sort: Tier (S → A → B)</option>
+                <option value="name">Sort: Name (A → Z)</option>
+                <option value="passive">Sort: Passive First</option>
+              </select>
+            </div>
+
+            <div class="toggle-row">
+              <button class="chip-toggle" id="togPassive">🟢 Passive Only</button>
+              <button class="chip-toggle" id="togFree">💸 Free / Open Source</button>
+              <button class="chip-toggle" id="togNoAuth">✅ No Login / Keyless</button>
+              <button class="chip-toggle" id="togSTier">⭐ S-Tier Gold Standard</button>
+              <button class="chip-toggle" id="togGitHub">🐙 Open-Source GitHub</button>
+              <button class="btn-sm" id="resetAllBtn" style="margin-left:auto;">Reset Filters</button>
+            </div>
+
+            <div class="selector-strip">
+              <div class="selector-strip-label">
+                <span>🧭 I Have This Starting Evidence (Click Input Selector to Pivot):</span>
+                <span id="activeSelectorHint" style="color:var(--cyan);"></span>
+              </div>
+              <div class="selector-pills" id="selectorPills"></div>
+              <div class="pivot-banner" id="pivotBanner"></div>
+            </div>
+          </div>
+
+          <div class="results-bar">
+            <div id="resultsSummary">Showing tools...</div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-sm" id="viewModeBtn">📋 Switch to Compact Table</button>
+              <button class="btn-sm" id="exportFilteredBtn">⬇️ Export Filtered CSV</button>
+            </div>
+          </div>
+
+          <div id="toolsContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: PIVOT MATRIX -->
+    <section class="view-panel" id="view-pivots">
+      <div class="filter-console" style="margin-bottom:16px;">
+        <h2 style="margin:0 0 6px;">🧭 Selector Pivot Matrix (`Input Artifact → OSINT Tools → Downstream Outputs`)</h2>
+        <p style="margin:0; color:var(--text-1);">Click any input selector below to jump directly into the filtered Tool Arsenal for that artifact type.</p>
+      </div>
+      <div class="pivot-grid" id="pivotMatrixGrid"></div>
+    </section>
+
+    <!-- VIEW 3: PLAYBOOKS -->
+    <section class="view-panel" id="view-workflows">
+      <div class="filter-console" style="margin-bottom:16px;">
+        <h2 style="margin:0 0 6px;">🗺️ End-to-End OSINT Investigation Playbooks</h2>
+        <p style="margin:0; color:var(--text-1);">Multi-phase operational tradecraft chaining passive &amp; active tools from seed selector to court/CTI-ready reporting. Click any tool chip to inspect its dossier and CLI quick-start.</p>
+      </div>
+      <div class="wf-grid" id="workflowsGrid"></div>
+    </section>
+
+    <!-- VIEW 4: DORK FORGE -->
+    <section class="view-panel" id="view-dorks">
+      <div class="dork-forge-bar">
+        <div>
+          <strong style="font-size:15px;">🎯 Live Dork Target Injector</strong>
+          <div style="font-size:12px; color:var(--text-2);">Type a domain, company, or handle to dynamically rewrite all 56 Google, Shodan, Censys, FOFA &amp; GitHub dorks:</div>
+        </div>
+        <input type="text" id="dorkTargetInput" placeholder="e.g. tesla.com or Acme Corp" />
+        <select class="select-ctrl" id="dorkEngineSelect">
+          <option value="">All Engines</option>
+        </select>
+        <input type="text" id="dorkSearchInput" class="select-ctrl" placeholder="Filter dorks (S3, Jenkins, K8s, PDF...)" style="min-width:220px;" />
+      </div>
+      <div class="tools-grid" id="dorksGrid"></div>
+    </section>
+
+    <!-- VIEW 5: GRAVEYARD -->
+    <section class="view-panel" id="view-graveyard">
+      <div class="filter-console" style="margin-bottom:16px; border-color:rgba(239,68,68,0.4);">
+        <h2 style="margin:0 0 6px;">🪦 Dead, Retired &amp; Hijacked OSINT Tools (2026 Replacement Board)</h2>
+        <p style="margin:0; color:var(--text-1);">Protect your investigations from hijacked domains (like <code>telegago.com</code>) and deprecated platforms (EO Browser, GeoSpy public web, CrowdTangle, Pushshift).</p>
+      </div>
+      <div class="wf-grid" id="graveyardGrid"></div>
+    </section>
+
+    <!-- VIEW 6: CASE LOADOUT -->
+    <section class="view-panel" id="view-loadout">
+      <div class="filter-console" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+        <div>
+          <h2 style="margin:0 0 4px;">⭐ Custom Investigation Case Loadout</h2>
+          <p style="margin:0; color:var(--text-1);">Bookmark tools using the ★ icon on any card to assemble a case-specific toolkit and export as JSON, CSV, or Markdown.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-sm" id="exportLoadoutMd">📄 Export Markdown</button>
+          <button class="btn-sm" id="exportLoadoutJson">📦 Export JSON</button>
+          <button class="btn-sm" id="clearLoadoutBtn" style="color:#f87171;">🗑️ Clear Loadout</button>
+        </div>
+      </div>
+      <div id="loadoutContainer"></div>
+    </section>
+  </main>
+
+  <!-- TOOL DOSSIER MODAL -->
+  <div class="modal-backdrop" id="toolModalBackdrop">
+    <div class="modal" id="toolModalContent"></div>
+  </div>
+
+  <!-- MANDATORY ACTIVE OSINT AUTHORIZATION MODAL -->
+  <div class="modal-backdrop" id="activeAuthBackdrop">
+    <div class="modal" id="activeAuthModalContent" style="border-color:var(--red);"></div>
+  </div>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

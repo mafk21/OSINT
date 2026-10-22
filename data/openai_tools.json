@@ -1,0 +1,113 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_auto_hunt",
+      "description": "PASSIVE MODE (RUN IMMEDIATELY WITH ZERO QUESTIONS). Executes a multi-wave passive OSINT hunt on any selector, file path, URL, or natural-language prompt with zero direct packets to target servers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Raw target selector, URL, file path, or natural-language prompt."
+          },
+          "depth": {
+            "type": "integer",
+            "enum": [1, 2, 3],
+            "default": 2,
+            "description": "Autonomous graph pivot wave depth (default: 2)."
+          }
+        },
+        "required": ["target"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_prepare_active_hunt",
+      "description": "STEP 1 OF ACTIVE MODE (SENDS ZERO PACKETS). Generates a single-use `request_id` and OPSEC disclosure plan for Active OSINT. You MUST stop and ask the user for explicit approval after calling this function before calling `osint_execute_active_hunt`.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Target domain, URL, IP, or selector."
+          }
+        },
+        "required": ["target"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_execute_active_hunt",
+      "description": "STEP 2 OF ACTIVE MODE (HARD GATED). Executes direct TCP/TLS/HTTP/DNS active reconnaissance ONLY AFTER `osint_prepare_active_hunt` was shown to the user and the user explicitly replied approving it.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Exact target authorized in `osint_prepare_active_hunt`."
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Single-use `request_id` (ACT-XXXXXXXX) from `osint_prepare_active_hunt`."
+          },
+          "user_confirmation": {
+            "type": "string",
+            "description": "Verbatim quote of the user's message authorizing active probing."
+          },
+          "depth": {
+            "type": "integer",
+            "enum": [1, 2, 3],
+            "default": 2
+          }
+        },
+        "required": ["target", "request_id", "user_confirmation"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_query_arsenal",
+      "description": "Search the 540-tool OSINT Monster Database by input selector, discipline, keyword, or passive/free filters.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_selector": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "passive_only": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_forge_dorks",
+      "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, GitHub, and URLScan search dorks.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "engine": {
+            "type": "string"
+          }
+        },
+        "required": ["target"]
+      }
+    }
+  }
+]
