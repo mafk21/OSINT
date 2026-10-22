@@ -6,7 +6,7 @@
 
 ![Verified Tools](https://img.shields.io/badge/Verified_Tools-540-00e5ff?style=for-the-badge) ![Disciplines](https://img.shields.io/badge/Disciplines-20-7c4dff?style=for-the-badge) ![Passive Safe](https://img.shields.io/badge/Passive_Safe-485-00e676?style=for-the-badge) ![Open Source](https://img.shields.io/badge/GitHub_Repos-255-ffab00?style=for-the-badge) ![Stack](https://img.shields.io/badge/Python_3_Stdlib-Zero_Deps-ff5252?style=for-the-badge)
 
-[**🤖 Agent Protocol**](./AGENTS.md) · [**🗂️ Full 540-Tool Index**](./docs/FULL_INDEX.md) · [**🧭 Pivot Matrix**](./docs/PIVOT_MATRIX.md) · [**🗺️ 12 Playbooks**](./docs/WORKFLOWS.md) · [**🎯 56 Dorks**](./docs/DORKS_ARSENAL.md) · [**🪦 2026 Graveyard**](./docs/GRAVEYARD_2026.md) · [**🛡️ OPSEC Guide**](./docs/OPSEC_TRADECRAFT.md)
+[**🤖 Agent Protocol**](./AGENTS.md) · [**🧩 Skills Setup**](./docs/SKILLS_SETUP.md) · [**🗂️ Full 540-Tool Index**](./docs/FULL_INDEX.md) · [**🧭 Pivot Matrix**](./docs/PIVOT_MATRIX.md) · [**🗺️ 12 Playbooks**](./docs/WORKFLOWS.md) · [**🎯 56 Dorks**](./docs/DORKS_ARSENAL.md) · [**🪦 2026 Graveyard**](./docs/GRAVEYARD_2026.md) · [**🛡️ OPSEC Guide**](./docs/OPSEC_TRADECRAFT.md)
 
 </div>
 
@@ -18,10 +18,35 @@ Unlike flat bookmark lists filled with dead links, **OSINT Monster Database** co
 
 | Capability | Entrypoint | Highlights |
 | :--- | :--- | :--- |
+| **🧩 Portable Agent Skills** | [`skills/`](./skills/) · [`docs/SKILLS_SETUP.md`](./docs/SKILLS_SETUP.md) | Self-contained `osint-hunter` & `osint-arsenal` skills for **Claude Code, Codex, Claude.ai, Cursor & 75+ agents** (no repo clone needed) |
 | **🤖 Autonomous Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | 35+ passive collectors & offline decoders, Wave-2/3 recursive entity pivoting, OASIS **STIX 2.1** & SHA-256 dossiers |
 | **🔌 Native MCP Server** | [`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | `stdio` JSON-RPC 2.0 + Streamable HTTP (`POST /api/mcp`) + OpenAI/Anthropic schemas ([`openai_tools.json`](./data/openai_tools.json)) |
 | **🖥️ Web Command Center** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Live Hunt UI, SVG entity-pivot graph, Active Authorization Modal, Live Dork Forge, & Case Loadout builder |
 | **🗃️ Multi-Format Data** | [`data/`](./data/) · [`scripts/osint.py`](./scripts/osint.py) | `tools.json`, **SQLite FTS5** (`osint.sqlite`), `tools.csv`, `tools.jsonl`, & terminal search/pivot CLI |
+
+---
+
+## 🧩 Install as Agent Skills (Claude, Codex, Cursor & 75+ Agents)
+
+Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + User-Gated Active recon engine) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) (540-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and investigate targets from **any directory** without cloning this repo:
+
+```bash
+# Universal Skills CLI (Claude Code, OpenAI Codex, Cursor, OpenCode, Windsurf, Copilot & 75+ agents)
+npx skills add mafk21/OSINT -g
+
+# Claude Code Native Plugin Marketplace (run inside Claude Code)
+/plugin marketplace add mafk21/OSINT
+/plugin install osint-monster@osint-monster
+
+# OpenAI Codex Native $skill-installer (run inside Codex)
+$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-hunter
+$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-arsenal
+
+# Zero-Node Pure-Python Local Installer (from a local checkout)
+python3 scripts/install_skills.py --all
+```
+
+- **Claude.ai Web & Claude Desktop Upload**: Download [**`releases/osint-hunter-skill.zip`**](./releases/osint-hunter-skill.zip) and [**`releases/osint-arsenal-skill.zip`**](./releases/osint-arsenal-skill.zip) and upload in **Settings → Capabilities → Skills**. Full guide in [**`docs/SKILLS_SETUP.md`**](./docs/SKILLS_SETUP.md).
 
 ---
 
@@ -50,7 +75,7 @@ python3 scripts/osint.py dorks --engine Shodan --target example.com
 
 ## 🤖 AI Agent Integration: The Two-Law Doctrine
 
-Connect **Claude Code, Codex, Cursor, Windsurf, Cline, OpenClaw, or any MCP client** directly to this repo. Pre-configured manifests ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`SKILL.md`](./SKILL.md)) enforce two strict rules:
+Whether installed via [**`skills/`**](./skills/) or opened directly in this repo ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`.codex-plugin/`](./.codex-plugin/plugin.json), [`.claude-plugin/`](./.claude-plugin/marketplace.json)), connected agents obey two strict rules:
 
 | Mode | Agent Behavior | Enforcement & Scope |
 | :--- | :--- | :--- |
@@ -115,12 +140,15 @@ See all 24 input selectors in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.m
 
 ```text
 OSINT/
-├── AGENTS.md / CLAUDE.md / SKILL.md / .mcp.json   # Zero-question Passive + User-Gated Active agent rules
+├── skills/osint-hunter & skills/osint-arsenal     # Self-contained Agent Skills (Claude, Codex, Cursor & 75+)
+├── .claude-plugin/ & .codex-plugin/ & .agents/    # Native Claude Code & OpenAI Codex plugin marketplaces
+├── releases/*-skill.zip                           # Drag-and-drop skill zips for Claude.ai & Claude Desktop
+├── AGENTS.md / CLAUDE.md / .mcp.json              # Zero-question Passive + User-Gated Active repo manifests
 ├── osint_hunter/                                  # Autonomous classifier, passive/active collectors & STIX engine
-├── scripts/                                       # hunt.py, osint.py, mcp_server.py, server.py, validate.py, build.py
+├── scripts/                                       # hunt.py, osint.py, install_skills.py, mcp_server.py, server.py
 ├── categories/01-*.md .. 20-*.md                  # 20 deep-dive manuals with CLI quick-starts & OPSEC notes
-├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026
-├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv, tools.jsonl
+├── docs/                                          # SKILLS_SETUP, FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS
+├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv
 └── web/                                           # Zero-build Interactive OSINT Command Center UI
 ```
 

@@ -16,10 +16,7 @@ from .approval import ACTIVE_MODULES_CATALOG, verify_and_consume_approval
 from .classify import extract_selectors
 from .collectors import collect_for_selector
 from .offline_intel import INTEL_TABLES
-
-ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = ROOT / "data"
-CASES_DIR = ROOT / "cases"
+from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
 
 with (DATA_DIR / "tools.json").open("r", encoding="utf-8") as _f:
     ALL_TOOLS = json.load(_f)
@@ -339,6 +336,7 @@ def run_autonomous_hunt(
     depth: int = 2,
     max_pivots_per_wave: int = 6,
     save_case: bool = True,
+    cases_dir: str | Path | None = None,
     cwd: str | None = None,
     mode: str = "passive",
     approval_request_id: str | None = None,
@@ -480,9 +478,14 @@ def run_autonomous_hunt(
     stix_bundle = build_stix2_bundle(case_id, raw_input, nodes, edges)
 
     if save_case:
-        case_dir = CASES_DIR / case_id
+        base_cases_dir = get_cases_dir(cases_dir)
+        case_dir = base_cases_dir / case_id
         case_dir.mkdir(parents=True, exist_ok=True)
-        report["meta"]["case_dir"] = str(case_dir.relative_to(ROOT))
+        ref_root = PKG_PARENT if IS_REPO_MODE else Path.cwd()
+        try:
+            report["meta"]["case_dir"] = str(case_dir.relative_to(ref_root))
+        except ValueError:
+            report["meta"]["case_dir"] = str(case_dir)
 
         (case_dir / "dossier.md").write_text(dossier_md, encoding="utf-8")
         (case_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

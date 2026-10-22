@@ -19,4 +19,4 @@ jobs:
         run: |
           python3 scripts/build.py
           python3 scripts/osint.py stats
-          git diff --exit-code README.md categories/ docs/ data/tools.csv data/tools.jsonl web/data.js
+          git diff --exit-code README.md categories/ docs/ skills/ releases/ data/tools.csv data/tools.jsonl web/data.js

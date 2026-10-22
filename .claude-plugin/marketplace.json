@@ -1,0 +1,40 @@
+{
+  "name": "osint-monster",
+  "owner": {
+    "name": "mafk21"
+  },
+  "metadata": {
+    "description": "Autonomous Passive & User-Gated Active OSINT Hunter + 540-Tool Intelligence Arsenal",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "osint-monster",
+      "description": "Complete OSINT suite: Autonomous Passive Hunter (zero questions on Turn 1) + User-Gated Active Recon + 540-Tool Arsenal, Selector Pivots & Dork Forge",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/osint-hunter",
+        "./skills/osint-arsenal"
+      ]
+    },
+    {
+      "name": "osint-hunter",
+      "description": "Autonomous Passive OSINT Hunter (Turn 1 zero-question execution across 35+ collectors) + Mandatory User-Gated Active Recon Engine",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/osint-hunter"
+      ]
+    },
+    {
+      "name": "osint-arsenal",
+      "description": "540-Tool OSINT Catalog Search, 24-Selector Pivot Matrix, 12 Playbooks, 56 Search Engine Dorks & 2026 Graveyard Warnings",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/osint-arsenal"
+      ]
+    }
+  ]
+}
