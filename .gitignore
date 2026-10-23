@@ -6,3 +6,10 @@ __pycache__/
 # Generated investigation case dossiers & evidence (keep directory, ignore contents)
 cases/*
 !cases/.gitkeep
+
+# Optional Bring-Your-Own-Key (BYOK) local secret files — NEVER commit API keys
+.env
+.osint.env
+*.egg-info/
+build/
+dist/

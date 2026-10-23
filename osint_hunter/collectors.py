@@ -12,6 +12,13 @@ import urllib.request
 from pathlib import Path
 
 from .classify import EMAIL_RE, NOISE_DOMAINS
+from .dfir_forensics import decode_google_ei_parameter, decode_ssh_pubkey_or_pem
+from .modern_collectors import (
+    collect_bluesky_atproto,
+    collect_entra_m365_tenant_passive,
+    collect_mastodon_fediverse,
+    collect_modern_pkg_registries,
+)
 from .offline_intel import (
     INTEL_TABLES,
     analyze_local_file,
@@ -26,6 +33,13 @@ from .offline_intel import (
     decode_vin,
     parse_pgp_armored_keys,
 )
+from .providers import (
+    collect_byok_for_domain,
+    collect_byok_for_email,
+    collect_byok_for_hash,
+    collect_byok_for_ip,
+    get_api_key,
+)
 
 USER_AGENT = "OSINT-Monster-Hunter/2026.10 (Passive-Research; +https://github.com/mafk21/OSINT)"
 DEFAULT_TIMEOUT = 5.5
@@ -39,6 +53,10 @@ FREEMAIL_DOMAINS = {
 
 def _http_get(url: str, headers: dict[str, str] | None = None, timeout: float = DEFAULT_TIMEOUT) -> tuple[int, str, str | None]:
     req_headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/plain, */*"}
+    if "api.github.com" in url:
+        gh_tok = get_api_key("GITHUB_TOKEN", "GH_TOKEN")
+        if gh_tok:
+            req_headers["Authorization"] = f"Bearer {gh_tok}"
     if headers:
         req_headers.update(headers)
     req = urllib.request.Request(url, headers=req_headers, method="GET")
@@ -736,22 +754,38 @@ def collect_crypto_osint(addr: str) -> list[dict]:
 def collect_for_selector(sel_type: str, value: str) -> list[dict]:
     """Dispatch all passive collectors registered for a given selector type."""
     if sel_type == "username":
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             f_gh = pool.submit(collect_github_user, value)
             f_keys = pool.submit(collect_github_keys, value)
             f_npm = pool.submit(collect_npm_maintainer, value)
             f_pypi = pool.submit(collect_pypi_package, value)
             f_mat = pool.submit(collect_username_matrix, value)
-            return [f_gh.result(), f_keys.result(), f_npm.result(), f_pypi.result(), f_mat.result()]
+            f_bsky = pool.submit(collect_bluesky_atproto, value)
+            f_masto = pool.submit(collect_mastodon_fediverse, value)
+            f_modpkg = pool.submit(collect_modern_pkg_registries, value)
+            return [
+                f_gh.result(),
+                f_keys.result(),
+                f_npm.result(),
+                f_pypi.result(),
+                f_mat.result(),
+                f_bsky.result(),
+                f_masto.result(),
+                f_modpkg.result(),
+            ]
 
     if sel_type == "email":
-        return collect_email_osint(value)
+        return collect_email_osint(value) + collect_byok_for_email(value)
 
     if sel_type == "domain":
-        return collect_domain_osint(value)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            f_dom = pool.submit(collect_domain_osint, value)
+            f_entra = pool.submit(collect_entra_m365_tenant_passive, value)
+            f_byok = pool.submit(collect_byok_for_domain, value)
+            return f_dom.result() + [f_entra.result()] + f_byok.result()
 
     if sel_type == "ip":
-        return collect_ip_osint(value)
+        return collect_ip_osint(value) + collect_byok_for_ip(value)
 
     if sel_type == "asn":
         asn_clean = value.upper()
@@ -824,7 +858,7 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             out.append(_res("circl_nsrl_hashlookup", "ok", f"Known NSRL file: {circl.get('FileName')}", circl))
         else:
             out.append(_res("file_hash_triage", "not_found" if st == 404 else "restricted_or_offline", f"Hash {value[:16]}... triage ({err or 'not in NSRL known-good DB'})", {"hash": value}))
-        return out
+        return out + collect_byok_for_hash(value)
 
     if sel_type == "jwt_token":
         dec = decode_jwt(value)
@@ -888,6 +922,7 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             if pv.startswith(("http://", "https://")):
                 url_pivots.append({"type": "url", "value": pv})
         tt_meta = decode_tiktok_id_or_url(value)
+        gei_meta = decode_google_ei_parameter(value)
         url_payload = {
             "url": value,
             "scheme": parsed.scheme,
@@ -896,13 +931,18 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             "query_params": q_params,
             "is_tor_onion": (parsed.hostname or "").endswith(".onion"),
         }
+        extra_note = ""
         if tt_meta:
             url_payload["tiktok_chronolocation"] = tt_meta
+            extra_note += f" · TikTok Upload={tt_meta['upload_utc_iso']}"
+        if gei_meta:
+            url_payload["google_ei_chronolocation"] = gei_meta
+            extra_note += f" · Google Search UTC={gei_meta['search_utc_iso']}"
         out = [
             _res(
                 "url_structural_decomposition",
                 "ok",
-                f"Host={(parsed.hostname or '')} · Path={parsed.path or '/'}" + (f" · TikTok Upload={tt_meta['upload_utc_iso']}" if tt_meta else ""),
+                f"Host={(parsed.hostname or '')} · Path={parsed.path or '/'}" + extra_note,
                 url_payload,
                 url_pivots,
             )

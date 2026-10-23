@@ -350,6 +350,16 @@ def cmd_doctor(args, categories, tools, workflows, dorks, graveyard) -> int:
     installed_bins = {b: shutil.which(b) for b in cli_probes if shutil.which(b)}
     missing_bins = [b for b in cli_probes if b not in installed_bins]
     sqlite_ok = (DATA_DIR / "osint.sqlite").is_file()
+    byok_info = []
+    for cand in (ROOT, Path(__file__).resolve().parent):
+        if (cand / "osint_hunter").is_dir() and str(cand) not in sys.path:
+            sys.path.insert(0, str(cand))
+            break
+    try:
+        from osint_hunter.providers import get_byok_status
+        byok_info = get_byok_status()
+    except ImportError:
+        byok_info = []
 
     diag = {
         "python_version": sys.version.split()[0],
@@ -362,6 +372,7 @@ def cmd_doctor(args, categories, tools, workflows, dorks, graveyard) -> int:
             "sqlite_fts5_present": sqlite_ok,
         },
         "hunter_engine_present": (ROOT / "osint_hunter" / "engine.py").is_file(),
+        "byok_providers": byok_info,
         "local_recon_binaries_detected": list(installed_bins.keys()),
         "local_recon_binaries_count": len(installed_bins),
         "optional_binaries_not_installed": missing_bins,

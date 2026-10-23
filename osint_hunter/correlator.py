@@ -82,6 +82,28 @@ def synthesize_intelligence(report: dict) -> dict:
 
             if mname == "github_user_osint" and data.get("commit_emails"):
                 security_exposures.append(f"Git commit header email leak on @{sval}: {', '.join(data['commit_emails'][:3])}")
+            if mname == "bluesky_atproto":
+                verified_profiles.append(f"Bluesky: {data.get('handle', sval)} ({data.get('did', '')})")
+                if len(data.get("plc_handle_history") or []) > 1:
+                    security_exposures.append(f"Bluesky PLC audit log exposed historical handle rename(s): {data['plc_handle_history']}")
+            if mname == "mastodon_fediverse":
+                verified_profiles.append(f"Mastodon: {data.get('acct', sval)}")
+            if mname in ("modern_package_registries", "modern_pkg_registries_osint"):
+                for reg_name in (data.get("hits") or data.get("registries") or {}):
+                    verified_profiles.append(f"{reg_name}: {sval}")
+            if mname == "microsoft_entra_tenant_passive" and data.get("federated_idp_auth_url"):
+                security_exposures.append(f"Federated SSO IdP endpoint exposed via Microsoft GetUserRealm on {sval}: {data['federated_idp_auth_url']}")
+            if mname == "byok_hibp_breaches" and data.get("breach_count", 0) > 0:
+                security_exposures.append(f"HIBP flagged {data['breach_count']} credential breach(es) for {sval}")
+            if mname == "byok_virustotal" and data.get("malicious", 0) > 0:
+                security_exposures.append(f"VirusTotal flagged {data['malicious']} malicious vendor detection(s) on {sval}")
+            if mname == "byok_abuseipdb" and (data.get("abuse_confidence_score") or 0) >= 25:
+                security_exposures.append(f"AbuseIPDB score {data['abuse_confidence_score']}/100 ({data.get('total_reports')} reports) on {sval}")
+            if mname == "local_file_forensics":
+                meta_sub = data.get("extracted_metadata") or data
+                eml_flags = ((meta_sub.get("eml_forensics") or {}).get("spoofing_and_anomaly_flags")) or []
+                for flg in eml_flags[:3]:
+                    security_exposures.append(f"Email (.eml) header anomaly: {flg}")
             if mname == "active_dns_zone_transfer_axfr" and data.get("axfr_vulnerable"):
                 security_exposures.append(f"CRITICAL: DNS Zone Transfer (AXFR) open on {sval}")
             if mname == "active_subdomain_takeover_cname_audit" and data.get("vulnerable_cnames"):
@@ -341,6 +363,20 @@ def render_standalone_html_dossier(report: dict) -> str:
       <ul>{exposures_html}</ul>
     </div>
   </div>
+  {"" if not report.get("temporal_profile") else (
+      "<div class='grid2'><div class='card'><h3>🕒 Pattern-of-Life &amp; Timezone Intelligence</h3>"
+      f"<p>Offsets: <code>{html.escape(', '.join((report['temporal_profile'].get('inferred_timezone_offsets') or {}).keys()) or 'None')}</code> · "
+      f"Regions: <code>{html.escape(', '.join(report['temporal_profile'].get('likely_geographic_regions') or []) or 'Insufficient Human Events')}</code></p>"
+      f"<p>Human Events Sampled: <code>{report['temporal_profile'].get('human_activity_events_count', 0)}</code>"
+      + (f" · Est. Sleep Window: <code>{html.escape(report['temporal_profile']['estimated_sleep_window_utc']['sleep_window_utc'])}</code> (<code>{html.escape(report['temporal_profile']['estimated_sleep_window_utc']['inferred_utc_offset'])}</code>)"
+         if report['temporal_profile'].get('estimated_sleep_window_utc') else "")
+      + "</p></div>"
+      + "<div class='card'><h3>🎯 Weighted Attribution Confidence</h3><ul>"
+      + ("".join(f"<li><code>{html.escape(c['formatted_chain'])}</code> (Joint: <strong>{int(round(c['joint_confidence']*100))}%</strong>)</li>"
+                 for c in ((report.get('persona_and_confidence') or {}).get('attribution_chains') or [])[:6])
+         or "<li>Single-stage surface (no multi-hop chains yet).</li>")
+      + "</ul></div></div>"
+  )}
 
   <div class="card">
     <h2>🕸️ Multi-Stage Surface Graph</h2>

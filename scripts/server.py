@@ -50,6 +50,12 @@ from osint_hunter.engine import (  # noqa: E402
 )
 from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
 from osint_hunter.paths import get_cases_dir  # noqa: E402
+from osint_hunter.persona import (  # noqa: E402
+    find_shortest_attribution_path,
+    generate_domain_typosquats,
+)
+from osint_hunter.providers import get_byok_status  # noqa: E402
+from osint_hunter.watchlist import compute_case_delta  # noqa: E402
 
 
 class OSINTCommandHandler(SimpleHTTPRequestHandler):
@@ -105,11 +111,12 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 {
                     "status": "ok",
                     "engine": "osint-monster-hunter",
-                    "version": "2026.10.3",
+                    "version": "2026.10.4",
                     "tools": len(ALL_TOOLS),
                     "dorks": len(ALL_DORKS),
                     "workflows": len(ALL_WORKFLOWS),
                     "active_modules": list(ACTIVE_MODULES_CATALOG.keys()),
+                    "byok_providers": get_byok_status(),
                 }
             )
             return
@@ -159,12 +166,33 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                         rep = json.loads((cdir / "report.json").read_text(encoding="utf-8"))
                         self._send_html(render_standalone_html_dossier(rep))
                     return
+                if len(parts) == 5 and parts[4] in ("gexf", "graphml", "cypher"):
+                    ext_map = {
+                        "gexf": ("graph.gexf", "application/xml; charset=utf-8"),
+                        "graphml": ("graph.graphml", "application/xml; charset=utf-8"),
+                        "cypher": ("neo4j.cypher", "text/plain; charset=utf-8"),
+                    }
+                    fname, ctype = ext_map[parts[4]]
+                    fpath = cdir / fname
+                    if not fpath.is_file():
+                        self._send_json({"error": f"Artifact {fname} not found"}, status=404)
+                        return
+                    body = fpath.read_bytes()
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 rep = json.loads((cdir / "report.json").read_text(encoding="utf-8"))
                 md_file = cdir / "dossier.md"
                 rep["dossier_markdown"] = md_file.read_text(encoding="utf-8") if md_file.is_file() else render_markdown_dossier(rep)
                 stix_file = cdir / "stix2_bundle.json"
                 if stix_file.is_file():
                     rep["stix2_bundle"] = json.loads(stix_file.read_text(encoding="utf-8"))
+                for art_key, art_file in (("gexf_xml", "graph.gexf"), ("graphml_xml", "graph.graphml"), ("neo4j_cypher", "neo4j.cypher")):
+                    if (cdir / art_file).is_file():
+                        rep[art_key] = (cdir / art_file).read_text(encoding="utf-8")
                 rep["entities_csv"] = render_entities_csv(rep)
                 self._send_json(rep)
                 return
@@ -200,6 +228,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 return
             depth = max(1, min(6, int(data.get("depth", 4))))
             save_case = bool(data.get("save_case", True))
+            diff_last = bool(data.get("diff_last", False))
             ingested = data.get("ingested_evidence_text")
             try:
                 report = run_autonomous_hunt(
@@ -208,6 +237,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                     ingested_evidence_text=ingested,
                     save_case=save_case,
                     mode="passive",
+                    diff_last=diff_last,
                 )
                 stix = build_stix2_bundle(
                     report["meta"]["case_id"],
@@ -217,6 +247,11 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 )
                 report["stix2_bundle"] = stix
                 report["entities_csv"] = render_entities_csv(report)
+                cdir = self._find_case_dir(report["meta"]["case_id"]) if save_case else None
+                if cdir:
+                    for art_key, art_file in (("gexf_xml", "graph.gexf"), ("graphml_xml", "graph.graphml"), ("neo4j_cypher", "neo4j.cypher")):
+                        if (cdir / art_file).is_file():
+                            report[art_key] = (cdir / art_file).read_text(encoding="utf-8")
                 self._send_json(report)
             except Exception as exc:
                 self._send_json({"error": str(exc)}, status=500)
@@ -253,6 +288,37 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 self._send_json(compare_saved_cases(ca, cb))
             except Exception as exc:
                 self._send_json({"error": str(exc)}, status=400)
+            return
+
+        if path == "/api/cases/diff":
+            ca = str(data.get("baseline_case") or data.get("case_a") or "").strip()
+            cb = str(data.get("current_case") or data.get("case_b") or "").strip()
+            dir_a = self._find_case_dir(ca)
+            dir_b = self._find_case_dir(cb)
+            if not dir_a or not dir_b:
+                self._send_json({"error": "Both baseline_case and current_case must exist"}, status=404)
+                return
+            rep_a = json.loads((dir_a / "report.json").read_text(encoding="utf-8"))
+            rep_b = json.loads((dir_b / "report.json").read_text(encoding="utf-8"))
+            self._send_json(compute_case_delta(rep_a, rep_b))
+            return
+
+        if path == "/api/typosquats":
+            dom = str(data.get("domain", "")).strip()
+            if not dom:
+                self._send_json({"error": "domain is required"}, status=400)
+                return
+            lim = max(5, min(120, int(data.get("limit", 45))))
+            self._send_json(generate_domain_typosquats(dom, limit=lim))
+            return
+
+        if path == "/api/graph/path":
+            nodes = data.get("nodes") or []
+            edges = data.get("edges") or []
+            src = str(data.get("source", "")).strip()
+            dst = str(data.get("target", "")).strip()
+            res = find_shortest_attribution_path(nodes, edges, src, dst)
+            self._send_json({"path": res})
             return
 
         if path in ("/api/hunt/active/prepare", "/api/hunt/prepare-active"):

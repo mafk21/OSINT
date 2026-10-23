@@ -22,12 +22,22 @@ from .correlator import (
     render_standalone_html_dossier,
     synthesize_intelligence,
 )
+from .exporters import (
+    render_gexf,
+    render_graphml,
+    render_neo4j_cypher,
+    write_obsidian_vault,
+)
 from .offline_intel import INTEL_TABLES
 from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
+from .persona import enrich_graph_confidence_and_personas
+from .providers import get_byok_status
 from .stage_analyzer import (
     analyze_stage_and_extract_leads,
     forge_exhaustive_dorks_for_entities,
 )
+from .temporal import build_temporal_profile
+from .watchlist import compute_case_delta, find_latest_case_for_target
 
 with (DATA_DIR / "tools.json").open("r", encoding="utf-8") as _f:
     ALL_TOOLS = json.load(_f)
@@ -318,16 +328,46 @@ def render_markdown_dossier(report: dict) -> str:
         for ex in syn["security_and_opsec_exposures"][:8]:
             lines.append(f"  - ⚠️ {ex}")
 
+    tprof = report.get("temporal_profile") or {}
+    if tprof.get("inferred_timezone_offsets") or tprof.get("estimated_sleep_window_utc"):
+        tz_keys = ", ".join(tprof.get("inferred_timezone_offsets", {}).keys()) or "inferred via circadian trough"
+        regions = ", ".join(tprof.get("likely_geographic_regions") or [])
+        sleep = tprof.get("estimated_sleep_window_utc")
+        sleep_txt = f" · Circadian Sleep Window: `{sleep['sleep_window_utc']}` (`{sleep['inferred_utc_offset']}`)" if sleep else ""
+        reg_txt = f" ({regions})" if regions else ""
+        lines.append(f"- **Pattern-of-Life & Timezone Profile**: `{tz_keys}`{reg_txt}{sleep_txt}")
+        for sh in tprof.get("timezone_shift_anomalies") or []:
+            lines.append(f"  - 🕒 {sh}")
+
+    pconf = report.get("persona_and_confidence") or {}
+    if pconf.get("attribution_chains"):
+        lines.append("- **Weighted Attribution Chains**:")
+        for ch in pconf["attribution_chains"][:6]:
+            lines.append(f"  - `{ch['formatted_chain']}` *(Joint Confidence: **{int(round(ch['joint_confidence'] * 100))}%**)*")
+    for sflag in pconf.get("sockpuppet_and_burner_indicators") or []:
+        lines.append(f"  - 🎭 **Sockpuppet / Burner Heuristic**: {sflag}")
+
+    sdelta = report.get("surface_delta")
+    if sdelta:
+        lines.append(
+            f"- **Surface Drift vs `{sdelta['baseline_case_id']}`**: "
+            f"`+{sdelta['added_entity_count']}` new / `-{sdelta['removed_entity_count']}` retired entities · "
+            f"Exposure Score `{sdelta['exposure_score_before']} → {sdelta['exposure_score_after']}` (`{sdelta['exposure_score_delta']:+d}`)"
+        )
+
     lines.extend([
         "",
         "---",
         "",
         "## 1. Confirmed & Discovered Entity Graph",
         "",
-        "| Stage | Selector Type | Value | Discovered Via |",
+        "| Stage | Selector Type | Value | Discovered Via (Confidence) |",
         "| :---: | :--- | :--- | :--- |",
     ])
-    edge_lookup = {e["target"]: f"`{e['source']}` via `{e['via']}`" for e in report["graph"]["edges"]}
+    edge_lookup = {
+        e["target"]: f"`{e['source']}` via `{e['via']}` ({int(round(float(e.get('confidence', 0.8)) * 100))}%)"
+        for e in report["graph"]["edges"]
+    }
     for n in report["graph"]["nodes"]:
         origin = "Initial Seed" if n["wave"] == 1 else edge_lookup.get(n["id"], n.get("note") or "Stage Analyzer Pivot")
         lines.append(f"| `Stage {n['wave']}` | **`{n['type']}`** | `{n['value']}` | {origin} |")
@@ -423,6 +463,9 @@ def _write_case_artifacts(case_dir: Path, report: dict, dossier_md: str, stix_bu
     html_doc = render_standalone_html_dossier(report)
     csv_doc = render_entities_csv(report)
     mermaid_doc = render_mermaid_graph(report["graph"]["nodes"], report["graph"]["edges"])
+    gexf_doc = render_gexf(report)
+    graphml_doc = render_graphml(report)
+    cypher_doc = render_neo4j_cypher(report)
 
     (case_dir / "dossier.md").write_text(dossier_md, encoding="utf-8")
     (case_dir / "report.html").write_text(html_doc, encoding="utf-8")
@@ -430,10 +473,25 @@ def _write_case_artifacts(case_dir: Path, report: dict, dossier_md: str, stix_bu
     (case_dir / "entities.csv").write_text(csv_doc, encoding="utf-8")
     (case_dir / "graph.json").write_text(json.dumps(report["graph"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (case_dir / "graph.mermaid").write_text(mermaid_doc, encoding="utf-8")
+    (case_dir / "graph.gexf").write_text(gexf_doc, encoding="utf-8")
+    (case_dir / "graph.graphml").write_text(graphml_doc, encoding="utf-8")
+    (case_dir / "neo4j.cypher").write_text(cypher_doc, encoding="utf-8")
     (case_dir / "stix2_bundle.json").write_text(json.dumps(stix_bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    write_obsidian_vault(case_dir, report)
 
     manifest_lines = []
-    for artifact in ("dossier.md", "report.html", "report.json", "entities.csv", "graph.json", "graph.mermaid", "stix2_bundle.json"):
+    for artifact in (
+        "dossier.md",
+        "report.html",
+        "report.json",
+        "entities.csv",
+        "graph.json",
+        "graph.mermaid",
+        "graph.gexf",
+        "graph.graphml",
+        "neo4j.cypher",
+        "stix2_bundle.json",
+    ):
         digest = hashlib.sha256((case_dir / artifact).read_bytes()).hexdigest()
         manifest_lines.append(f"{digest}  {artifact}")
     (case_dir / "manifest.sha256").write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
@@ -562,6 +620,7 @@ def run_autonomous_hunt(
     user_confirmation: str | None = None,
     active_modules: list[str] | None = None,
     enforce_turn_delay: bool = True,
+    diff_last: bool = False,
 ) -> dict:
     """Execute an exhaustive multi-stage OSINT hunt until surface convergence.
 
@@ -668,6 +727,13 @@ def run_autonomous_hunt(
     }
 
     report["intelligence_synthesis"] = synthesize_intelligence(report)
+    report["temporal_profile"] = build_temporal_profile(report)
+    report["persona_and_confidence"] = enrich_graph_confidence_and_personas(report)
+    report["byok_providers_active"] = [p["provider"] for p in get_byok_status() if p["configured"]]
+    if diff_last:
+        prev = find_latest_case_for_target(raw_input, cases_dir=cases_dir, exclude_case_id=case_id)
+        report["surface_delta"] = compute_case_delta(prev[1], report) if prev else None
+
     dossier_md = render_markdown_dossier(report)
     stix_bundle = build_stix2_bundle(case_id, raw_input, nodes, edges)
 
@@ -799,6 +865,8 @@ def expand_existing_case(
     report["meta"]["duration_seconds"] = round(report["meta"].get("duration_seconds", 0.0) + (time.monotonic() - t0), 2)
 
     report["intelligence_synthesis"] = synthesize_intelligence(report)
+    report["temporal_profile"] = build_temporal_profile(report)
+    report["persona_and_confidence"] = enrich_graph_confidence_and_personas(report)
     dossier_md = render_markdown_dossier(report)
     stix_bundle = build_stix2_bundle(report["meta"]["case_id"], report["meta"]["raw_input"], nodes, edges)
     _write_case_artifacts(case_dir, report, dossier_md, stix_bundle)

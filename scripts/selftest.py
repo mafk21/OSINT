@@ -335,11 +335,195 @@ def main() -> int:
             raise AssertionError("Expected 403 from unapproved /api/hunt/active!")
         except urllib.error.HTTPError as he:
             assert he.code == 403
+
+        # Verify /api/typosquats & /api/graph/path REST endpoints (Upgrades #4 & #7)
+        req_typo = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/typosquats",
+            data=json.dumps({"domain": "tesla.com", "limit": 25}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req_typo, timeout=5) as resp:
+            typo_data = json.loads(resp.read().decode("utf-8"))
+            assert typo_data["count"] == 25 and any(p["fuzzer"] == "idn-homoglyph-punycode" for p in typo_data["permutations"])
+
+        req_path = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/graph/path",
+            data=json.dumps(
+                {
+                    "nodes": [{"id": "username:a"}, {"id": "email:a@b.io"}, {"id": "domain:b.io"}],
+                    "edges": [
+                        {"source": "username:a", "target": "email:a@b.io", "via": "github_commit_patch", "confidence": 0.98},
+                        {"source": "email:a@b.io", "target": "domain:b.io", "via": "email_domain", "confidence": 0.88},
+                    ],
+                    "source": "username:a",
+                    "target": "domain:b.io",
+                }
+            ).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req_path, timeout=5) as resp:
+            p_res = json.loads(resp.read().decode("utf-8"))["path"]
+            assert p_res["hops"] == 2 and p_res["joint_confidence"] > 0.85
     finally:
         httpd.shutdown()
         httpd.server_close()
 
-    print("SELFTEST PASS: 760-Tool Catalog, Classifier, Forensic Decoders, Correlator, HTML/CSV/STIX, Active Gate, MCP, REST API & Portable Skills verified.")
+    # 9. Verify All 8 Next-Level Upgrades (Temporal, DFIR 2.0, Modern Collectors, Persona, BYOK, Watchlist/Diff, Graph Exporters)
+    import base64
+    import struct
+    import xml.etree.ElementTree as ET
+    import zlib
+    from osint_hunter.dfir_forensics import (
+        analyze_eml_bytes,
+        analyze_har_bytes,
+        analyze_mp4_mov_bytes,
+        analyze_pcap_bytes,
+        analyze_png_webp_c2pa_bytes,
+    )
+    from osint_hunter.modern_collectors import (
+        collect_bluesky_atproto,
+        collect_entra_m365_tenant_passive,
+        collect_mastodon_fediverse,
+    )
+    from osint_hunter.engine import expand_existing_case
+    from osint_hunter.offline_intel import analyze_local_file
+    from osint_hunter.providers import get_byok_status
+    from osint_hunter.temporal import build_temporal_profile
+    from osint_hunter.watchlist import add_to_watchlist, compute_case_delta, load_watchlist, remove_from_watchlist
+
+    # Upgrade #1: Pattern-of-Life & Circadian Sleep-Window Inference
+    fake_rep = {
+        "wave_results": [
+            {
+                "type": "username",
+                "value": "night_coder",
+                "collector_outputs": [
+                    {
+                        "module": "github_user_osint",
+                        "status": "ok",
+                        "data": {
+                            "commit_timezone_offsets": ["+03:00", "+03:00"],
+                            "events": [f"2026-10-{10 + i:02d}T{9 + (i % 10):02d}:15:00Z" for i in range(14)],
+                        },
+                    }
+                ],
+            }
+        ]
+    }
+    t_prof = build_temporal_profile(fake_rep)
+    assert "+03:00" in t_prof["inferred_timezone_offsets"], t_prof
+    assert t_prof["estimated_sleep_window_utc"] is not None and t_prof["human_activity_events_count"] >= 14, t_prof
+
+    # Upgrade #2: DFIR Pocket-Knife 2.0 (.eml, .pcap, .har, .mp4, PNG C2PA/ComfyUI, Google ei=, SSH key)
+    ei_tok = base64.urlsafe_b64encode(struct.pack("<I", 1710000000) + b"\x00\x01\x02\x03").decode().rstrip("=")
+    ei_dec = universal_forensic_decode(f"https://www.google.com/search?q=osint&ei={ei_tok}")
+    assert any(r["decoder"] == "google_ei_chronolocation" and r["search_utc_iso"] == "2024-03-09T16:00:00Z" for r in ei_dec["results"])
+
+    ssh_wire = struct.pack(">I", 11) + b"ssh-ed25519" + struct.pack(">I", 32) + (b"\x42" * 32)
+    ssh_dec = universal_forensic_decode("ssh-ed25519 " + base64.b64encode(ssh_wire).decode() + " dev@sec-ops.org")
+    assert any(r["decoder"] == "openssh_public_key" and r["leaked_email_in_comment"] == "dev@sec-ops.org" for r in ssh_dec["results"])
+
+    with tempfile.TemporaryDirectory(prefix="osint_dfir_") as dfir_tmp:
+        dtmp = Path(dfir_tmp)
+        eml_p = dtmp / "phish.eml"
+        eml_p.write_bytes(
+            b"Received: from mx.corp.io ([198.51.100.9]) by inbox.corp.io; Fri, 23 Oct 2026 14:00:15 +0000\r\n"
+            b"Received: from relay.bad-ops.net ([203.0.113.55]) by mx.corp.io; Fri, 23 Oct 2026 14:00:05 +0000\r\n"
+            b"From: Finance <cfo@corp.io>\r\nReply-To: drop@bad-ops.net\r\n"
+            b"Authentication-Results: mx.corp.io; spf=fail; dmarc=fail\r\n"
+            b"Date: Fri, 23 Oct 2026 17:00:00 +0300\r\nSubject: Wire\r\n\r\nSee https://login.bad-ops.net\r\n"
+        )
+        eml_f = analyze_local_file(str(eml_p))
+        eml_meta = eml_f["extracted_metadata"]["eml_forensics"]
+        assert eml_meta["sender_timezone_offset"] == "+03:00" and len(eml_meta["spoofing_and_anomaly_flags"]) >= 2
+
+        eth = b"\x00" * 12 + b"\x08\x00"
+        dns_q = b"\xab\xcd\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x02c2\x07darknet\x02io\x00\x00\x01\x00\x01"
+        udp = struct.pack("!HHHH", 51111, 53, 8 + len(dns_q), 0) + dns_q
+        ip4 = struct.pack("!BBHHHBBH4s4s", 0x45, 0, 20 + len(udp), 1, 0, 64, 17, 0, b"\x08\x08\x04\x04", b"\x01\x01\x01\x01")
+        frame = eth + ip4 + udp
+        pcap_p = dtmp / "trace.pcap"
+        pcap_p.write_bytes(struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, 1) + struct.pack("<IIII", 1710000000, 0, len(frame), len(frame)) + frame)
+        pcap_f = analyze_local_file(str(pcap_p))
+        assert "c2.darknet.io" in pcap_f["extracted_metadata"]["pcap_forensics"]["dns_queries"]
+
+        har_f = analyze_har_bytes(json.dumps({"log": {"entries": [{"startedDateTime": "2026-10-23T10:00:00Z", "serverIPAddress": "93.184.216.34", "request": {"url": "https://api.example.org/v1", "headers": [{"name": "Authorization", "value": "Bearer secret"}], "cookies": [{"name": "sid"}]}}]}}).encode())
+        assert "api.example.org" in har_f["unique_domains"] and len(har_f["auth_headers_detected"]) == 1
+
+        ftyp = struct.pack(">I4s4sI", 16, b"ftyp", b"isom", 0)
+        mvhd_b = struct.pack(">IIIIII", 0, 1710000000 + 2082844800, 1710000000 + 2082844800, 1000, 9000, 0) + b"\x00" * 80
+        xyz_b = b"\x00\x12\x15\xc7+24.7136+046.6753/"
+        udta = struct.pack(">I4s", 16 + len(xyz_b), b"udta") + struct.pack(">I4s", 8 + len(xyz_b), b"\xa9xyz") + xyz_b
+        moov = struct.pack(">I4s", 16 + len(mvhd_b) + len(udta), b"moov") + struct.pack(">I4s", 8 + len(mvhd_b), b"mvhd") + mvhd_b + udta
+        mp4_f = analyze_mp4_mov_bytes(ftyp + moov)
+        assert mp4_f["gps_coordinates"] == "24.713600,46.675300"
+
+        def _pchunk(tp: bytes, bd: bytes) -> bytes:
+            return struct.pack(">I", len(bd)) + tp + bd + struct.pack(">I", zlib.crc32(tp + bd) & 0xFFFFFFFF)
+
+        png_f = analyze_png_webp_c2pa_bytes(
+            b"\x89PNG\r\n\x1a\n" + _pchunk(b"IHDR", struct.pack(">IIBBBBB", 512, 512, 8, 2, 0, 0, 0)) + _pchunk(b"tEXt", b"parameters\x00Negative prompt: blurry\nSteps: 25, Sampler: Euler") + _pchunk(b"caBX", b"c2pa.claim") + _pchunk(b"IEND", b"")
+        )
+        assert png_f["c2pa_content_credentials_detected"] is True and "Stable Diffusion" in png_f["ai_provenance_classification"]
+
+    # Upgrade #3: Modern & Decentralized Collectors via deterministic mock _fetch_json
+    import osint_hunter.modern_collectors as mc_mod
+
+    orig_fetch = mc_mod._fetch_json
+
+    def _mock_fetch_json(url: str, timeout: float = 4.0):
+        if "getProfile" in url:
+            return 200, {"did": "did:plc:abc123xyz", "handle": "alice.corp-test.io", "displayName": "Alice Sec", "description": "Contact sec@corp-test.io"}, None
+        if "plc.directory" in url:
+            return 200, [{"createdAt": "2024-05-01T12:00:00Z", "operation": {"alsoKnownAs": ["at://oldhandle.bsky.social"], "services": {"atproto_pds": {"endpoint": "https://bsky.network"}}}}], None
+        if "mastodon.social" in url:
+            return 200, {"acct": "alice", "display_name": "Alice", "url": "https://mastodon.social/@alice", "fields": [{"name": "Site", "value": '<a href="https://corp-test.io" rel="me">corp-test.io</a>', "verified_at": "2026-01-01T00:00:00Z"}]}, None
+        if "openid-configuration" in url:
+            return 200, {"issuer": "https://sts.windows.net/11111111-2222-3333-4444-555555555555/", "tenant_region_scope": "EU"}, None
+        if "getuserrealm" in url:
+            return 200, {"NameSpaceType": "Federated", "FederationBrandName": "CorpTest Ltd", "AuthURL": "https://sso.corp-test.io/adfs/ls/"}, None
+        return 404, None, "HTTP 404"
+
+    mc_mod._fetch_json = _mock_fetch_json
+    try:
+        bsky_r = collect_bluesky_atproto("alice")
+        assert bsky_r["status"] == "ok" and "oldhandle.bsky.social" in bsky_r["data"]["plc_handle_history"], bsky_r
+        masto_r = collect_mastodon_fediverse("alice")
+        assert masto_r["status"] == "ok" and any(p["value"] == "corp-test.io" for p in masto_r["pivots"]), masto_r
+        entra_r = collect_entra_m365_tenant_passive("corp-test.io")
+        assert entra_r["status"] == "ok" and entra_r["data"]["entra_tenant_uuid"] == "11111111-2222-3333-4444-555555555555", entra_r
+    finally:
+        mc_mod._fetch_json = orig_fetch
+
+    # Upgrade #5: BYOK Provider Registry & Doctor Status
+    assert len(get_byok_status()) == 7 and "byok_providers" in doc_json
+
+    # Upgrade #6 & #8: Watchlist, --diff-last Delta, Gephi GEXF, GraphML, Neo4j Cypher, Obsidian Vault & MCP Tools
+    with tempfile.TemporaryDirectory(prefix="osint_upg68_") as upg_tmp:
+        utmp = Path(upg_tmp)
+        add_to_watchlist("+966501234567", depth=1, cases_dir=utmp)
+        assert len(load_watchlist(utmp)) == 1
+        remove_from_watchlist("+966501234567", cases_dir=utmp)
+        assert len(load_watchlist(utmp)) == 0
+
+        r1 = run_autonomous_hunt("+966501234567", depth=1, cases_dir=utmp)
+        cdir1 = utmp / r1["meta"]["case_id"]
+        # Validate XML structure of Gephi GEXF & GraphML + Neo4j Cypher + Obsidian Vault
+        ET.fromstring((cdir1 / "graph.gexf").read_text(encoding="utf-8"))
+        ET.fromstring((cdir1 / "graph.graphml").read_text(encoding="utf-8"))
+        assert "MERGE (c:OSINTCase" in (cdir1 / "neo4j.cypher").read_text(encoding="utf-8")
+        assert (cdir1 / "obsidian" / "00_Case_Index.md").is_file()
+
+        r2 = expand_existing_case(cdir1, ingested_text="Ops Lead: Tariq Al-Mansoor | https://ops-horizon-example.io", additional_stages=1, cases_dir=utmp)
+        delta = compute_case_delta(r1, r2)
+        assert delta["drift_detected"] is True and delta["added_entity_count"] >= 2 and "ops-horizon-example.io" in delta["new_domains_and_subdomains"]
+
+    rpc_typo = process_rpc({"jsonrpc": "2.0", "id": 101, "method": "tools/call", "params": {"name": "osint_typosquat_permutations", "arguments": {"domain": "github.com", "limit": 15}}})
+    assert "idn-homoglyph-punycode" in rpc_typo["result"]["content"][0]["text"]
+
+    print("SELFTEST PASS: 760-Tool Catalog + All 8 Next-Level Upgrades (Temporal, DFIR 2.0, Modern Collectors, Persona, BYOK, Watchlist/Diff, Graph Studio & Gephi/Neo4j/Obsidian) verified.")
     return 0
 
 

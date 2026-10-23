@@ -12,14 +12,15 @@
       <div class="brand">
         <div class="brand-badge">🛰️</div>
         <div>
-          <h1>OSINT MONSTER DATABASE <span class="version-pill">v2026.10.3</span></h1>
-          <div class="brand-sub">Autonomous Multi-Stage Hunter · Forensic Decoders · 760 Verified Tools · 105 Dorks · 20 Playbooks</div>
+          <h1>OSINT MONSTER DATABASE <span class="version-pill">v2026.10.4</span></h1>
+          <div class="brand-sub">Autonomous Multi-Stage Hunter · DFIR &amp; Chronolocation · Interactive Graph Studio · 760 Tools · 105 Dorks</div>
         </div>
       </div>
 
       <nav class="nav-tabs" id="mainNav">
         <button class="nav-tab active" data-view="hunter">⚡ Autonomous Hunter <span class="tab-count">LIVE</span></button>
-        <button class="nav-tab" data-view="decoder">🧬 Forensic Decoder <span class="tab-count">0-NET</span></button>
+        <button class="nav-tab" data-view="cases">🗄️ Case Vault &amp; Diff <span class="tab-count" id="navCntCases">0</span></button>
+        <button class="nav-tab" data-view="decoder">🧬 Forensic &amp; DFIR <span class="tab-count">0-NET</span></button>
         <button class="nav-tab" data-view="arsenal">🗂️ Tool Arsenal <span class="tab-count" id="navCntTools">0</span></button>
         <button class="nav-tab" data-view="pivots">🧭 Pivot Matrix <span class="tab-count" id="navCntPivots">24</span></button>
         <button class="nav-tab" data-view="workflows">🗺️ Playbooks <span class="tab-count" id="navCntWorkflows">0</span></button>
@@ -95,6 +96,46 @@
       </div>
     </section>
 
+    <!-- VIEW 0A: SAVED CASE VAULT, VISUAL DIFF & TYPOSQUAT STUDIO -->
+    <section class="view-panel" id="view-cases">
+      <div class="hunter-hero">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <h2 style="margin:0; font-size:19px;">🗄️ Forensic Case Vault, Cross-Case Linker &amp; Surface Drift Studio</h2>
+            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
+              Reload any saved <code>cases/CASE-...</code> dossier into the Interactive Graph Studio, export Gephi <code>.gexf</code> / GraphML / Neo4j Cypher, uncover shared infrastructure across investigations, or compute temporal attack-surface drift (<code>--diff-last</code>).
+            </div>
+          </div>
+          <button class="btn-sm" id="refreshCasesBtn" style="border-color:var(--cyan); color:var(--cyan);">🔄 Refresh Case Vault</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; margin-top:14px;">
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
+            <div style="font-size:12px; font-weight:700; color:var(--cyan); text-transform:uppercase; margin-bottom:8px;">🔗 Cross-Case Link &amp; Temporal Drift Analyzer</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <select id="caseSelectA" class="select-ctrl" style="flex:1; min-width:160px;"><option value="">Select Case A (Baseline)...</option></select>
+              <select id="caseSelectB" class="select-ctrl" style="flex:1; min-width:160px;"><option value="">Select Case B (Current)...</option></select>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-sm" id="runCaseCompareBtn" style="border-color:var(--cyan); color:var(--cyan);">🔗 Shared Links &amp; /24 Subnets</button>
+              <button class="btn-sm" id="runCaseDiffBtn" style="border-color:#fbbf24; color:#fbbf24;">📈 Temporal Surface Drift (Delta)</button>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
+            <div style="font-size:12px; font-weight:700; color:#a78bfa; text-transform:uppercase; margin-bottom:8px;">🎭 Offline Typosquat &amp; IDN Homoglyph Generator (0 Packets)</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <input type="text" id="typosquatDomainInput" class="hunter-input" style="flex:1; min-width:180px;" placeholder="e.g. tesla.com or github.com" />
+              <button class="btn-sm" id="runTyposquatBtn" style="border-color:#a78bfa; color:#c4b5fd; font-weight:700;">⚡ Generate Permutations</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="caseComparisonOutput"></div>
+      <div id="savedCasesList" style="margin-top:12px;"></div>
+    </section>
+
     <!-- VIEW 0B: ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER -->
     <section class="view-panel" id="view-decoder">
       <div class="hunter-hero">
@@ -117,8 +158,10 @@
         <div class="preset-row" style="margin-top:10px;">
           <span style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">Instant Artifacts:</span>
           <button class="sel-pill" data-decode-preset="https://www.tiktok.com/@bellingcat/video/7345123456789012485">🎵 TikTok Upload UTC</button>
+          <button class="sel-pill" data-decode-preset="https://www.google.com/search?q=osint&amp;ei=gIfsZQABAgM">🔍 Google ei= Timestamp</button>
           <button class="sel-pill" data-decode-preset="1216789012345678901">💬 Discord/X Snowflake</button>
           <button class="sel-pill" data-decode-preset="d9b2d63d-a233-11ee-8c90-005056c00008">🔑 UUIDv1 (MAC + Time)</button>
+          <button class="sel-pill" data-decode-preset="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJC analyst@corp-sec.io">🛡️ SSH Key Fingerprint</button>
           <button class="sel-pill" data-decode-preset="SA0380000000608010167519">🏦 Saudi IBAN (Al Rajhi)</button>
           <button class="sel-pill" data-decode-preset="+966501234567">📱 Saudi Mobile (+966)</button>
           <button class="sel-pill" data-decode-preset="5YJ3E1EA7KF317000">🚗 Tesla VIN Checksum</button>
