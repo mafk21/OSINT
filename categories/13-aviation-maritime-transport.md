@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Prefer unfiltered ADS-B networks (`ADS-B Exchange`, `airplanes.live`) when tracking state, military, or LADD-blocked private aircraft censored on commercial flight apps.
 
-**Discipline Telemetry**: `26` Verified Tools · `8` S-Tier Flagships · `26` Passive · `19` Free/Open-Source
+**Discipline Telemetry**: `27` Verified Tools · `9` S-Tier Flagships · `27` Passive · `20` Free/Open-Source
 
 ## Subcategories
 - [Uncensored Aviation Tracking](#uncensored-aviation-tracking) (3)
@@ -17,6 +17,7 @@
 - [Customs, Cargo & Supply Chain](#customs,-cargo-supply-chain) (4)
 - [Aviation Registries & Datalinks](#aviation-registries-datalinks) (4)
 - [Vehicles, VINs & Rail](#vehicles,-vins-rail) (3)
+- [ADS-B & Military Flight Tracking](#ads-b-military-flight-tracking) (1)
 
 ---
 
@@ -281,6 +282,21 @@
 - **Platforms**: Web · **Tags**: `rail-osint`, `overhead-catenary`, `track-gauge`, `train-geolocation`
 - **Overview**: Detailed global rail-infrastructure overlay built on OpenStreetMap showing track gauges, electrification voltages, max speeds, signaling systems, milestones, and industrial spurs—vital for train video geolocation!
 - **Quick-Start / Tradecraft**: `Switch between Infrastructure, Max Speeds, and Electrification views on https://www.openrailwaymap.org/ when geolocating rail videos.`
+
+---
+
+## ADS-B & Military Flight Tracking
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**tar1090 (ADS-B Historical Track UI)**](https://github.com/wiedehopf/tar1090) ([GitHub](https://github.com/wiedehopf/tar1090)) | Web Platform | OSS / Free | 🟢 Passive | ✅ | `aircraft_hex, coordinates` → `flight_tracks, geolocation, signal_telemetry` |
+
+### [tar1090 (ADS-B Historical Track UI)](https://github.com/wiedehopf/tar1090) `[S-Tier]`
+- **ID**: `tar1090` · **Type**: `Web Platform` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`wiedehopf/tar1090`](https://github.com/wiedehopf/tar1090)
+- **Inputs**: `aircraft_hex`, `coordinates` → **Outputs**: `flight_tracks`, `geolocation`, `signal_telemetry`
+- **Platforms**: Web, Linux · **Tags**: `adsb`, `icao-hex`, `military-aircraft`, `flight-replay`
+- **Overview**: Enhanced ADS-B/Mode-S web interface powering ADS-B Exchange and airplanes.live with replayable altitude/speed trails and military hex filters.
+- **Quick-Start / Tradecraft**: `Filter ?icao=<hex>&showTrace=2026-10-23 on any tar1090 instance`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🔬 Image, Video & Media Forensics](./12-image-video-media-forensics.md) · [🏛️ Corporate, Finance & Sanctions ▶](./14-corporate-financial-sanctions.md)

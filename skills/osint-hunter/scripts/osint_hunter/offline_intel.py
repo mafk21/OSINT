@@ -50,6 +50,12 @@ def decode_phone(e164: str) -> dict:
     elif cc == "966" and len(national) >= 2:
         p2 = national[:2]
         region_or_carrier = INTEL_TABLES["saudi_mobile_prefixes"].get(p2, f"Saudi National Prefix {p2}")
+    elif cc and cc in INTEL_TABLES.get("regional_mobile_prefixes", {}):
+        cmap = INTEL_TABLES["regional_mobile_prefixes"][cc]
+        for plen in (3, 2, 1):
+            if len(national) >= plen and national[:plen] in cmap:
+                region_or_carrier = cmap[national[:plen]]
+                break
 
     return {
         "e164": f"+{digits}",
@@ -554,4 +560,270 @@ def analyze_local_file(file_path: str) -> dict:
             "ipv4s": carved_ips,
         },
         "discovered_pivots": pivots,
+    }
+
+
+# ============================================================================
+# ADVANCED CHRONOLOCATION, IDENTIFIER & BANKING FORENSIC DECODERS
+# ============================================================================
+
+IBAN_LENGTHS: dict[str, tuple[int, str]] = {
+    "SA": (24, "Saudi Arabia"), "AE": (23, "United Arab Emirates"), "KW": (30, "Kuwait"),
+    "QA": (29, "Qatar"), "BH": (22, "Bahrain"), "OM": (23, "Oman"), "EG": (29, "Egypt"),
+    "JO": (30, "Jordan"), "LB": (28, "Lebanon"), "TR": (26, "Turkey"), "IQ": (23, "Iraq"),
+    "GB": (22, "United Kingdom"), "DE": (22, "Germany"), "FR": (27, "France"),
+    "CH": (21, "Switzerland"), "LI": (21, "Liechtenstein"), "LU": (20, "Luxembourg"),
+    "NL": (18, "Netherlands"), "BE": (16, "Belgium"), "AT": (20, "Austria"),
+    "ES": (24, "Spain"), "IT": (27, "Italy"), "PT": (25, "Portugal"), "IE": (22, "Ireland"),
+    "SE": (24, "Sweden"), "NO": (15, "Norway"), "DK": (18, "Denmark"), "FI": (18, "Finland"),
+    "PL": (28, "Poland"), "CZ": (24, "Czechia"), "CY": (28, "Cyprus"), "MT": (31, "Malta"),
+    "GR": (27, "Greece"), "RO": (24, "Romania"), "BG": (22, "Bulgaria"), "HU": (28, "Hungary"),
+    "EE": (20, "Estonia"), "LV": (21, "Latvia"), "LT": (20, "Lithuania"), "UA": (29, "Ukraine"),
+    "PK": (24, "Pakistan"), "BR": (29, "Brazil"),
+}
+
+TIKTOK_VIDEO_RE = re.compile(r"tiktok\.com/(?:@([a-zA-Z0-9._-]+)/)?(?:video|photo)/(\d{18,20})")
+UUID_RE = re.compile(r"\b([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})\b")
+MONGO_OID_RE = re.compile(r"\b([0-9a-fA-F]{24})\b")
+ULID_RE = re.compile(r"\b([0-7][0-9A-HJKMNP-TV-Z]{25})\b")
+IBAN_CANDIDATE_RE = re.compile(r"\b([A-Z]{2}\d{2}[A-Z0-9]{11,29})\b")
+SNOWFLAKE_RE = re.compile(r"\b(\d{17,19})\b")
+
+CROCKFORD_B32 = {ch: idx for idx, ch in enumerate("0123456789ABCDEFGHJKMNPQRSTVWXYZ")}
+
+
+def decode_tiktok_id_or_url(raw: str) -> dict | None:
+    """Extract exact UTC upload timestamp from a TikTok URL or 19-digit video/photo ID (id >> 32)."""
+    s = (raw or "").strip()
+    m = TIKTOK_VIDEO_RE.search(s)
+    handle = None
+    vid_str = None
+    if m:
+        handle = m.group(1)
+        vid_str = m.group(2)
+    elif re.fullmatch(r"\d{19}", s):
+        vid_str = s
+    if not vid_str:
+        return None
+
+    vid = int(vid_str)
+    unix_sec = vid >> 32
+    if not (1451606400 <= unix_sec <= 1956528000):  # 2016-01-01 .. 2032-01-01
+        return None
+    dt_utc = datetime.fromtimestamp(unix_sec, tz=timezone.utc)
+    return {
+        "decoder": "tiktok_chronolocation",
+        "post_id": vid_str,
+        "author_handle": handle,
+        "upload_unix_epoch": unix_sec,
+        "upload_utc_iso": dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "lower_32bit_worker_seq": vid & 0xFFFFFFFF,
+        "forensic_note": "TikTok encodes the exact server-side UTC upload second in the upper 32 bits of the 64-bit post ID.",
+    }
+
+
+def decode_snowflake_id(raw: str) -> dict | None:
+    """Decode 17–19 digit Discord or X/Twitter Snowflake IDs into exact millisecond UTC creation timestamps."""
+    s = re.sub(r"\D", "", (raw or "").strip())
+    if not (17 <= len(s) <= 19):
+        return None
+    val = int(s)
+    candidates = []
+    for platform, epoch_ms, min_yr in (
+        ("Discord", 1420070400000, 2015),
+        ("X / Twitter", 1288834974657, 2010),
+    ):
+        ts_ms = (val >> 22) + epoch_ms
+        yr = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc).year
+        if min_yr <= yr <= 2031:
+            dt_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            candidates.append(
+                {
+                    "platform": platform,
+                    "created_utc_iso": dt_iso,
+                    "unix_ms": ts_ms,
+                    "worker_id": (val & 0x3E0000) >> 17,
+                    "process_id": (val & 0x1F000) >> 12,
+                    "increment": val & 0xFFF,
+                }
+            )
+    if not candidates:
+        return None
+    return {
+        "decoder": "snowflake_chronolocation",
+        "snowflake_id": s,
+        "possible_interpretations": candidates,
+    }
+
+
+def decode_uuid_or_ulid(raw: str) -> dict | None:
+    """Extract embedded UTC timestamps & hardware MAC addresses from UUIDv1/v6/v7, ULIDs, and MongoDB ObjectIds."""
+    s = (raw or "").strip()
+
+    # 1. Standard RFC 4122 / RFC 9562 UUID
+    um = UUID_RE.search(s)
+    if um:
+        u_str = um.group(1).lower()
+        hex32 = u_str.replace("-", "")
+        ver = int(hex32[12], 16)
+        out: dict = {"decoder": "uuid_forensics", "uuid": u_str, "version": ver}
+        if ver == 1:
+            time_low = int(hex32[0:8], 16)
+            time_mid = int(hex32[8:12], 16)
+            time_hi = int(hex32[12:16], 16) & 0x0FFF
+            greg_100ns = (time_hi << 48) | (time_mid << 32) | time_low
+            unix_ts = (greg_100ns - 0x01B21DD213814000) / 1e7
+            dt_iso = datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            node_hex = hex32[20:32].upper()
+            mac_fmt = ":".join(node_hex[i : i + 2] for i in range(0, 12, 2))
+            mac_info = decode_mac_bssid(mac_fmt)
+            out.update(
+                {
+                    "created_utc_iso": dt_iso,
+                    "embedded_node_mac": mac_fmt,
+                    "node_mac_vendor": mac_info.get("vendor"),
+                    "is_multicast_random_node": bool(int(node_hex[:2], 16) & 0x01),
+                    "forensic_note": "UUIDv1 leaks exact 100ns creation time and the generating machine's 48-bit MAC address.",
+                }
+            )
+        elif ver == 7:
+            unix_ms = int(hex32[0:12], 16)
+            dt_iso = datetime.fromtimestamp(unix_ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            out.update(
+                {
+                    "created_utc_iso": dt_iso,
+                    "unix_ms": unix_ms,
+                    "forensic_note": "UUIDv7 (RFC 9562) encodes exact millisecond UTC creation time in its top 48 bits.",
+                }
+            )
+        elif ver == 6:
+            greg_100ns = (int(hex32[0:12], 16) << 12) | (int(hex32[12:16], 16) & 0x0FFF)
+            unix_ts = (greg_100ns - 0x01B21DD213814000) / 1e7
+            out["created_utc_iso"] = datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        elif ver == 4:
+            out["forensic_note"] = "UUIDv4 is cryptographically random (122 random bits; no embedded timestamp/MAC)."
+        return out
+
+    # 2. 26-char Crockford Base32 ULID
+    if ULID_RE.fullmatch(s.upper()):
+        u_up = s.upper()
+        ts_ms = 0
+        for ch in u_up[:10]:
+            ts_ms = (ts_ms << 5) | CROCKFORD_B32[ch]
+        yr = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc).year
+        if 2010 <= yr <= 2035:
+            dt_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+            return {
+                "decoder": "ulid_forensics",
+                "ulid": u_up,
+                "created_utc_iso": dt_iso,
+                "unix_ms": ts_ms,
+            }
+
+    # 3. 24-hex MongoDB ObjectId
+    if MONGO_OID_RE.fullmatch(s):
+        unix_sec = int(s[:8], 16)
+        yr = datetime.fromtimestamp(unix_sec, tz=timezone.utc).year
+        if 2009 <= yr <= 2035:
+            return {
+                "decoder": "mongodb_objectid_forensics",
+                "object_id": s.lower(),
+                "created_utc_iso": datetime.fromtimestamp(unix_sec, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "machine_process_hex": s[8:18].lower(),
+                "counter": int(s[18:24], 16),
+            }
+
+    return None
+
+
+def decode_iban(raw: str) -> dict | None:
+    """Validate ISO 13616 IBAN MOD-97-10 checksum and extract country & banking institution metadata."""
+    compact = re.sub(r"[\s-]+", "", (raw or "").strip()).upper()
+    if not IBAN_CANDIDATE_RE.fullmatch(compact):
+        return None
+    cc = compact[:2]
+    if cc not in IBAN_LENGTHS:
+        return None
+    exp_len, country_name = IBAN_LENGTHS[cc]
+    if len(compact) != exp_len:
+        return None
+
+    rearranged = compact[4:] + compact[:4]
+    numeric_str = "".join(str(ord(c) - 55) if c.isalpha() else c for c in rearranged)
+    mod97_valid = int(numeric_str) % 97 == 1
+
+    bank_code = compact[4:6] if cc == "SA" else compact[4:8]
+    bank_name = INTEL_TABLES.get("sama_bank_codes_sa", {}).get(bank_code) if cc == "SA" else None
+
+    return {
+        "decoder": "iban_iso13616",
+        "iban": compact,
+        "country_code": cc,
+        "country": country_name,
+        "check_digits": compact[2:4],
+        "mod97_valid": mod97_valid,
+        "bank_identifier": bank_code,
+        "bank_name": bank_name,
+        "bban": compact[4:],
+    }
+
+
+def universal_forensic_decode(raw_input: str) -> dict:
+    """Run EVERY zero-network deterministic decoder matching any token inside `raw_input`."""
+    from .classify import extract_selectors
+
+    text = (raw_input or "").strip()
+    decoded_items: list[dict] = []
+
+    # 1. TikTok URL / Post ID timestamp
+    tt = decode_tiktok_id_or_url(text)
+    if tt:
+        decoded_items.append(tt)
+
+    # 2. UUIDv1/v6/v7, ULID, MongoDB ObjectId
+    for tok in re.split(r"[\s,;()\"'<>]+", text):
+        if not tok:
+            continue
+        u_res = decode_uuid_or_ulid(tok)
+        if u_res:
+            decoded_items.append(u_res)
+        ib_res = decode_iban(tok)
+        if ib_res and ib_res["mod97_valid"]:
+            decoded_items.append(ib_res)
+
+    # Check multi-group spaced IBAN (e.g. "SA03 8000 0000 6080 1016 7519")
+    ib_spaced = decode_iban(text)
+    if ib_spaced and ib_spaced["mod97_valid"] and not any(d.get("iban") == ib_spaced["iban"] for d in decoded_items):
+        decoded_items.append(ib_spaced)
+
+    # 3. Discord / X Snowflake IDs (when not already decoded as TikTok)
+    for sf in SNOWFLAKE_RE.findall(text):
+        if tt and tt.get("post_id") == sf:
+            continue
+        sf_res = decode_snowflake_id(sf)
+        if sf_res:
+            decoded_items.append(sf_res)
+
+    # 4. Standard OSINT typed selectors (Phone, Aircraft ICAO, Vessel IMO/MMSI, VIN, MAC/BSSID, JWT, Local File)
+    for sel in extract_selectors(text):
+        st, sv = sel["type"], sel["value"]
+        if st == "phone":
+            decoded_items.append({"decoder": "phone_itu_e164", **decode_phone(sv)})
+        elif st == "aircraft_hex":
+            decoded_items.append({"decoder": "aircraft_icao24", **decode_aircraft_hex(sv)})
+        elif st == "vessel_imo":
+            decoded_items.append({"decoder": "maritime_ais_imo", **decode_vessel_identifier(sv)})
+        elif st == "vin":
+            decoded_items.append({"decoder": "vehicle_iso3779_vin", **decode_vin(sv)})
+        elif st == "mac_bssid":
+            decoded_items.append({"decoder": "ieee_mac_bssid", **decode_mac_bssid(sv)})
+        elif st == "jwt_token":
+            decoded_items.append({"decoder": "jwt_token", **decode_jwt(sv)})
+        elif st == "local_file":
+            decoded_items.append({"decoder": "local_binary_forensics", **analyze_local_file(sv)})
+
+    return {
+        "input": text,
+        "decoded_count": len(decoded_items),
+        "results": decoded_items,
     }

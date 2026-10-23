@@ -18,6 +18,14 @@
 10. [**Phishing & Malware Infrastructure Pivoting**](#threat-actor-phishing-infra-triage) — `CTI / DNSINT / NETINT` · Seed: `url / ip / file_hash` · *Intermediate*
 11. [**Dark Web, Ransomware & Infostealer Exposure Triage**](#darkweb-ransomware-exposure-assessment) — `DARKINT / BREACHINT` · Seed: `domain / email / onion_url` · *Intermediate*
 12. [**Wireless BSSID, Cell Tower & RF Signal Intelligence**](#wireless-rf-geospatial-triangulation) — `SIGINT / GEOINT` · Seed: `mac_bssid / rf_frequency / coordinates` · *Advanced*
+13. [**Instagram / TikTok / Creator Handle Multi-Stage Surface Expansion**](#social-handle-multi-stage-unmasking) — `SOCMINT / USERINT / PHONEINT` · Seed: `username / url` · *Intermediate*
+14. [**Unmasking Origin Server IPs Behind Cloudflare & WAFs**](#origin-ip-unmasking-behind-cdn-waf) — `DNSINT / NETINT` · Seed: `domain` · *Advanced*
+15. [**Shadow AI, Exposed LLM & Vector-DB Infrastructure Recon**](#shadow-ai-llm-infrastructure-recon) — `AI-OPSEC / NETINT / CODEINT` · Seed: `domain / asn / company` · *Intermediate*
+16. [**Ransomware Leak-Site, `.onion` & Threat Actor Attribution**](#ransomware-onion-actor-attribution) — `DARKINT / CTI / CRYPTOINT` · Seed: `onion_url / crypto_address / file_hash` · *Advanced*
+17. [**Cross-Border Shell Company, Sanctions & Beneficial Ownership Tracing**](#sanctions-evasion-shell-company-finint) — `FININT / TRANSINT` · Seed: `company / person_name / vessel_imo` · *Advanced*
+18. [**Enterprise Cloud, Microsoft Entra ID & Storage Perimeter Recon**](#cloud-entra-m365-tenant-recon) — `CODEINT / EMAILINT / DNSINT` · Seed: `domain / company` · *Intermediate*
+19. [**Investigative Media Verification, Chronolocation & Document Forensics**](#document-media-chronolocation-verification) — `IMINT / GEOINT / ARCHINT` · Seed: `image / video / document / url` · *Intermediate*
+20. [**Web3 Phishing Kit, Wallet Drainer & Laundering Attribution**](#web3-drainer-scam-cluster-investigation) — `CRYPTOINT / DNSINT / CTI` · Seed: `crypto_address / domain / url` · *Advanced*
 
 ---
 
@@ -466,4 +474,252 @@ Monitor HF/VHF utility broadcasts via networked Software-Defined Radios and corr
 - **[`S`] [WebSDR.org](http://www.websdr.org/)** (🟢 Passive, *Free*) — University of Twente & worldwide directory of browser-accessible multi-user SDR receivers spanning HF, VHF, UHF, amateur bands, marine VHF, and geostationary QO-100 satellite transponders.
 - **[`S`] [SatNOGS (Open Source Satellite Ground Station Network)](https://network.satnogs.org/)** (🟢 Passive, *OSS / Free*) — Libre Space Foundation's global network of automated open-source VHF/UHF/L/S-band ground stations recording live satellite waterfall spectrograms, telemetry frames, and transmitter downlink frequencies.
 - **[`S`] [CelesTrak](https://celestrak.org/)** (🟢 Passive, *Free*) — Dr. T.S. Kelso's authoritative public astrodynamics portal publishing Two-Line Element (TLE) / GP orbital catalogs, SATCAT metadata, conjunction alerts, and live 3D Cesium orbit visualizations.
+
+---
+
+<a id="social-handle-multi-stage-unmasking"></a>
+## Instagram / TikTok / Creator Handle Multi-Stage Surface Expansion
+- **Playbook ID**: `social-handle-multi-stage-unmasking` · **Disciplines**: `SOCMINT / USERINT / PHONEINT` · **Difficulty**: `Intermediate` · **Seed Selector**: `username / url`
+- **Objective**: Turn a single social handle (e.g. Instagram or TikTok username) into a complete cross-platform identity, business, phone, email, and web infrastructure graph using iterative stage-by-stage expansion.
+
+### Phase 1: Handle Enumeration & Deterministic Alias Mutation
+Sweep exact handle and separator/prefix variants (`.` -> `_`, `-`, concatenated, title-stripped) across 600+ social platforms and developer registries.
+
+- **[`S`] [WhatsMyName](https://whatsmyname.app/)** (🟢 Passive, *OSS / Free*) — Community-maintained JSON detection standard (`wmn-data.json`) and instant browser web app checking 700+ sites with finely tuned HTTP status/response fingerprints to minimize false positives.
+- **[`S`] [Maigret](https://github.com/soxoj/maigret)** (🟢 Passive, *OSS / Free*) — Advanced username dossier builder checking 3,000+ websites, parsing discovered profile pages to extract real names, bios, avatars, linked handles, and generating self-contained HTML/PDF/XMind reports.
+- **[`S`] [Sherlock](https://github.com/sherlock-project/sherlock)** (🟢 Passive, *OSS / Free*) — The most widely used open-source Python CLI for hunting down social media and forum accounts by username across 400+ curated websites simultaneously, with Tor/proxy and CSV/JSON export support.
+- **[`S`] [Blackbird](https://github.com/p1ngul1n0/blackbird)** (🟢 Passive, *OSS / Free*) — Fast asynchronous OSINT tool searching accounts by both username and email across 600+ sites, featuring WhatsMyName integration, AI profile metadata extraction, web UI, and PDF reporting.
+
+### Phase 2: Link-in-Bio, WhatsApp & Contact Carving
+Harvest indexed bios, Linktree/Beacons hubs, and `wa.me/` links to extract E.164 phone numbers, booking emails, and external clinic/brand domains.
+
+- **[`S`] [Instaloader](https://instaloader.github.io/)** (🟢 Passive, *OSS / Free*) — Gold-standard open-source Python CLI and library downloading public/followed Instagram photos, videos, Reels, Stories, IGTV, captions, comments, timestamps, and geotags cleanly.
+- **[`S`] [yt-dlp](https://github.com/yt-dlp/yt-dlp)** (🟢 Passive, *OSS / Free*) — De facto open-source media archiver supporting 1,800+ video/social platforms (YouTube, X, TikTok, Rumble, Telegram,VK, news sites) with `--write-info-json` forensic metadata sidecars.
+- **[`S`] [PhoneInfoga](https://github.com/sundowndev/phoneinfoga)** (🟢 Passive, *OSS / Free*) — Leading open-source Go framework for international phone number reconnaissance—extracting E.164 country/carrier metadata, OVH/Numverify line types, and automated Google dork footprints across social/classified sites.
+- **[`S`] [Holehe](https://github.com/megadose/holehe)** (🟢 Passive, *OSS / Free*) — Checks whether an email address is registered across 120+ websites (Spotify, Instagram, X, GitHub, Adobe, Gravatar, Imgur, Office365) via silent registration/login checks without alerting the target.
+
+### Phase 3: Domain, TLS SAN & Analytics Network Pivot
+Pivot every discovered bio domain through Certificate Transparency, WHOIS/RDAP, and Google Analytics `G-`/`GTM-` IDs to uncover sister properties.
+
+- **[`S`] [crt.sh (Certificate Transparency Search)](https://crt.sh/)** (🟢 Passive, *OSS / Free*) — Sectigo's free, keyless Certificate Transparency log search engine with direct public PostgreSQL SQL access (`crt.sh:5432`)—exposing every publicly trusted SSL/TLS cert and SAN subdomain ever issued.
+- **[`S`] [Wayback Google Analytics (Bellingcat)](https://github.com/bellingcat/wayback-google-analytics)** (🟢 Passive, *OSS / Free*) — Bellingcat Python CLI scraping historical Wayback Machine snapshots to extract `UA-`, `G-`, and `GTM-` tracking codes across time to link covert site networks.
+- **[`S`] [urlscan.io](https://urlscan.io/)** (🟡 Hybrid, *Freemium*) — Headless browser website sandbox recording full DOM HTML, every HTTP XHR request, JS resource SHA-256 hashes, TLS certificates, ASN details, and visual screenshots—ideal for phishing kit hunting.
+- **[`S`] [Wayback Machine (Internet Archive)](https://web.archive.org/)** (🟢 Passive, *Free*) — Humanity's digital memory indexing 900+ billion archived web captures since 1996, backed by the powerful CDX Server API for wildcard subdomain discovery, MIME filtering, and deleted-content recovery.
+
+---
+
+<a id="origin-ip-unmasking-behind-cdn-waf"></a>
+## Unmasking Origin Server IPs Behind Cloudflare & WAFs
+- **Playbook ID**: `origin-ip-unmasking-behind-cdn-waf` · **Disciplines**: `DNSINT / NETINT` · **Difficulty**: `Advanced` · **Seed Selector**: `domain`
+- **Objective**: Identify true backend origin IPv4/IPv6 servers shielded behind Cloudflare, Akamai, or Fastly without triggering WAF rate limits.
+
+### Phase 1: Historical DNS, SPF & Mail Gateway Leaks
+Inspect historical `A`/`AAAA` records prior to CDN onboarding, plus `SPF` `ip4:` directives and non-proxied `MX`/`mail.*` subdomains.
+
+- **[`S`] [SecurityTrails](https://securitytrails.com/)** (🟢 Passive, *Freemium*) — Premier historical DNS and WHOIS time-machine tracking multi-year A, AAAA, MX, NS, and TXT record changes—essential for unmasking pre-Cloudflare origin server IPs.
+- **[`A`] [ViewDNS.info](https://viewdns.info/)** (🟢 Passive, *Freemium*) — Swiss-army web toolkit bundling 20+ domain/IP utilities: Reverse IP Lookup, Reverse WHOIS, IP History,Reverse MX/NS, Chinese Firewall Test, DNSSEC check, and ASN lookup.
+- **[`A`] [haktrails](https://github.com/hakluke/haktrails)** (🟢 Passive, *OSS / Free*) — Go CLI querying SecurityTrails passive DNS, historical WHOIS, and associated domain endpoints in Unix pipelines.
+- **[`S`] [checkdmarc](https://github.com/domainaware/checkdmarc)** (🔴 Active, *OSS / Free*) — Python CLI and library that actively queries DNS and connects to live MX servers via SMTP STARTTLS to validate SPF, DMARC, BIMI, MTA-STS, DNSSEC, and TLS certs.
+
+### Phase 2: X.509 Certificate & JARM Stack Correlation
+Search global IPv4 TLS scans for non-CDN ASNs presenting valid certificates for `*.target.com` or matching JARM TLS stack fingerprints.
+
+- **[`S`] [Censys Search](https://search.censys.io/)** (🟢 Passive, *Freemium*) — Continuous internet-wide scanner indexing billions of services across all 65,535 TCP ports plus the deepest historical X.509 TLS certificate repository—unmatched for C2 and origin-IP hunting.
+- **[`S`] [Shodan](https://www.shodan.io/)** (🟢 Passive, *Freemium*) — World's premier search engine for internet-connected servers, IoT devices, ICS/SCADA controllers, RTSP cameras, open databases, TLS certificates, JARM hashes, and favicon fingerprints.
+- **[`A`] [tlsx (ProjectDiscovery)](https://github.com/projectdiscovery/tlsx)** (🔴 Active, *OSS / Free*) — Fast TLS connection grabber extracting SAN/CN domain lists, JARM hashes, JA3 fingerprints, certificate serials, and expired/mismatched origin certificates across CIDR blocks.
+- **[`S`] [JARM (Salesforce Active TLS Fingerprinter)](https://github.com/salesforce/jarm)** (🔴 Active, *OSS / Free*) — Active TLS server fingerprinting tool sending 10 bespoke TLS ClientHello packets to generate a 62-char hash identifying Cobalt Strike, Mythic, and C2 stacks.
+
+### Phase 3: Shodan MurmurHash3 Favicon & Body Hash Pivot
+Compute the 32-bit signed `mmh3` hash of `/favicon.ico` and query cyberspace search engines for direct IPs serving identical brand assets.
+
+- **[`S`] [Shodan](https://www.shodan.io/)** (🟢 Passive, *Freemium*) — World's premier search engine for internet-connected servers, IoT devices, ICS/SCADA controllers, RTSP cameras, open databases, TLS certificates, JARM hashes, and favicon fingerprints.
+- **[`S`] [FOFA](https://en.fofa.info/)** (🟢 Passive, *Freemium*) — Massive cyberspace asset search engine indexing global web titles, HTTP headers, body hashes, TLS certificates, icon hashes, and APAC/global infrastructure often missed by Western crawlers.
+- **[`A`] [ZoomEye](https://www.zoomeye.ai/)** (🟢 Passive, *Freemium*) — Knownsec's global cyberspace search engine cataloging IPv4/IPv6 host banners, web component fingerprints, IoT firmware versions, and historical port exposure.
+- **[`S`] [httpx (ProjectDiscovery)](https://github.com/projectdiscovery/httpx)** (🔴 Active, *OSS / Free*) — Fast multi-purpose Go HTTP toolkit probing discovered hosts for status codes, HTML titles, TLS certs, JARM hashes, favicon `mmh3` hashes, tech stacks, ASN info, and CDN detection.
+
+---
+
+<a id="shadow-ai-llm-infrastructure-recon"></a>
+## Shadow AI, Exposed LLM & Vector-DB Infrastructure Recon
+- **Playbook ID**: `shadow-ai-llm-infrastructure-recon` · **Disciplines**: `AI-OPSEC / NETINT / CODEINT` · **Difficulty**: `Intermediate` · **Seed Selector**: `domain / asn / company`
+- **Objective**: Discover unauthenticated Ollama, vLLM, Open WebUI, Gradio, MLflow, Jupyter, and Qdrant/Milvus RAG databases across an organization's cloud perimeter.
+
+### Phase 1: Cyberspace Banner & Port Discovery
+Query passive internet scan indexes for AI inference ports (`11434` Ollama, `6333` Qdrant, `19530` Milvus, `8000` vLLM, `7860` Gradio) inside target ASNs/certs.
+
+- **[`S`] [Shodan](https://www.shodan.io/)** (🟢 Passive, *Freemium*) — World's premier search engine for internet-connected servers, IoT devices, ICS/SCADA controllers, RTSP cameras, open databases, TLS certificates, JARM hashes, and favicon fingerprints.
+- **[`S`] [Censys Search](https://search.censys.io/)** (🟢 Passive, *Freemium*) — Continuous internet-wide scanner indexing billions of services across all 65,535 TCP ports plus the deepest historical X.509 TLS certificate repository—unmatched for C2 and origin-IP hunting.
+- **[`S`] [FOFA](https://en.fofa.info/)** (🟢 Passive, *Freemium*) — Massive cyberspace asset search engine indexing global web titles, HTTP headers, body hashes, TLS certificates, icon hashes, and APAC/global infrastructure often missed by Western crawlers.
+- **[`A`] [Uncover (ProjectDiscovery)](https://github.com/projectdiscovery/uncover)** (🟢 Passive, *OSS / Free*) — Go CLI wrapper querying Shodan, Censys, FOFA, Quake, Hunter, ZoomEye, Netlas, CriminalIP, and PublicWWW simultaneously and piping deduplicated `ip:port` targets straight into Unix pipelines.
+
+### Phase 2: Code, HuggingFace & MCP Config Leak Hunting
+Search public GitHub orgs and HuggingFace spaces for leaked `.env`, `.mcp.json`, fine-tuned weights, and internal dataset references.
+
+- **[`S`] [TruffleHog](https://github.com/trufflesecurity/trufflehog)** (🟡 Hybrid, *OSS / Free*) — Industry-leading open-source secret scanner with 800+ credential detectors across Git commit histories, GitHub orgs, S3 buckets, Docker images, Postman workspaces, and HuggingFace models.
+- **[`S`] [Gitleaks](https://github.com/gitleaks/gitleaks)** (🟢 Passive, *OSS / Free*) — Ultra-fast Go SAST/OSINT secret scanner parsing full Git reflogs, dangling commits, and directory trees for hardcoded API keys, JWTs, database URIs, and private keys.
+- **[`S`] [detect-secrets (Yelp)](https://github.com/Yelp/detect-secrets)** (🟢 Passive, *OSS / Free*) — Enterprise-grade secret detection suite scanning codebases and git histories using high-entropy heuristics and service-specific regex plugins.
+- **[`S`] [KeyHacks](https://github.com/streaak/keyhacks)** (🟡 Hybrid, *OSS / Free*) — Canonical reference catalog of 150+ third-party API key formats and exact commands to verify whether a discovered API token is live.
+
+### Phase 3: Authorized Active Verification
+With explicit authorization, verify exposed OpenAPI `/docs`, `/v1/models`, and CORS policies on discovered AI subdomains.
+
+- **[`S`] [httpx (ProjectDiscovery)](https://github.com/projectdiscovery/httpx)** (🔴 Active, *OSS / Free*) — Fast multi-purpose Go HTTP toolkit probing discovered hosts for status codes, HTML titles, TLS certs, JARM hashes, favicon `mmh3` hashes, tech stacks, ASN info, and CDN detection.
+- **[`A`] [Nuclei (Exposure & OSINT Templates)](https://github.com/projectdiscovery/nuclei)** (🟡 Hybrid, *OSS / Free*) — YAML template-driven scanner featuring dedicated `osint/`, `exposures/`, `token-spray/`, and `technologies/` template suites ( ONLY run active probes against explicitly authorized targets!).
+- **[`S`] [Nuclei Templates](https://github.com/projectdiscovery/nuclei-templates)** (🔴 Active, *OSS / Free*) — Community-curated library of 10,000+ YAML active detection templates covering exposed panels, cloud misconfigurations, OSINT user checks, and tech fingerprints.
+- **[`A`] [Katana](https://github.com/projectdiscovery/katana)** (🔴 Active, *OSS / Free*) — Next-generation Go web crawling and spidering framework supporting both standard HTTP and headless Chromium JS rendering to extract hidden API routes, JS files, and forms.
+
+---
+
+<a id="ransomware-onion-actor-attribution"></a>
+## Ransomware Leak-Site, `.onion` & Threat Actor Attribution
+- **Playbook ID**: `ransomware-onion-actor-attribution` · **Disciplines**: `DARKINT / CTI / CRYPTOINT` · **Difficulty**: `Advanced` · **Seed Selector**: `onion_url / crypto_address / file_hash`
+- **Objective**: Correlate Tor hidden-service technical mistakes, SSH/TLS key reuse, ransom wallet clusters, and malware artifacts to attribute underground operators.
+
+### Phase 1: Passive Dark-Web Indexing & Leak Monitoring
+Track actor handles, victim posts, and historical `.onion` mirrors via dark-web threat feeds without touching live C2 infrastructure.
+
+- **[`S`] [RansomLook](https://www.ransomlook.io/)** (🟢 Passive, *OSS / Free*) — 100% open-source ransomware intelligence platform scraping, screenshotting, and indexing 100+ ransomware extortion `.onion` leak portals, Telegram channels, and victim posts on the clearnet.
+- **[`S`] [Ahmia.fi](https://ahmia.fi/)** (🟢 Passive, *OSS / Free*) — Longest-running reputable clearnet-and-Tor search engine indexing public `.onion` v3 hidden services while strictly filtering illegal abuse material—safe first-pass darknet keyword discovery.
+- **[`A`] [OnionSearch](https://github.com/megadose/OnionSearch)** (🟢 Passive, *OSS / Free*) — Python CLI meta-scraper aggregating results across a dozen active `.onion` darknet search engines simultaneously over Tor (`127.0.0.1:9050`) into a clean CSV.
+- **[`S`] [Stem (Tor Controller Python Library)](https://github.com/torproject/stem)** (🟢 Passive, *OSS / Free*) — Official Tor Project Python library inspecting Tor consensus relays, exit-node descriptors, hidden-service v3 descriptors, and circuit rotation.
+
+### Phase 2: SSH Host-Key, Favicon & Certificate De-Anonymization
+Match hidden-service SSH host keys, HTTP ETag/favicon hashes, and server headers against clearnet IPv4 scans.
+
+- **[`A`] [OnionScan / Onion-Location Deanonymization Checks](https://github.com/s-rah/onionscan)** (🔴 Active, *OSS / Free*) — Classic hidden-service OPSEC auditing tool hunting misconfigurations that deanonymize `.onion` servers—exposed Apache `server-status`, SSH host key reuse against Shodan, EXIF metadata, and open SMTP headers.
+- **[`S`] [Shodan](https://www.shodan.io/)** (🟢 Passive, *Freemium*) — World's premier search engine for internet-connected servers, IoT devices, ICS/SCADA controllers, RTSP cameras, open databases, TLS certificates, JARM hashes, and favicon fingerprints.
+- **[`S`] [Censys Search](https://search.censys.io/)** (🟢 Passive, *Freemium*) — Continuous internet-wide scanner indexing billions of services across all 65,535 TCP ports plus the deepest historical X.509 TLS certificate repository—unmatched for C2 and origin-IP hunting.
+- **[`S`] [ssh-audit](https://github.com/jtesta/ssh-audit)** (🔴 Active, *OSS / Free*) — Zero-dependency Python active SSH server & client fingerprinter grabbing SSH banners, host-key algorithms, KEX/MAC lists, and inferring OS/distro builds.
+
+### Phase 3: Ransomware Wallet Clustering & Malware Pivot
+Trace ransom BTC/XMR/TRON flows toward cash-out exchanges and link binary capabilities to known actor toolsets.
+
+- **[`S`] [GraphSense](https://graphsense.org/)** (🟢 Passive, *OSS / Free*) — Premier open-source, self-hostable cryptoasset analytics platform (AIT / Iknaio) providing UTXO co-spend clustering, account-model tracing, attribution tags, and full data sovereignty across BTC, ETH, LTC, ZEC, and TRON.
+- **[`S`] [mempool.space](https://mempool.space/)** (🟢 Passive, *OSS / Free*) — Open-source Bitcoin & Lightning Network explorer featuring interactive UTXO input/output flow diagrams, fee-rate telemetry, mining pool attribution, and self-hostable Tor `.onion` support.
+- **[`S`] [capa (Mandiant Capability Detector)](https://github.com/mandiant/capa)** (🟢 Passive, *OSS / Free*) — Mandiant static binary analyzer mapping PE/ELF/.NET executables directly to MITRE ATT&CK behaviors, C2 capabilities, and crypto routines.
+- **[`A`] [MISP (Open Source Threat Intelligence Platform)](https://www.misp-project.org/)** (🟢 Passive, *OSS / Free*) — Open-source threat intelligence and OSINT sharing standard used by CERTs worldwide to store, correlate, enrich (`misp-modules`), and federate structured IOCs and OSINT dossiers.
+
+---
+
+<a id="sanctions-evasion-shell-company-finint"></a>
+## Cross-Border Shell Company, Sanctions & Beneficial Ownership Tracing
+- **Playbook ID**: `sanctions-evasion-shell-company-finint` · **Disciplines**: `FININT / TRANSINT` · **Difficulty**: `Advanced` · **Seed Selector**: `company / person_name / vessel_imo`
+- **Objective**: Unravel multi-jurisdictional holding structures, nominee directors, sanctioned oligarch proxies, and shadow-fleet maritime tankers.
+
+### Phase 1: Global Corporate Registry & LEI Mapping
+Resolve legal entity identifiers, parent-subsidiary trees, officer appointments, and SEC/gazette filings.
+
+- **[`S`] [OpenCorporates](https://opencorporates.com/)** (🟢 Passive, *Freemium*) — World's largest open database of legal entities—normalizing 220M+ company registrations and 290M+ officer/director records across 140+ national and state jurisdictions with direct registry provenance.
+- **[`S`] [GLEIF Legal Entity Identifier (LEI) Search](https://search.gleif.org/)** (🟢 Passive, *Free*) — Global Legal Entity Identifier Foundation database mapping 2.6M+ financial counterparties worldwide—explicitly disclosing 'Level 2' Direct Accounting Parent and Ultimate Parent ownership chains!
+- **[`A`] [Bellingcat EDGAR Search](https://github.com/bellingcat/edgar)** (🟢 Passive, *OSS / Free*) — Investigative toolkit querying SEC EDGAR corporate filings for executive names, subsidiary disclosures, addresses, and insider ownership.
+- **[`S`] [ICIJ Offshore Leaks Database](https://offshoreleaks.icij.org/)** (🟢 Passive, *OSS / Free*) — Interactive graph database from the International Consortium of Investigative Journalists spanning 810,000+ offshore shell companies, trusts, and foundations from Panama, Pandora, Paradise, and Bahamas Papers.
+
+### Phase 2: Sanctions, PEP & Leaked Archive Cross-Matching
+Screen entities and directors against OFAC/EU/UN watchlists and cross-border investigative leak archives.
+
+- **[`S`] [OpenSanctions](https://www.opensanctions.org/)** (🟢 Passive, *Freemium*) — Open-source entity graph normalizing 1.8M+ sanctioned entities, Politically Exposed Persons (PEPs), shadow-fleet vessels, aircraft, crypto wallets, and criminal warrants across 475+ official global sources.
+- **[`S`] [Yente (OpenSanctions Self-Hosted API)](https://github.com/opensanctions/yente)** (🟢 Passive, *OSS / Free*) — Self-hosted OpenSanctions entity-resolution search and fuzzy-matching API screening names, companies, vessels, and crypto wallets offline.
+- **[`S`] [OCCRP Aleph](https://aleph.occrp.org/)** (🟢 Passive, *OSS / Free*) — Organized Crime and Corruption Reporting Project's flagship investigative data platform cross-indexing hundreds of millions of leaked emails, land registries, gazettes, procurement files, and corporate filings.
+- **[`S`] [DocumentCloud & MuckRock](https://www.documentcloud.org/)** (🟢 Passive, *OSS / Free*) — Investigative journalism repository hosting millions of OCR'd primary-source court exhibits, leaked memos, police reports, and FOIA releases contributed by thousands of newsrooms worldwide.
+
+### Phase 3: Physical Asset Verification (Vessels & Aircraft)
+Link corporate SPVs to hull IMO numbers, MMSI flag-hopping histories, and executive jet ICAO24 transponders.
+
+- **[`S`] [Equasis](https://www.equasis.org/)** (🟢 Passive, *Free*) — International public-safety maritime database (founded by EC & French Maritime Admin) providing free historical Registered Owner, Commercial Operator, ISM Manager, Flag, Class, P&I Club, and PSC inspection records by IMO!
+- **[`S`] [MarineTraffic](https://www.marinetraffic.com/)** (🟢 Passive, *Freemium*) — Global coastal and satellite AIS ship-tracking standard displaying live vessel positions, reported draught changes, destination strings, port arrivals, and crowdsourced hull photography.
+- **[`S`] [readsb (1090 MHz ADS-B Decoder)](https://github.com/wiedehopf/readsb)** (🟢 Passive, *OSS / Free*) — Actively maintained Mode-S / ADS-B / TIS-B 1090 MHz SDR receiver and decoder powering modern airplanes.live and ADS-B Exchange feeder stations.
+- **[`S`] [tar1090 (ADS-B Historical Track UI)](https://github.com/wiedehopf/tar1090)** (🟢 Passive, *OSS / Free*) — Enhanced ADS-B/Mode-S web interface powering ADS-B Exchange and airplanes.live with replayable altitude/speed trails and military hex filters.
+
+---
+
+<a id="cloud-entra-m365-tenant-recon"></a>
+## Enterprise Cloud, Microsoft Entra ID & Storage Perimeter Recon
+- **Playbook ID**: `cloud-entra-m365-tenant-recon` · **Disciplines**: `CODEINT / EMAILINT / DNSINT` · **Difficulty**: `Intermediate` · **Seed Selector**: `domain / company`
+- **Objective**: Map an enterprise's external cloud identity tenant (Entra ID / Google Workspace), federated domains, public storage buckets, and IaC leaks.
+
+### Phase 1: OIDC Tenant, Mail & Federation Mapping
+Query OpenID Connect discovery documents, MX/SPF/DMARC/BIMI records, and federated sibling domains tied to the corporate tenant.
+
+- **[`S`] [ROADtools (Entra ID / Azure AD Recon)](https://github.com/dirkjanm/ROADtools)** (🔴 Active, *OSS / Free*) — Microsoft Entra ID (Azure AD) reconnaissance suite including `roadrecon` for tenant OIDC metadata, federated domains, and directory graphing.
+- **[`B`] [o365recon](https://github.com/nyxgeek/o365recon)** (🔴 Active, *OSS / Free*) — Unauthenticated Microsoft 365 and Azure tenant reconnaissance script retrieving federation brand names, tenant IDs, and MDI instances.
+- **[`S`] [checkdmarc](https://github.com/domainaware/checkdmarc)** (🔴 Active, *OSS / Free*) — Python CLI and library that actively queries DNS and connects to live MX servers via SMTP STARTTLS to validate SPF, DMARC, BIMI, MTA-STS, DNSSEC, and TLS certs.
+- **[`S`] [crt.sh (Certificate Transparency Search)](https://crt.sh/)** (🟢 Passive, *OSS / Free*) — Sectigo's free, keyless Certificate Transparency log search engine with direct public PostgreSQL SQL access (`crt.sh:5432`)—exposing every publicly trusted SSL/TLS cert and SAN subdomain ever issued.
+
+### Phase 2: Public Cloud Bucket & Artifact Enumeration
+Identify AWS S3, Google Cloud Storage, and Azure Blob containers matching company brand slugs and JS bundle references.
+
+- **[`A`] [GrayhatWarfare](https://buckets.grayhatwarfare.com/)** (🟢 Passive, *Freemium*) — Pre-indexed search engine over millions of open AWS S3, Azure Blob, Google Cloud Storage, and DigitalOcean Spaces buckets—enabling 100% passive filename and keyword searches.
+- **[`S`] [cloud_enum](https://github.com/initstring/cloud_enum)** (🔴 Active, *OSS / Free*) — Multi-cloud OSINT enumeration tool mutating company/brand keywords to discover publicly accessible AWS S3 buckets, Azure Storage Blobs/Apps, and Google Cloud Storage buckets/AppEngine instances.
+- **[`B`] [S3Scanner](https://github.com/sa7mon/S3Scanner)** (🔴 Active, *OSS / Free*) — Concurrent Go tool auditing S3-compatible object storage buckets (AWS, GCP, DigitalOcean, Linode) for public READ/WRITE ACL misconfigurations and listing object contents.
+- **[`A`] [GCPBucketBrute (Rhino Security Labs)](https://github.com/RhinoSecurityLabs/GCPBucketBrute)** (🔴 Active, *OSS / Free*) — Active Google Cloud Storage enumerator brute-forcing bucket permutations and invoking unauthenticated `testIamPermissions` to detect public exposure.
+
+### Phase 3: Repository IaC, Container & CI/CD Audit
+Inspect public GitHub Actions workflows, Terraform files, and container images for leaked AWS Account IDs and secrets.
+
+- **[`S`] [TruffleHog](https://github.com/trufflesecurity/trufflehog)** (🟡 Hybrid, *OSS / Free*) — Industry-leading open-source secret scanner with 800+ credential detectors across Git commit histories, GitHub orgs, S3 buckets, Docker images, Postman workspaces, and HuggingFace models.
+- **[`A`] [Checkov](https://github.com/bridgecrewio/checkov)** (🟢 Passive, *OSS / Free*) — Static Infrastructure-as-Code analyzer auditing Terraform, CloudFormation, Helm, and Kubernetes manifests for public buckets and secrets.
+- **[`S`] [Trivy (Aqua Security)](https://github.com/aquasecurity/trivy)** (🟡 Hybrid, *OSS / Free*) — All-in-one container image, git repository, filesystem, and Kubernetes scanner extracting SBOM packages, secrets, and CVEs.
+- **[`S`] [Prowler](https://github.com/toniblyx/prowler)** (🔴 Active, *OSS / Free*) — Flagship open-source cloud security and asset inventory scanner mapping exposed S3/IAM/VPC/EKS/Azure/GCP/M365 services.
+
+---
+
+<a id="document-media-chronolocation-verification"></a>
+## Investigative Media Verification, Chronolocation & Document Forensics
+- **Playbook ID**: `document-media-chronolocation-verification` · **Disciplines**: `IMINT / GEOINT / ARCHINT` · **Difficulty**: `Intermediate` · **Seed Selector**: `image / video / document / url`
+- **Objective**: Authenticate user-generated conflict or corporate media, extract exact upload timestamps, geolocate terrain landmarks, and preserve court-grade evidence.
+
+### Phase 1: Evidentiary Capture & Cryptographic Hashing
+Preserve volatile videos, posts, and webpages into signed WACZ/HTML bundles before takedown.
+
+- **[`S`] [Bellingcat Auto Archiver](https://github.com/bellingcat/auto-archiver)** (🔴 Active, *OSS / Free*) — Bellingcat's evidentiary social media and web preservation pipeline archiving videos, screenshots, WACZ bundles, and SHA-256 hashes before deletion.
+- **[`S`] [Monolith](https://github.com/Y2Z/monolith)** (🔴 Active, *OSS / Free*) — Fast Rust CLI fetching a live target webpage and embedding all external CSS, images, frames, and fonts into a single self-contained forensic HTML file.
+- **[`S`] [SingleFile](https://github.com/gildas-lormeau/SingleFile)** (🟢 Passive, *OSS / Free*) — Essential open-source browser extension & CLI saving a complete, pixel-faithful rendered webpage (CSS, fonts, canvas, images embedded as data URIs) into a single self-contained `.html` file locally.
+- **[`S`] [archive.today (archive.ph / archive.is)](https://archive.ph/)** (🟡 Hybrid, *Free*) — High-fidelity DOM + screenshot web archiver capturing JavaScript-heavy pages, social threads, and news articles that block `archive.org` `robots.txt` rules.
+
+### Phase 2: Container Metadata, Embedded Timestamps & ELA
+Extract EXIF/XMP/OLE author trails, decode 64-bit TikTok/Snowflake upload timestamps, and check compression tampering.
+
+- **[`S`] [ExifTool](https://exiftool.org/)** (🟢 Passive, *OSS / Free*) — Phil Harvey's legendary Perl CLI/library reading, writing, and auditing EXIF, GPS, XMP, IPTC, ICC, QuickTime atoms, PDF producer tags, and Office revision metadata across 400+ file formats.
+- **[`S`] [oletools (decalage2)](https://github.com/decalage2/oletools)** (🟢 Passive, *OSS / Free*) — Python forensic suite (`olemeta`, `olevba`, `oleid`, `pyxswf`) extracting author metadata, revision timestamps, external URLs, and macros from MS Office files.
+- **[`A`] [QPDF](https://github.com/qpdf/qpdf)** (🟢 Passive, *OSS / Free*) — Structural PDF inspection utility decompressing object streams (`--qdf`) to reveal hidden XMP author strings, edit history, and redacted layer remnants.
+- **[`S`] [Forensically (29a.ch)](https://29a.ch/photo-forensics/)** (🟢 Passive, *Free*) — Client-side HTML5 digital photo forensics laboratory offering Clone Detection (copy-move), Error Level Analysis (ELA), Noise Analysis, PCA, JPEG Ghost detection, and hidden thumbnail extraction.
+
+### Phase 3: Terrain Triangulation & Shadow Chronolocation
+Match skyline geometry, road intersections, and solar azimuth shadow angles against satellite constellations.
+
+- **[`S`] [Bellingcat OpenStreetMap Search](https://osm-search.bellingcat.com/)** (🟢 Passive, *OSS / Free*) — Point-and-click visual builder wrapping Overpass QL so investigators can select up to 5 visible features (e.g., power line, mosque, roundabout, river) and distance tolerances without writing code.
+- **[`S`] [SunCalc](https://www.suncalc.org/)** (🟢 Passive, *Free*) — Computes solar azimuth, altitude angle, shadow length ratios, dawn/dusk twilight phases, and sun trajectory arcs for any coordinate and date/time on Earth.
+- **[`S`] [Copernicus Data Space Browser](https://browser.dataspace.copernicus.eu/)** (🟢 Passive, *Free*) — Official ESA portal (replacing retired Sentinel Hub EO Browser) providing free global Sentinel-1 SAR (cloud-penetrating radar!) and 10m Sentinel-2 optical/SWIR/NDVI imagery every ~5 days.
+- **[`S`] [Google Earth Pro](https://www.google.com/earth/about/versions/)** (🟢 Passive, *Free*) — Indispensable desktop 3D globe offering multi-decade Historical Imagery time-sliders, 3D terrain skyline simulation, sun-lighting previews, viewshed analysis, and KML/KMZ case overlays.
+
+---
+
+<a id="web3-drainer-scam-cluster-investigation"></a>
+## Web3 Phishing Kit, Wallet Drainer & Laundering Attribution
+- **Playbook ID**: `web3-drainer-scam-cluster-investigation` · **Disciplines**: `CRYPTOINT / DNSINT / CTI` · **Difficulty**: `Advanced` · **Seed Selector**: `crypto_address / domain / url`
+- **Objective**: Pivot from a phishing dApp or victim transaction hash to unmask the drainer operator's smart contracts, sister domains, and cash-out infrastructure.
+
+### Phase 1: Drainer Domain, JS Bundle & Analytics Clustering
+Capture the dApp DOM, extract hardcoded receiver/contract addresses from JS bundles, and pivot shared `G-`/Cloudflare patterns.
+
+- **[`S`] [urlscan.io](https://urlscan.io/)** (🟡 Hybrid, *Freemium*) — Headless browser website sandbox recording full DOM HTML, every HTTP XHR request, JS resource SHA-256 hashes, TLS certificates, ASN details, and visual screenshots—ideal for phishing kit hunting.
+- **[`A`] [MetaMask Eth-Phishing-Detect](https://github.com/MetaMask/eth-phishing-detect)** (🟢 Passive, *OSS / Free*) — Continuously updated open registry of verified Web3 wallet-drainer domains, typosquatting dApps, and allowlisted crypto infrastructure.
+- **[`A`] [ScamSniffer Drainer Database](https://github.com/scamsniffer/scam-database)** (🟢 Passive, *OSS / Free*) — Community threat intelligence feed mapping malicious EVM drainer addresses and phishing domains tied to Pink/Angel/Inferno Drainer kits.
+- **[`S`] [PublicWWW](https://publicwww.com/)** (🟢 Passive, *Freemium*) — Source-code search engine indexing the raw HTML, inline JavaScript, and CSS of 500M+ web pages—the ultimate weapon for pivoting on Google Analytics IDs, AdSense tags, crypto skimmers, or custom widgets.
+
+### Phase 2: Smart Contract Bytecode & Approval Tracing
+Decompile `Permit2`/approval drainer contracts and export ERC-20/NFT victim transfer traces.
+
+- **[`S`] [Etherscan](https://etherscan.io/)** (🟢 Passive, *Freemium*) — Canonical Ethereum explorer providing verified smart-contract Solidity source code, internal EVM call traces, ERC-20/721 transfers, Token Approval checker, public name tags, and comments.
+- **[`S`] [Foundry Cast (`cast`)](https://github.com/foundry-rs/foundry)** (🟡 Hybrid, *OSS / Free*) — Fast Rust EVM command-line Swiss-army knife querying live RPC nodes, reading private storage slots, resolving ENS, decompiling bytecode, and tracing txs.
+- **[`S`] [Slither (Trail of Bits)](https://github.com/crytic/slither)** (🟡 Hybrid, *OSS / Free*) — Static analysis framework pulling live verified Solidity/Vyper contracts directly by chain address to map admin privileges, upgrade proxies, and drainers.
+- **[`A`] [Ethereum ETL](https://github.com/blockchain-etl/ethereum-etl)** (🟢 Passive, *OSS / Free*) — Python CLI exporting EVM blocks, internal traces, ERC-20/721 transfers, and contract deployments to CSV/JSON/SQL for forensic graph queries.
+
+### Phase 3: Cross-Chain Bridge & Off-Ramp Attribution
+Follow consolidated funds across bridges, DEX swaps, and Tron/BTC hops to attributed exchange deposit addresses.
+
+- **[`S`] [Arkham Intelligence](https://intel.arkm.com/)** (🟢 Passive, *Freemium*) — Leading public blockchain intelligence platform attributing 300M+ multi-chain wallet addresses to real-world exchanges, funds, hackers, and individuals with an interactive fund-flow Visualizer.
+- **[`S`] [GraphSense](https://graphsense.org/)** (🟢 Passive, *OSS / Free*) — Premier open-source, self-hostable cryptoasset analytics platform (AIT / Iknaio) providing UTXO co-spend clustering, account-model tracing, attribution tags, and full data sovereignty across BTC, ETH, LTC, ZEC, and TRON.
+- **[`S`] [Breadcrumbs.app](https://www.breadcrumbs.app/)** (🟢 Passive, *Freemium*) — Intuitive visual blockchain investigation workbench mapping multi-hop BTC, ETH, Polygon, Solana, Arbitrum, Base, and TRON fund flows with entity risk tags and shareable case charts.
+- **[`S`] [OpenSanctions](https://www.opensanctions.org/)** (🟢 Passive, *Freemium*) — Open-source entity graph normalizing 1.8M+ sanctioned entities, Politically Exposed Persons (PEPs), shadow-fleet vessels, aircraft, crypto wallets, and criminal warrants across 475+ official global sources.
 

@@ -1,7 +1,7 @@
 {
   "name": "osint-monster",
-  "version": "1.1.0",
-  "description": "Autonomous Passive OSINT Hunter (zero questions on Turn 1) + 22-Probe Mandatory User-Gated Active Recon + 680-Tool Intelligence Arsenal (178 Active/Hybrid), Selector Pivots & Dork Forge.",
+  "version": "1.2.0",
+  "description": "Autonomous Multi-Stage Passive OSINT Hunter (zero questions on Turn 1) + Zero-Network Forensic Decoders + 22-Probe Mandatory User-Gated Active Recon + 760-Tool Intelligence Arsenal (201 Active/Hybrid), 105 Dorks & 20 Playbooks.",
   "author": {
     "name": "mafk21",
     "url": "https://github.com/mafk21/OSINT"
@@ -16,7 +16,7 @@
     "cti",
     "socmint",
     "geoint",
-    "dns",
+    "forensics",
     "stix2",
     "dorks",
     "security"
@@ -25,8 +25,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "OSINT Monster Database",
-    "shortDescription": "Autonomous Passive & 22-Probe User-Gated Active OSINT Hunter + 680-Tool Arsenal",
-    "longDescription": "Equip Codex with a 35+ collector Autonomous Passive OSINT Hunter (executes immediately on Turn 1 with zero clarifying questions), a 22-module hard-gated Active Recon engine (always asks permission before sending live packets), and a 680-tool OSINT catalog (502 Passive + 178 Active/Hybrid), selector pivot matrix, playbook engine, and search dork forge.",
+    "shortDescription": "Multi-Stage Passive & 22-Probe Gated Active OSINT Hunter + 760-Tool Arsenal",
+    "longDescription": "Equip Codex with an exhaustive multi-stage Autonomous Passive OSINT Hunter (35+ passive collectors + zero-network TikTok/Snowflake/UUID/IBAN/Phone/VIN/ICAO/MAC forensic decoders, HTML/CSV/Mermaid/STIX 2.1 dossiers), a 22-module hard-gated Active Recon engine, and a 760-tool OSINT catalog (559 Passive + 201 Active/Hybrid), 105 search dorks, and 20 playbooks.",
     "developerName": "mafk21",
     "category": "Developer Tools",
     "capabilities": [
@@ -36,8 +36,8 @@
     ],
     "websiteURL": "https://github.com/mafk21/OSINT",
     "defaultPrompt": [
-      "Investigate @torvalds and https://github.com/torvalds using Passive OSINT and build a forensic STIX 2.1 dossier.",
-      "What are the best passive no-auth OSINT tools to pivot from an email address, phone number, or 17-char VIN?",
+      "Investigate @torvalds and https://github.com/torvalds using Passive OSINT and build an executive HTML + STIX 2.1 dossier.",
+      "Decode https://www.tiktok.com/@bellingcat/video/7345123456789012485 and SA0380000000608010167519 offline with zero network packets.",
       "Forge Shodan, Censys, Google, and GitHub OSINT dorks for example.com."
     ],
     "brandColor": "#00E5FF",

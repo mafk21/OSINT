@@ -6,17 +6,18 @@
 >
 > **OPSEC Advisory**: Official corporate registries in a few jurisdictions (e.g., certain European/Asian portals) require citizen eID login and log who accessed a company dossier; check registry anonymity rules first.
 
-**Discipline Telemetry**: `25` Verified Tools · `11` S-Tier Flagships · `25` Passive · `19` Free/Open-Source
+**Discipline Telemetry**: `27` Verified Tools · `12` S-Tier Flagships · `27` Passive · `21` Free/Open-Source
 
 ## Subcategories
 - [Global Company Registries](#global-company-registries) (8)
 - [Investigative Leak & Filing Archives](#investigative-leak-filing-archives) (2)
-- [Sanctions, PEPs & Watchlists](#sanctions,-peps-watchlists) (4)
+- [Sanctions, PEPs & Watchlists](#sanctions,-peps-watchlists) (5)
 - [Nonprofits, Procurement & Tenders](#nonprofits,-procurement-tenders) (4)
 - [Securities & Financial Filings](#securities-financial-filings) (2)
 - [Regulatory & Enforcement Records](#regulatory-enforcement-records) (1)
 - [Trade & Intellectual Property](#trade-intellectual-property) (3)
 - [Venture & Market Intelligence](#venture-market-intelligence) (1)
+- [Corporate Filings & Officers](#corporate-filings-officers) (1)
 
 ---
 
@@ -122,6 +123,7 @@
 | **S** | [**US Treasury OFAC Sanctions List Search**](https://sanctionssearch.ofac.treas.gov/) | Dataset / Registry | Free | 🟢 Passive | ✅ | `person_name, company, vessel_imo` → `sanctions_hits` |
 | **A** | [**EU Sanctions Map**](https://www.sanctionsmap.eu/) | Dataset / Registry | Free | 🟢 Passive | ✅ | `person_name, company, keyword` → `sanctions_hits` |
 | **A** | [**World Bank Listing of Ineligible (Debarred) Firms & Individuals**](https://www.worldbank.org/en/projects-operations/procurement/debarred-firms) | Dataset / Registry | Free | 🟢 Passive | ✅ | `company, person_name` → `sanctions_hits, corporate_records` |
+| **S** | [**Yente (OpenSanctions Self-Hosted API)**](https://github.com/opensanctions/yente) ([GitHub](https://github.com/opensanctions/yente)) | API / Service | OSS / Free | 🟢 Passive | ✅ | `person_name, company, vessel_imo` → `sanctions_hits, corporate_records, entity_graph` |
 
 ### [OpenSanctions](https://www.opensanctions.org/) `[S-Tier]`
 - **ID**: `opensanctions` · **Type**: `Dataset / Registry` · **Pricing**: `Freemium` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`opensanctions/opensanctions`](https://github.com/opensanctions/opensanctions)
@@ -150,6 +152,13 @@
 - **Platforms**: Web · **Tags**: `world-bank`, `procurement-fraud`, `cross-debarment`, `anti-corruption`
 - **Overview**: Official multilateral development bank cross-debarment table sanctioning companies and individuals caught in procurement fraud, collusion, or corruption across global infrastructure projects.
 - **Quick-Start / Tradecraft**: `Cross-check international engineering, construction, and consulting vendors against World Bank Debarred Firms.`
+
+### [Yente (OpenSanctions Self-Hosted API)](https://github.com/opensanctions/yente) `[S-Tier]`
+- **ID**: `opensanctions-yente` · **Type**: `API / Service` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`opensanctions/yente`](https://github.com/opensanctions/yente)
+- **Inputs**: `person_name`, `company`, `vessel_imo`, `crypto_address` → **Outputs**: `sanctions_hits`, `corporate_records`, `entity_graph`
+- **Platforms**: Web, Linux, macOS, Docker, Python · **Tags**: `opensanctions`, `pep-screening`, `fuzzy-matching`, `self-hosted`
+- **Overview**: Self-hosted OpenSanctions entity-resolution search and fuzzy-matching API screening names, companies, vessels, and crypto wallets offline.
+- **Quick-Start / Tradecraft**: `docker run -p 8000:8000 ghcr.io/opensanctions/yente:latest`
 
 ---
 
@@ -273,6 +282,21 @@
 - **Platforms**: Web · **Tags**: `venture-capital`, `cap-table-signals`, `acquisitions`, `founders`
 - **Overview**: Startup, venture-capital, M&A acquisition, investor syndicate, and executive biography database covering private technology companies worldwide.
 - **Quick-Start / Tradecraft**: `Map shared angel investors and board seats across early-stage private companies on https://www.crunchbase.com/.`
+
+---
+
+## Corporate Filings & Officers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Bellingcat EDGAR Search**](https://github.com/bellingcat/edgar) ([GitHub](https://github.com/bellingcat/edgar)) | CLI | OSS / Free | 🟢 Passive | ✅ | `company, person_name, keyword` → `corporate_records, documents, person_records` |
+
+### [Bellingcat EDGAR Search](https://github.com/bellingcat/edgar) `[A-Tier]`
+- **ID**: `bellingcat-edgar` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`bellingcat/edgar`](https://github.com/bellingcat/edgar)
+- **Inputs**: `company`, `person_name`, `keyword` → **Outputs**: `corporate_records`, `documents`, `person_records`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `bellingcat`, `sec-edgar`, `corporate-osint`, `filings`
+- **Overview**: Investigative toolkit querying SEC EDGAR corporate filings for executive names, subsidiary disclosures, addresses, and insider ownership.
+- **Quick-Start / Tradecraft**: `edgar-tool text-search 'Target Subsidiary LLC'`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ ✈️ Aviation, Maritime & Transport](./13-aviation-maritime-transport.md) · [⛓️ Crypto & Blockchain OSINT ▶](./15-crypto-blockchain-web3.md)

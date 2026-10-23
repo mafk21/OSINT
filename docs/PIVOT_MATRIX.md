@@ -8,35 +8,35 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 
 | Input Selector | Example Artifact | Total Tools | Passive Tools | Top S-Tier Starting Tools | Primary Downstream Outputs |
 | :--- | :--- | :---: | :---: | :--- | :--- |
-| [`domain`](#selector-domain) (Domain / Hostname) | `example.com` | **274** | 134 | [BuiltWith](https://builtwith.com/), [crt.sh (Certificate Transparency Search)](https://crt.sh/), [DNSDumpster](https://dnsdumpster.com/), [Subfinder](https://github.com/projectdiscovery/subfinder) | `subdomains`, `urls`, `tech_stack`, `dns_records` |
-| [`keyword`](#selector-keyword) (Keyword / Phrase) | Project slug, quote, topic | **220** | 205 | [4CAT: Capture and Analysis Toolkit](https://github.com/digitalmethodsinitiative/4cat), [ADS-B Exchange](https://globe.adsbexchange.com/), [Ahmia.fi](https://ahmia.fi/), [AIL Framework (Analysis Information Leak — CIRCL)](https://www.ail-project.org/) | `geolocation`, `corporate_records`, `urls`, `person_records` |
-| [`url`](#selector-url) (Web URL / Post Link) | Webpage, social post, phishing URL | **149** | 75 | [ArchiveWeb.page (Webrecorder)](https://archiveweb.page/), [SingleFile](https://github.com/gildas-lormeau/SingleFile), [Wayback Machine (Internet Archive)](https://web.archive.org/), [Hunchly](https://www.hunchly.com/) | `urls`, `metadata`, `tech_stack`, `archived_pages` |
-| [`ip`](#selector-ip) (IPv4 / IPv6 Address) | `198.51.100.42` | **131** | 66 | [GreyNoise Visualizer](https://viz.greynoise.io/), [Hurricane Electric BGP Toolkit](https://bgp.he.net/), [IPinfo.io](https://ipinfo.io/), [RIPEstat](https://stat.ripe.net/) | `open_ports`, `tech_stack`, `malware_iocs`, `dns_records` |
-| [`company`](#selector-company) (Company / Organization) | Corporate name, LEI, CAGE | **126** | 108 | [GLEIF Legal Entity Identifier (LEI) Search](https://search.gleif.org/), [ICIJ Offshore Leaks Database](https://offshoreleaks.icij.org/), [OCCRP Aleph](https://aleph.occrp.org/), [OpenCorporates](https://opencorporates.com/) | `corporate_records`, `person_records`, `documents`, `entity_graph` |
-| [`username`](#selector-username) (Username / Handle) | `@johndoe`, gaming alias | **97** | 78 | [Blackbird](https://github.com/p1ngul1n0/blackbird), [Maigret](https://github.com/soxoj/maigret), [Sherlock](https://github.com/sherlock-project/sherlock), [WhatsMyName](https://whatsmyname.app/) | `social_profiles`, `metadata`, `entity_graph`, `emails` |
-| [`person_name`](#selector-person-name) (Person Full Name) | Individual, executive, official | **94** | 88 | [CourtListener & RECAP Archive](https://www.courtlistener.com/), [Judyrecords](https://www.judyrecords.com/), [Lumen Database (Harvard Berkman Klein Center)](https://lumendatabase.org/), [PACER (US Federal Courts)](https://pacer.uscourts.gov/) | `person_records`, `corporate_records`, `entity_graph`, `emails` |
-| [`email`](#selector-email) (Email Address) | `user@company.com` | **81** | 65 | [Epieos](https://epieos.com/), [h8mail](https://github.com/khast3x/h8mail), [Holehe](https://github.com/megadose/holehe), [Proton Mail HKP Key Lookup](https://mail.proton.me/) | `emails`, `breach_records`, `social_profiles`, `entity_graph` |
-| [`coordinates`](#selector-coordinates) (GPS Coordinates / AOI) | `lat, lon` bounding box | **75** | 73 | [Bellingcat OpenStreetMap Search](https://osm-search.bellingcat.com/), [Copernicus Data Space Browser](https://browser.dataspace.copernicus.eu/), [Esri World Imagery Wayback](https://livingatlas.arcgis.com/wayback/), [Google Earth Pro](https://www.google.com/earth/about/versions/) | `geolocation`, `signal_telemetry`, `satellite_imagery`, `flight_tracks` |
-| [`asn`](#selector-asn) (ASN / CIDR Netblock) | `AS13335`, `198.51.100.0/24` | **54** | 36 | [GreyNoise Visualizer](https://viz.greynoise.io/), [Hurricane Electric BGP Toolkit](https://bgp.he.net/), [IPinfo.io](https://ipinfo.io/), [RIPEstat](https://stat.ripe.net/) | `open_ports`, `tech_stack`, `certificates`, `dns_records` |
-| [`crypto_address`](#selector-crypto-address) (Crypto Wallet / Tx) | `0x...`, `bc1...`, `.eth`, `T...` | **42** | 36 | [Chainabuse (by TRM Labs)](https://www.chainabuse.com/), [Etherscan](https://etherscan.io/), [GraphSense](https://graphsense.org/), [mempool.space](https://mempool.space/) | `tx_graph`, `entity_graph`, `social_profiles`, `metadata` |
+| [`domain`](#selector-domain) (Domain / Hostname) | `example.com` | **303** | 146 | [BuiltWith](https://builtwith.com/), [crt.sh (Certificate Transparency Search)](https://crt.sh/), [DNSDumpster](https://dnsdumpster.com/), [Subfinder](https://github.com/projectdiscovery/subfinder) | `subdomains`, `urls`, `tech_stack`, `dns_records` |
+| [`keyword`](#selector-keyword) (Keyword / Phrase) | Project slug, quote, topic | **232** | 212 | [4CAT: Capture and Analysis Toolkit](https://github.com/digitalmethodsinitiative/4cat), [ADS-B Exchange](https://globe.adsbexchange.com/), [Ahmia.fi](https://ahmia.fi/), [AIL Framework (Analysis Information Leak — CIRCL)](https://www.ail-project.org/) | `geolocation`, `corporate_records`, `urls`, `metadata` |
+| [`url`](#selector-url) (Web URL / Post Link) | Webpage, social post, phishing URL | **163** | 84 | [ArchiveWeb.page (Webrecorder)](https://archiveweb.page/), [SingleFile](https://github.com/gildas-lormeau/SingleFile), [Wayback Machine (Internet Archive)](https://web.archive.org/), [Hunchly](https://www.hunchly.com/) | `urls`, `metadata`, `archived_pages`, `tech_stack` |
+| [`ip`](#selector-ip) (IPv4 / IPv6 Address) | `198.51.100.42` | **148** | 79 | [GreyNoise Visualizer](https://viz.greynoise.io/), [Hurricane Electric BGP Toolkit](https://bgp.he.net/), [IPinfo.io](https://ipinfo.io/), [RIPEstat](https://stat.ripe.net/) | `open_ports`, `tech_stack`, `malware_iocs`, `dns_records` |
+| [`company`](#selector-company) (Company / Organization) | Corporate name, LEI, CAGE | **137** | 112 | [GLEIF Legal Entity Identifier (LEI) Search](https://search.gleif.org/), [ICIJ Offshore Leaks Database](https://offshoreleaks.icij.org/), [OCCRP Aleph](https://aleph.occrp.org/), [OpenCorporates](https://opencorporates.com/) | `corporate_records`, `person_records`, `entity_graph`, `documents` |
+| [`username`](#selector-username) (Username / Handle) | `@johndoe`, gaming alias | **99** | 78 | [Blackbird](https://github.com/p1ngul1n0/blackbird), [Maigret](https://github.com/soxoj/maigret), [Sherlock](https://github.com/sherlock-project/sherlock), [WhatsMyName](https://whatsmyname.app/) | `social_profiles`, `metadata`, `entity_graph`, `emails` |
+| [`person_name`](#selector-person-name) (Person Full Name) | Individual, executive, official | **97** | 90 | [CourtListener & RECAP Archive](https://www.courtlistener.com/), [Judyrecords](https://www.judyrecords.com/), [Lumen Database (Harvard Berkman Klein Center)](https://lumendatabase.org/), [PACER (US Federal Courts)](https://pacer.uscourts.gov/) | `person_records`, `corporate_records`, `entity_graph`, `emails` |
+| [`email`](#selector-email) (Email Address) | `user@company.com` | **86** | 66 | [Epieos](https://epieos.com/), [h8mail](https://github.com/khast3x/h8mail), [Holehe](https://github.com/megadose/holehe), [Proton Mail HKP Key Lookup](https://mail.proton.me/) | `emails`, `breach_records`, `social_profiles`, `entity_graph` |
+| [`coordinates`](#selector-coordinates) (GPS Coordinates / AOI) | `lat, lon` bounding box | **80** | 78 | [Bellingcat OpenStreetMap Search](https://osm-search.bellingcat.com/), [Copernicus Data Space Browser](https://browser.dataspace.copernicus.eu/), [Esri World Imagery Wayback](https://livingatlas.arcgis.com/wayback/), [Google Earth Pro](https://www.google.com/earth/about/versions/) | `geolocation`, `signal_telemetry`, `satellite_imagery`, `flight_tracks` |
+| [`asn`](#selector-asn) (ASN / CIDR Netblock) | `AS13335`, `198.51.100.0/24` | **57** | 38 | [GreyNoise Visualizer](https://viz.greynoise.io/), [Hurricane Electric BGP Toolkit](https://bgp.he.net/), [IPinfo.io](https://ipinfo.io/), [RIPEstat](https://stat.ripe.net/) | `open_ports`, `certificates`, `tech_stack`, `ip_addresses` |
+| [`crypto_address`](#selector-crypto-address) (Crypto Wallet / Tx) | `0x...`, `bc1...`, `.eth`, `T...` | **47** | 41 | [Chainabuse (by TRM Labs)](https://www.chainabuse.com/), [Etherscan](https://etherscan.io/), [GraphSense](https://graphsense.org/), [mempool.space](https://mempool.space/) | `tx_graph`, `entity_graph`, `metadata`, `social_profiles` |
+| [`document`](#selector-document) (Document File) | PDF, DOCX, XLSX, PGP key | **46** | 42 | [Dangerzone (Freedom of the Press Foundation)](https://dangerzone.rocks/), [oletools (decalage2)](https://github.com/decalage2/oletools), [PDFiD & pdf-parser (Didier Stevens Suite)](https://blog.didierstevens.com/programs/pdf-tools/), [QPDF](https://github.com/qpdf/qpdf) | `metadata`, `malware_iocs`, `secrets`, `urls` |
+| [`file_hash`](#selector-file-hash) (File / Cert / DOM Hash) | SHA-256, MD5, JARM, mmh3 | **38** | 34 | [AlienVault Open Threat Exchange (OTX)](https://otx.alienvault.com/), [capa (Mandiant Capability Detector)](https://github.com/mandiant/capa), [Hatching Tria.ge Sandbox](https://tria.ge/), [MalwareBazaar (abuse.ch)](https://bazaar.abuse.ch/) | `malware_iocs`, `dns_records`, `certificates`, `entity_graph` |
 | [`phone`](#selector-phone) (Phone Number) | E.164 `+14155552671` | **38** | 29 | [Google libphonenumber Demo](https://libphonenumber.appspot.com/), [Ignorant](https://github.com/megadose/ignorant), [PhoneInfoga](https://github.com/sundowndev/phoneinfoga), [FreeCarrierLookup](https://freecarrierlookup.com/) | `social_profiles`, `phones`, `person_records`, `geolocation` |
-| [`image`](#selector-image) (Image / Photograph) | JPEG/PNG, face crop, scenery | **34** | 32 | [ExifTool](https://exiftool.org/), [Forensically (29a.ch)](https://29a.ch/photo-forensics/), [Google Lens](https://lens.google.com/), [InVID / WeVerify Verification Plugin](https://www.invid-project.eu/tools-and-services/invid-verification-plugin/) | `metadata`, `urls`, `geolocation`, `social_profiles` |
-| [`file_hash`](#selector-file-hash) (File / Cert / DOM Hash) | SHA-256, MD5, JARM, mmh3 | **31** | 29 | [AlienVault Open Threat Exchange (OTX)](https://otx.alienvault.com/), [Hatching Tria.ge Sandbox](https://tria.ge/), [MalwareBazaar (abuse.ch)](https://bazaar.abuse.ch/), [ThreatFox (abuse.ch)](https://threatfox.abuse.ch/) | `malware_iocs`, `dns_records`, `entity_graph`, `certificates` |
-| [`document`](#selector-document) (Document File) | PDF, DOCX, XLSX, PGP key | **17** | 15 | [Dangerzone (Freedom of the Press Foundation)](https://dangerzone.rocks/), [PDFiD & pdf-parser (Didier Stevens Suite)](https://blog.didierstevens.com/programs/pdf-tools/), [CyberChef (GCHQ)](https://gchq.github.io/CyberChef/), [ExifTool](https://exiftool.org/) | `metadata`, `malware_iocs`, `entity_graph`, `person_records` |
-| [`rf_frequency`](#selector-rf-frequency) (RF Frequency (kHz/MHz)) | `8992 kHz` HFGCS, `433.92 MHz` | **17** | 15 | [AIS-catcher](https://github.com/jvde-github/AIS-catcher), [FCC Universal Licensing System (ULS) & FCCID.io](https://fccid.io/), [KiwiSDR Global Public Receiver Network](http://kiwisdr.com/public/), [readsb (1090 MHz ADS-B Decoder)](https://github.com/wiedehopf/readsb) | `signal_telemetry`, `geolocation`, `flight_tracks`, `vessel_tracks` |
-| [`vessel_imo`](#selector-vessel-imo) (Vessel IMO / MMSI) | 7-digit IMO or 9-digit MMSI | **17** | 17 | [MarineTraffic](https://www.marinetraffic.com/), [Equasis](https://www.equasis.org/), [Global Fishing Watch Map](https://globalfishingwatch.org/map), [MyShipTracking](https://www.myshiptracking.com/) | `vessel_tracks`, `geolocation`, `corporate_records`, `sanctions_hits` |
-| [`repo_code`](#selector-repo-code) (Git Repo / Package) | GitHub org/repo, npm/PyPI pkg | **16** | 12 | [GH Archive](https://www.gharchive.org/), [Gitleaks](https://github.com/gitleaks/gitleaks), [grep.app](https://grep.app/), [GitHub Native Code Search & `.patch` Trick](https://github.com/search) | `secrets`, `emails`, `urls`, `social_profiles` |
-| [`onion_url`](#selector-onion-url) (Tor `.onion` Address) | v3 hidden service URL | **15** | 10 | [Ahmia.fi](https://ahmia.fi/), [AIL Framework (Analysis Information Leak — CIRCL)](https://www.ail-project.org/), [deepdarkCTI (fastfire)](https://github.com/fastfire/deepdarkCTI), [Searchlight Cyber (Cerberus / DarkIQ)](https://www.slcyber.io/) | `darkweb_mentions`, `urls`, `certificates`, `opsec_protection` |
-| [`aircraft_hex`](#selector-aircraft-hex) (Aircraft ICAO Hex / Tail) | Mode-S `AE01D5`, `N123AB` | **14** | 14 | [ADS-B Exchange](https://globe.adsbexchange.com/), [airplanes.live](https://globe.airplanes.live/), [Flightradar24](https://www.flightradar24.com/), [Airframes.io (ACARS / VDL2 Datalink)](https://app.airframes.io/) | `flight_tracks`, `geolocation`, `signal_telemetry`, `corporate_records` |
-| [`mac_bssid`](#selector-mac-bssid) (Wi-Fi BSSID / BLE MAC) | `00:11:22:33:44:55` | **9** | 4 | [Apple WPS BSSID Geolocation (`bssid-geolocator`)](https://github.com/acheong08/apple-corelocation-experiments), [WiGLE (Wireless Geographic Logging Engine)](https://wigle.net/), [Wireshark IEEE MAC OUI Vendor Lookup](https://www.wireshark.org/tools/oui-lookup.html), [WireTapper](https://github.com/h9zdev/WireTapper) | `signal_telemetry`, `metadata`, `geolocation`, `ip_addresses` |
+| [`image`](#selector-image) (Image / Photograph) | JPEG/PNG, face crop, scenery | **35** | 33 | [Binwalk](https://github.com/ReFirmLabs/binwalk), [ExifTool](https://exiftool.org/), [Forensically (29a.ch)](https://29a.ch/photo-forensics/), [Google Lens](https://lens.google.com/) | `metadata`, `urls`, `geolocation`, `social_profiles` |
+| [`repo_code`](#selector-repo-code) (Git Repo / Package) | GitHub org/repo, npm/PyPI pkg | **32** | 24 | [detect-secrets (Yelp)](https://github.com/Yelp/detect-secrets), [GH Archive](https://www.gharchive.org/), [Gitleaks](https://github.com/gitleaks/gitleaks), [grep.app](https://grep.app/) | `secrets`, `urls`, `metadata`, `emails` |
+| [`rf_frequency`](#selector-rf-frequency) (RF Frequency (kHz/MHz)) | `8992 kHz` HFGCS, `433.92 MHz` | **21** | 18 | [AIS-catcher](https://github.com/jvde-github/AIS-catcher), [FCC Universal Licensing System (ULS) & FCCID.io](https://fccid.io/), [KiwiSDR Global Public Receiver Network](http://kiwisdr.com/public/), [readsb (1090 MHz ADS-B Decoder)](https://github.com/wiedehopf/readsb) | `signal_telemetry`, `geolocation`, `metadata`, `flight_tracks` |
+| [`vessel_imo`](#selector-vessel-imo) (Vessel IMO / MMSI) | 7-digit IMO or 9-digit MMSI | **18** | 18 | [MarineTraffic](https://www.marinetraffic.com/), [Equasis](https://www.equasis.org/), [Global Fishing Watch Map](https://globalfishingwatch.org/map), [MyShipTracking](https://www.myshiptracking.com/) | `vessel_tracks`, `geolocation`, `corporate_records`, `sanctions_hits` |
+| [`onion_url`](#selector-onion-url) (Tor `.onion` Address) | v3 hidden service URL | **17** | 12 | [Ahmia.fi](https://ahmia.fi/), [AIL Framework (Analysis Information Leak — CIRCL)](https://www.ail-project.org/), [deepdarkCTI (fastfire)](https://github.com/fastfire/deepdarkCTI), [Stem (Tor Controller Python Library)](https://github.com/torproject/stem) | `darkweb_mentions`, `opsec_protection`, `urls`, `certificates` |
+| [`aircraft_hex`](#selector-aircraft-hex) (Aircraft ICAO Hex / Tail) | Mode-S `AE01D5`, `N123AB` | **16** | 16 | [ADS-B Exchange](https://globe.adsbexchange.com/), [airplanes.live](https://globe.airplanes.live/), [Flightradar24](https://www.flightradar24.com/), [tar1090 (ADS-B Historical Track UI)](https://github.com/wiedehopf/tar1090) | `flight_tracks`, `geolocation`, `signal_telemetry`, `corporate_records` |
+| [`mac_bssid`](#selector-mac-bssid) (Wi-Fi BSSID / BLE MAC) | `00:11:22:33:44:55` | **11** | 5 | [Apple WPS BSSID Geolocation (`bssid-geolocator`)](https://github.com/acheong08/apple-corelocation-experiments), [WiGLE (Wireless Geographic Logging Engine)](https://wigle.net/), [Wireshark IEEE MAC OUI Vendor Lookup](https://www.wireshark.org/tools/oui-lookup.html), [WireTapper](https://github.com/h9zdev/WireTapper) | `signal_telemetry`, `metadata`, `geolocation`, `ip_addresses` |
+| [`video`](#selector-video) (Video Clip) | MP4, livestream, social upload | **9** | 9 | [ExifTool](https://exiftool.org/), [FFmpeg](https://ffmpeg.org/), [InVID / WeVerify Verification Plugin](https://www.invid-project.eu/tools-and-services/invid-verification-plugin/), [BirdNET Analyzer](https://birdnet.cornell.edu/) | `metadata`, `geolocation`, `person_records`, `urls` |
 | [`audio`](#selector-audio) (Audio Recording) | Voice clip, background birds/hum | **8** | 8 | [ExifTool](https://exiftool.org/), [FFmpeg](https://ffmpeg.org/), [BirdNET Analyzer](https://birdnet.cornell.edu/), [Sonic Visualiser / Audacity Spectrogram Forensics](https://www.sonicvisualiser.org/) | `metadata`, `geolocation`, `person_records`, `documents` |
-| [`video`](#selector-video) (Video Clip) | MP4, livestream, social upload | **8** | 8 | [ExifTool](https://exiftool.org/), [FFmpeg](https://ffmpeg.org/), [InVID / WeVerify Verification Plugin](https://www.invid-project.eu/tools-and-services/invid-verification-plugin/), [BirdNET Analyzer](https://birdnet.cornell.edu/) | `metadata`, `geolocation`, `person_records`, `urls` |
 | [`vin`](#selector-vin) (Vehicle 17-Char VIN) | Automotive chassis number | **5** | 5 | [Bidfax / Stat.vin Salvage Auction VIN Archives](https://en.bidfax.info/), [NHTSA vPIC VIN Decoder & API](https://vpic.nhtsa.dot.gov/decoder/), [DeHashed](https://dehashed.com/), [That'sThem](https://thatsthem.com/) | `person_records`, `emails`, `geolocation`, `metadata` |
 
 ---
 
 ## Selector: domain
-**Domain / Hostname** (`example.com`) — `274` tools (`python3 scripts/osint.py pivot domain --passive`)
+**Domain / Hostname** (`example.com`) — `303` tools (`python3 scripts/osint.py pivot domain --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -314,11 +314,40 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **B** | [**rmiscout (Bishop Fox)**](https://github.com/BishopFox/rmiscout) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `open_ports`, `tech_stack`, `metadata` |
 | **S** | [**Nuclei Templates**](https://github.com/projectdiscovery/nuclei-templates) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `secrets`, `social_profiles`, `metadata` |
 | **A** | [**WitnessMe**](https://github.com/byt3bl33d3r/WitnessMe) | `archiving-evidence-docs` | 🔴 Active | OSS / Free | `archived_pages`, `tech_stack`, `urls` |
+| **S** | [**Prowler**](https://github.com/toniblyx/prowler) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `urls`, `secrets`, `metadata` |
+| **S** | [**ScoutSuite (NCC Group)**](https://github.com/nccgroup/ScoutSuite) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `open_ports`, `urls`, `entity_graph` |
+| **A** | [**Pacu (Rhino Security Labs)**](https://github.com/RhinoSecurityLabs/pacu) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `usernames`, `secrets`, `tech_stack` |
+| **A** | [**CloudMapper (Duo Labs)**](https://github.com/duo-labs/cloudmapper) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `ip_addresses`, `open_ports`, `entity_graph` |
+| **S** | [**Trivy (Aqua Security)**](https://github.com/aquasecurity/trivy) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `tech_stack`, `secrets`, `malware_iocs` |
+| **S** | [**ROADtools (Entra ID / Azure AD Recon)**](https://github.com/dirkjanm/ROADtools) | `email-intelligence` | 🔴 Active | OSS / Free | `subdomains`, `emails`, `usernames`, `entity_graph` |
+| **A** | [**o365spray**](https://github.com/0xZDH/o365spray) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `tech_stack`, `metadata` |
+| **B** | [**o365recon**](https://github.com/nyxgeek/o365recon) | `email-intelligence` | 🔴 Active | OSS / Free | `subdomains`, `corporate_records`, `metadata` |
+| **A** | [**GraphRunner**](https://github.com/dafthack/GraphRunner) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `documents`, `usernames` |
+| **A** | [**haktrails**](https://github.com/hakluke/haktrails) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `subdomains`, `dns_records`, `whois` |
+| **A** | [**Cero (Go TLS SAN Scraper)**](https://github.com/glebarez/cero) | `domain-dns-asm` | 🔴 Active | OSS / Free | `subdomains`, `certificates` |
+| **A** | [**anew**](https://github.com/tomnomnom/anew) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `subdomains`, `urls` |
+| **B** | [**OWASP Open Asset Model (OAM)**](https://github.com/owasp-amass/open-asset-model) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **S** | [**BloodHound Community Edition**](https://github.com/SpecterOps/BloodHound) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `entity_graph`, `usernames`, `person_records` |
+| **A** | [**Certipy**](https://github.com/ly4k/Certipy) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `certificates`, `tech_stack`, `entity_graph` |
+| **A** | [**Malcolm (CISA Network Traffic Suite)**](https://github.com/cisagov/Malcolm) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `entity_graph`, `dns_records`, `ip_addresses`, `malware_iocs` |
+| **S** | [**Wayback Google Analytics (Bellingcat)**](https://github.com/bellingcat/wayback-google-analytics) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `entity_graph`, `archived_pages`, `metadata` |
+| **S** | [**Cortex (TheHive Observable Analyzer)**](https://github.com/TheHive-Project/Cortex) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `subdomains` |
+| **S** | [**Signature-Base (Florian Roth YARA/IOCs)**](https://github.com/Neo23x0/signature-base) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**SigmaHQ Detection Repository**](https://github.com/SigmaHQ/sigma) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata` |
+| **S** | [**Velociraptor (Rapid7 / Velocidex)**](https://github.com/Velocidex/velociraptor) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `urls`, `dns_records`, `malware_iocs` |
+| **A** | [**Maltrail**](https://github.com/stamparm/maltrail) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**vt-py (Official VirusTotal Python SDK)**](https://github.com/VirusTotal/vt-py) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `subdomains`, `dns_records`, `certificates` |
+| **A** | [**MetaMask Eth-Phishing-Detect**](https://github.com/MetaMask/eth-phishing-detect) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**ScamSniffer Drainer Database**](https://github.com/scamsniffer/scam-database) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `malware_iocs`, `sanctions_hits` |
+| **A** | [**OpenHands Autonomous Agent**](https://github.com/All-Hands-AI/OpenHands) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **A** | [**CrewAI Multi-Agent Orchestrator**](https://github.com/crewAIInc/crewAI) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **B** | [**SkyArk (Shadow Admin Recon)**](https://github.com/cyberark/SkyArk) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `usernames`, `entity_graph`, `metadata` |
+| **B** | [**FIR (Fast Incident Response)**](https://github.com/certsocietegenerale/FIR) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `documents`, `malware_iocs` |
 
 ---
 
 ## Selector: keyword
-**Keyword / Phrase** (Project slug, quote, topic) — `220` tools (`python3 scripts/osint.py pivot keyword --passive`)
+**Keyword / Phrase** (Project slug, quote, topic) — `232` tools (`python3 scripts/osint.py pivot keyword --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -542,11 +571,23 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**CertStream**](https://github.com/CaliDog/certstream-python) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `certificates`, `subdomains`, `malware_iocs` |
 | **A** | [**FofaMap (AI Asset Mapping + Gated Nuclei)**](https://github.com/asaotomo/FofaMap) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `open_ports`, `subdomains`, `tech_stack`, `certificates` |
 | **A** | [**cvemap (ProjectDiscovery)**](https://github.com/projectdiscovery/cvemap) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `tech_stack`, `metadata` |
+| **S** | [**KeyHacks**](https://github.com/streaak/keyhacks) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `secrets`, `metadata` |
+| **A** | [**Bellingcat EDGAR Search**](https://github.com/bellingcat/edgar) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `corporate_records`, `documents`, `person_records` |
+| **A** | [**Civilian Harm TimeMap (Bellingcat)**](https://github.com/bellingcat/ukraine-timemap) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `archived_pages`, `metadata` |
+| **A** | [**RSSHub**](https://github.com/DIYgod/RSSHub) | `social-media-socmint` | 🟡 Hybrid | OSS / Free | `social_profiles`, `urls`, `metadata` |
+| **S** | [**Signature-Base (Florian Roth YARA/IOCs)**](https://github.com/Neo23x0/signature-base) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**SigmaHQ Detection Repository**](https://github.com/SigmaHQ/sigma) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata` |
+| **A** | [**Chainsaw (WithSecure Labs)**](https://github.com/WithSecureLabs/chainsaw) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `ip_addresses`, `usernames`, `urls`, `malware_iocs` |
+| **S** | [**Nominatim (OpenStreetMap Geocoder)**](https://github.com/osm-search/Nominatim) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `metadata` |
+| **S** | [**Model Context Protocol Reference Servers**](https://github.com/modelcontextprotocol/servers) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `urls`, `documents`, `metadata` |
+| **A** | [**OpenHands Autonomous Agent**](https://github.com/All-Hands-AI/OpenHands) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **A** | [**CrewAI Multi-Agent Orchestrator**](https://github.com/crewAIInc/crewAI) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **A** | [**LiteLLM Unified Model Gateway**](https://github.com/BerriAI/litellm) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `opsec_protection`, `metadata` |
 
 ---
 
 ## Selector: url
-**Web URL / Post Link** (Webpage, social post, phishing URL) — `149` tools (`python3 scripts/osint.py pivot url --passive`)
+**Web URL / Post Link** (Webpage, social post, phishing URL) — `163` tools (`python3 scripts/osint.py pivot url --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -699,11 +740,25 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **B** | [**identYwaf**](https://github.com/stamparm/identYwaf) | `domain-dns-asm` | 🔴 Active | OSS / Free | `tech_stack`, `metadata` |
 | **S** | [**Nuclei Templates**](https://github.com/projectdiscovery/nuclei-templates) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `secrets`, `social_profiles`, `metadata` |
 | **A** | [**WitnessMe**](https://github.com/byt3bl33d3r/WitnessMe) | `archiving-evidence-docs` | 🔴 Active | OSS / Free | `archived_pages`, `tech_stack`, `urls` |
+| **S** | [**Trivy (Aqua Security)**](https://github.com/aquasecurity/trivy) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `tech_stack`, `secrets`, `malware_iocs` |
+| **S** | [**gf (Grep-Friend Pattern Wrapper)**](https://github.com/tomnomnom/gf) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `secrets`, `urls`, `subdomains` |
+| **S** | [**unfurl**](https://github.com/tomnomnom/unfurl) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `subdomains`, `urls`, `metadata` |
+| **A** | [**anew**](https://github.com/tomnomnom/anew) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `subdomains`, `urls` |
+| **S** | [**Bellingcat Auto Archiver**](https://github.com/bellingcat/auto-archiver) | `archiving-evidence-docs` | 🔴 Active | OSS / Free | `archived_pages`, `metadata`, `documents` |
+| **S** | [**Wayback Google Analytics (Bellingcat)**](https://github.com/bellingcat/wayback-google-analytics) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `entity_graph`, `archived_pages`, `metadata` |
+| **A** | [**RSSHub**](https://github.com/DIYgod/RSSHub) | `social-media-socmint` | 🟡 Hybrid | OSS / Free | `social_profiles`, `urls`, `metadata` |
+| **S** | [**Cortex (TheHive Observable Analyzer)**](https://github.com/TheHive-Project/Cortex) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `subdomains` |
+| **A** | [**Maltrail**](https://github.com/stamparm/maltrail) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**vt-py (Official VirusTotal Python SDK)**](https://github.com/VirusTotal/vt-py) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `subdomains`, `dns_records`, `certificates` |
+| **A** | [**MetaMask Eth-Phishing-Detect**](https://github.com/MetaMask/eth-phishing-detect) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **S** | [**Model Context Protocol Reference Servers**](https://github.com/modelcontextprotocol/servers) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `urls`, `documents`, `metadata` |
+| **S** | [**Fabric (Daniel Miessler AI Patterns)**](https://github.com/danielmiessler/fabric) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `entity_graph`, `metadata` |
+| **B** | [**qsreplace**](https://github.com/tomnomnom/qsreplace) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `urls` |
 
 ---
 
 ## Selector: ip
-**IPv4 / IPv6 Address** (`198.51.100.42`) — `131` tools (`python3 scripts/osint.py pivot ip --passive`)
+**IPv4 / IPv6 Address** (`198.51.100.42`) — `148` tools (`python3 scripts/osint.py pivot ip --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -838,11 +893,28 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **B** | [**rmiscout (Bishop Fox)**](https://github.com/BishopFox/rmiscout) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `open_ports`, `tech_stack`, `metadata` |
 | **S** | [**Nuclei Templates**](https://github.com/projectdiscovery/nuclei-templates) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `secrets`, `social_profiles`, `metadata` |
 | **A** | [**WitnessMe**](https://github.com/byt3bl33d3r/WitnessMe) | `archiving-evidence-docs` | 🔴 Active | OSS / Free | `archived_pages`, `tech_stack`, `urls` |
+| **A** | [**haktrails**](https://github.com/hakluke/haktrails) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `subdomains`, `dns_records`, `whois` |
+| **A** | [**Cero (Go TLS SAN Scraper)**](https://github.com/glebarez/cero) | `domain-dns-asm` | 🔴 Active | OSS / Free | `subdomains`, `certificates` |
+| **A** | [**anew**](https://github.com/tomnomnom/anew) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `subdomains`, `urls` |
+| **B** | [**OWASP Open Asset Model (OAM)**](https://github.com/owasp-amass/open-asset-model) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **A** | [**Certipy**](https://github.com/ly4k/Certipy) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `certificates`, `tech_stack`, `entity_graph` |
+| **A** | [**Responder**](https://github.com/lgandx/Responder) | `network-ip-iot-search` | 🟡 Hybrid | OSS / Free | `usernames`, `tech_stack`, `ip_addresses` |
+| **S** | [**Wireshark / tshark**](https://github.com/wireshark/wireshark) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `ip_addresses`, `dns_records`, `certificates`, `metadata` |
+| **S** | [**Zeek Network Security Monitor**](https://github.com/zeek/zeek) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `dns_records`, `certificates`, `urls`, `malware_iocs` |
+| **S** | [**Suricata**](https://github.com/OISF/suricata) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `malware_iocs`, `dns_records`, `certificates` |
+| **A** | [**Malcolm (CISA Network Traffic Suite)**](https://github.com/cisagov/Malcolm) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `entity_graph`, `dns_records`, `ip_addresses`, `malware_iocs` |
+| **B** | [**nDPI (Deep Packet Inspection)**](https://github.com/ntop/nDPI) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `tech_stack`, `metadata`, `ip_addresses` |
+| **S** | [**Cortex (TheHive Observable Analyzer)**](https://github.com/TheHive-Project/Cortex) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `subdomains` |
+| **A** | [**Maltrail**](https://github.com/stamparm/maltrail) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**FireHOL Blocklist IPsets**](https://github.com/firehol/blocklist-ipsets) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `ip_addresses` |
+| **A** | [**vt-py (Official VirusTotal Python SDK)**](https://github.com/VirusTotal/vt-py) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `subdomains`, `dns_records`, `certificates` |
+| **S** | [**Stem (Tor Controller Python Library)**](https://github.com/torproject/stem) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `ip_addresses`, `darkweb_mentions`, `opsec_protection` |
+| **B** | [**FIR (Fast Incident Response)**](https://github.com/certsocietegenerale/FIR) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `documents`, `malware_iocs` |
 
 ---
 
 ## Selector: company
-**Company / Organization** (Corporate name, LEI, CAGE) — `126` tools (`python3 scripts/osint.py pivot company --passive`)
+**Company / Organization** (Corporate name, LEI, CAGE) — `137` tools (`python3 scripts/osint.py pivot company --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -972,11 +1044,22 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**FofaMap (AI Asset Mapping + Gated Nuclei)**](https://github.com/asaotomo/FofaMap) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `open_ports`, `subdomains`, `tech_stack`, `certificates` |
 | **B** | [**ExternalAttacker-MCP**](https://github.com/MorDavid/ExternalAttacker-MCP) | `ai-agents-mcp-opsec` | 🔴 Active | OSS / Free | `subdomains`, `dns_records`, `open_ports`, `tech_stack` |
 | **A** | [**Username Anarchy**](https://github.com/urbanadventurer/username-anarchy) | `username-enumeration` | 🟢 Passive | OSS / Free | `usernames`, `emails` |
+| **S** | [**Prowler**](https://github.com/toniblyx/prowler) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `urls`, `secrets`, `metadata` |
+| **S** | [**ScoutSuite (NCC Group)**](https://github.com/nccgroup/ScoutSuite) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `open_ports`, `urls`, `entity_graph` |
+| **A** | [**Pacu (Rhino Security Labs)**](https://github.com/RhinoSecurityLabs/pacu) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `usernames`, `secrets`, `tech_stack` |
+| **A** | [**CloudMapper (Duo Labs)**](https://github.com/duo-labs/cloudmapper) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `ip_addresses`, `open_ports`, `entity_graph` |
+| **A** | [**haktrails**](https://github.com/hakluke/haktrails) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `subdomains`, `dns_records`, `whois` |
+| **B** | [**OWASP Open Asset Model (OAM)**](https://github.com/owasp-amass/open-asset-model) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **S** | [**BloodHound Community Edition**](https://github.com/SpecterOps/BloodHound) | `network-ip-iot-search` | 🔴 Active | OSS / Free | `entity_graph`, `usernames`, `person_records` |
+| **A** | [**Bellingcat EDGAR Search**](https://github.com/bellingcat/edgar) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `corporate_records`, `documents`, `person_records` |
+| **S** | [**Yente (OpenSanctions Self-Hosted API)**](https://github.com/opensanctions/yente) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `sanctions_hits`, `corporate_records`, `entity_graph` |
+| **A** | [**CrewAI Multi-Agent Orchestrator**](https://github.com/crewAIInc/crewAI) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **B** | [**SkyArk (Shadow Admin Recon)**](https://github.com/cyberark/SkyArk) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `usernames`, `entity_graph`, `metadata` |
 
 ---
 
 ## Selector: username
-**Username / Handle** (`@johndoe`, gaming alias) — `97` tools (`python3 scripts/osint.py pivot username --passive`)
+**Username / Handle** (`@johndoe`, gaming alias) — `99` tools (`python3 scripts/osint.py pivot username --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1077,11 +1160,13 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**twscrape**](https://github.com/vladkens/twscrape) | `social-media-socmint` | 🔴 Active | OSS / Free | `social_profiles`, `usernames`, `urls`, `metadata` |
 | **A** | [**ATProto SDK & CLI (Bluesky)**](https://github.com/MarshalX/atproto) | `social-media-socmint` | 🟡 Hybrid | OSS / Free | `social_profiles`, `dns_records`, `entity_graph`, `metadata` |
 | **S** | [**Nuclei Templates**](https://github.com/projectdiscovery/nuclei-templates) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `tech_stack`, `secrets`, `social_profiles`, `metadata` |
+| **A** | [**Pacu (Rhino Security Labs)**](https://github.com/RhinoSecurityLabs/pacu) | `code-cloud-dev-osint` | 🔴 Active | OSS / Free | `usernames`, `secrets`, `tech_stack` |
+| **A** | [**RSSHub**](https://github.com/DIYgod/RSSHub) | `social-media-socmint` | 🟡 Hybrid | OSS / Free | `social_profiles`, `urls`, `metadata` |
 
 ---
 
 ## Selector: person_name
-**Person Full Name** (Individual, executive, official) — `94` tools (`python3 scripts/osint.py pivot person_name --passive`)
+**Person Full Name** (Individual, executive, official) — `97` tools (`python3 scripts/osint.py pivot person_name --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1179,11 +1264,14 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**world-intel-mcp**](https://github.com/marc-shade/world-intel-mcp) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `geolocation`, `sanctions_hits`, `flight_tracks`, `signal_telemetry` |
 | **A** | [**Social Mapper**](https://github.com/Greenwolf/social_mapper) | `username-enumeration` | 🔴 Active | OSS / Free | `social_profiles`, `usernames`, `person_records` |
 | **A** | [**Username Anarchy**](https://github.com/urbanadventurer/username-anarchy) | `username-enumeration` | 🟢 Passive | OSS / Free | `usernames`, `emails` |
+| **A** | [**Bellingcat EDGAR Search**](https://github.com/bellingcat/edgar) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `corporate_records`, `documents`, `person_records` |
+| **S** | [**Yente (OpenSanctions Self-Hosted API)**](https://github.com/opensanctions/yente) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `sanctions_hits`, `corporate_records`, `entity_graph` |
+| **A** | [**CrewAI Multi-Agent Orchestrator**](https://github.com/crewAIInc/crewAI) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
 
 ---
 
 ## Selector: email
-**Email Address** (`user@company.com`) — `81` tools (`python3 scripts/osint.py pivot email --passive`)
+**Email Address** (`user@company.com`) — `86` tools (`python3 scripts/osint.py pivot email --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1268,11 +1356,16 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**UhOh365**](https://github.com/Raikia/UhOh365) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `usernames`, `metadata` |
 | **A** | [**smtp-user-enum**](https://github.com/pentestmonkey/smtp-user-enum) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `usernames` |
 | **A** | [**Ruler (SensePost Exchange Recon)**](https://github.com/sensepost/ruler) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `urls`, `tech_stack`, `metadata` |
+| **S** | [**ROADtools (Entra ID / Azure AD Recon)**](https://github.com/dirkjanm/ROADtools) | `email-intelligence` | 🔴 Active | OSS / Free | `subdomains`, `emails`, `usernames`, `entity_graph` |
+| **A** | [**o365spray**](https://github.com/0xZDH/o365spray) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `tech_stack`, `metadata` |
+| **A** | [**GraphRunner**](https://github.com/dafthack/GraphRunner) | `email-intelligence` | 🔴 Active | OSS / Free | `emails`, `documents`, `usernames` |
+| **S** | [**Cortex (TheHive Observable Analyzer)**](https://github.com/TheHive-Project/Cortex) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `subdomains` |
+| **B** | [**FIR (Fast Incident Response)**](https://github.com/certsocietegenerale/FIR) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `documents`, `malware_iocs` |
 
 ---
 
 ## Selector: coordinates
-**GPS Coordinates / AOI** (`lat, lon` bounding box) — `75` tools (`python3 scripts/osint.py pivot coordinates --passive`)
+**GPS Coordinates / AOI** (`lat, lon` bounding box) — `80` tools (`python3 scripts/osint.py pivot coordinates --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1351,11 +1444,16 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**satellite-mcp**](https://github.com/badchars/satellite-mcp) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `satellite_imagery`, `geolocation`, `flight_tracks`, `vessel_tracks` |
 | **A** | [**world-intel-mcp**](https://github.com/marc-shade/world-intel-mcp) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `geolocation`, `sanctions_hits`, `flight_tracks`, `signal_telemetry` |
 | **S** | [**Kismet Wireless**](https://github.com/kismetwireless/kismet) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `geolocation`, `metadata` |
+| **A** | [**Civilian Harm TimeMap (Bellingcat)**](https://github.com/bellingcat/ukraine-timemap) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `archived_pages`, `metadata` |
+| **S** | [**Nominatim (OpenStreetMap Geocoder)**](https://github.com/osm-search/Nominatim) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `metadata` |
+| **A** | [**Protomaps PMTiles**](https://github.com/protomaps/PMTiles) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `opsec_protection` |
+| **A** | [**CesiumJS 3D Geospatial Engine**](https://github.com/CesiumGS/cesium) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `flight_tracks` |
+| **S** | [**tar1090 (ADS-B Historical Track UI)**](https://github.com/wiedehopf/tar1090) | `aviation-maritime-transport` | 🟢 Passive | OSS / Free | `flight_tracks`, `geolocation`, `signal_telemetry` |
 
 ---
 
 ## Selector: asn
-**ASN / CIDR Netblock** (`AS13335`, `198.51.100.0/24`) — `54` tools (`python3 scripts/osint.py pivot asn --passive`)
+**ASN / CIDR Netblock** (`AS13335`, `198.51.100.0/24`) — `57` tools (`python3 scripts/osint.py pivot asn --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1413,11 +1511,14 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**OWASP Nettacker**](https://github.com/OWASP/Nettacker) | `all-in-one-frameworks` | 🔴 Active | OSS / Free | `open_ports`, `subdomains`, `tech_stack`, `urls` |
 | **A** | [**hakrevdns**](https://github.com/hakluke/hakrevdns) | `domain-dns-asm` | 🔴 Active | OSS / Free | `subdomains`, `dns_records` |
 | **A** | [**hakip2host**](https://github.com/hakluke/hakip2host) | `domain-dns-asm` | 🔴 Active | OSS / Free | `subdomains`, `certificates`, `dns_records` |
+| **A** | [**Cero (Go TLS SAN Scraper)**](https://github.com/glebarez/cero) | `domain-dns-asm` | 🔴 Active | OSS / Free | `subdomains`, `certificates` |
+| **B** | [**OWASP Open Asset Model (OAM)**](https://github.com/owasp-amass/open-asset-model) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **A** | [**FireHOL Blocklist IPsets**](https://github.com/firehol/blocklist-ipsets) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `ip_addresses` |
 
 ---
 
 ## Selector: crypto_address
-**Crypto Wallet / Tx** (`0x...`, `bc1...`, `.eth`, `T...`) — `42` tools (`python3 scripts/osint.py pivot crypto_address --passive`)
+**Crypto Wallet / Tx** (`0x...`, `bc1...`, `.eth`, `T...`) — `47` tools (`python3 scripts/osint.py pivot crypto_address --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1463,6 +1564,111 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**Foundry Cast (`cast`)**](https://github.com/foundry-rs/foundry) | `crypto-blockchain-web3` | 🟡 Hybrid | OSS / Free | `tx_graph`, `metadata`, `secrets` |
 | **S** | [**Slither (Trail of Bits)**](https://github.com/crytic/slither) | `crypto-blockchain-web3` | 🟡 Hybrid | OSS / Free | `metadata`, `entity_graph`, `malware_iocs` |
 | **A** | [**Cryo (Paradigm)**](https://github.com/paradigmxyz/cryo) | `crypto-blockchain-web3` | 🔴 Active | OSS / Free | `tx_graph`, `metadata` |
+| **S** | [**Yente (OpenSanctions Self-Hosted API)**](https://github.com/opensanctions/yente) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `sanctions_hits`, `corporate_records`, `entity_graph` |
+| **A** | [**Ethereum ETL**](https://github.com/blockchain-etl/ethereum-etl) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `tx_graph`, `metadata` |
+| **B** | [**Rotki**](https://github.com/rotki/rotki) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `tx_graph`, `metadata` |
+| **A** | [**ScamSniffer Drainer Database**](https://github.com/scamsniffer/scam-database) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `malware_iocs`, `sanctions_hits` |
+| **A** | [**Echidna (Trail of Bits EVM Analyzer)**](https://github.com/crytic/echidna) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `metadata`, `malware_iocs` |
+
+---
+
+## Selector: document
+**Document File** (PDF, DOCX, XLSX, PGP key) — `46` tools (`python3 scripts/osint.py pivot document --passive`)
+
+| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **S** | [**Gephi**](https://gephi.org/) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **S** | [**IntelOwl**](https://github.com/intelowlproject/IntelOwl) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `open_ports` |
+| **A** | [**Obsidian (Local-First OSINT Case Vault)**](https://obsidian.md/) | `all-in-one-frameworks` | 🟢 Passive | Free | `entity_graph`, `documents` |
+| **B** | [**Cytoscape**](https://cytoscape.org/) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
+| **S** | [**GHunt**](https://github.com/mxrch/GHunt) | `email-intelligence` | 🟢 Passive | OSS / Free | `person_records`, `social_profiles`, `geolocation`, `metadata` |
+| **S** | [**MXToolbox SuperTool**](https://mxtoolbox.com/SuperTool.aspx) | `email-intelligence` | 🟡 Hybrid | Freemium | `dns_records`, `whois`, `tech_stack` |
+| **A** | [**Nosey Parker**](https://github.com/praetorian-inc/noseyparker) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `emails` |
+| **S** | [**QGIS**](https://qgis.org/) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `satellite_imagery` |
+| **S** | [**ExifTool**](https://exiftool.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `geolocation`, `person_records` |
+| **A** | [**GnuPG (`gpg`) & pgpdump Packet Inspector**](https://gnupg.org/) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `metadata`, `emails`, `certificates`, `person_records` |
+| **S** | [**Dangerzone (Freedom of the Press Foundation)**](https://dangerzone.rocks/) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `opsec_protection`, `documents` |
+| **A** | [**PDFiD & pdf-parser (Didier Stevens Suite)**](https://blog.didierstevens.com/programs/pdf-tools/) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `metadata`, `malware_iocs` |
+| **S** | [**CyberChef (GCHQ)**](https://gchq.github.io/CyberChef/) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `metadata`, `urls`, `emails`, `ip_addresses` |
+| **S** | [**Qubes OS**](https://www.qubes-os.org/) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `opsec_protection` |
+| **S** | [**YARA-X (VirusTotal)**](https://github.com/VirusTotal/yara-x) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `secrets`, `metadata` |
+| **S** | [**CAPEv2 Malware Sandbox**](https://github.com/kevoreilly/CAPEv2) | `threat-intel-malware-cti` | 🔴 Active | OSS / Free | `malware_iocs`, `ip_addresses`, `urls`, `secrets` |
+| **A** | [**Strelka (Target)**](https://github.com/target/strelka) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata`, `certificates`, `urls` |
+| **S** | [**detect-secrets (Yelp)**](https://github.com/Yelp/detect-secrets) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `metadata` |
+| **B** | [**Credential Detector**](https://github.com/ynori7/credential-detector) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets` |
+| **B** | [**Cloudsplaining (Salesforce)**](https://github.com/salesforce/cloudsplaining) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `metadata` |
+| **A** | [**Syft (Anchore SBOM Extractor)**](https://github.com/anchore/syft) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `tech_stack`, `metadata` |
+| **A** | [**Grype**](https://github.com/anchore/grype) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `malware_iocs`, `tech_stack` |
+| **A** | [**Checkov**](https://github.com/bridgecrewio/checkov) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack`, `urls` |
+| **S** | [**gf (Grep-Friend Pattern Wrapper)**](https://github.com/tomnomnom/gf) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `secrets`, `urls`, `subdomains` |
+| **S** | [**Wireshark / tshark**](https://github.com/wireshark/wireshark) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `ip_addresses`, `dns_records`, `certificates`, `metadata` |
+| **S** | [**Zeek Network Security Monitor**](https://github.com/zeek/zeek) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `dns_records`, `certificates`, `urls`, `malware_iocs` |
+| **S** | [**Suricata**](https://github.com/OISF/suricata) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `malware_iocs`, `dns_records`, `certificates` |
+| **A** | [**Malcolm (CISA Network Traffic Suite)**](https://github.com/cisagov/Malcolm) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `entity_graph`, `dns_records`, `ip_addresses`, `malware_iocs` |
+| **B** | [**nDPI (Deep Packet Inspection)**](https://github.com/ntop/nDPI) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `tech_stack`, `metadata`, `ip_addresses` |
+| **S** | [**Binwalk**](https://github.com/ReFirmLabs/binwalk) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `secrets`, `documents` |
+| **S** | [**oletools (decalage2)**](https://github.com/decalage2/oletools) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `metadata`, `urls`, `person_records`, `malware_iocs` |
+| **A** | [**QPDF**](https://github.com/qpdf/qpdf) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `metadata`, `documents` |
+| **S** | [**capa (Mandiant Capability Detector)**](https://github.com/mandiant/capa) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata` |
+| **S** | [**FLOSS (Mandiant Deobfuscated Strings)**](https://github.com/mandiant/flare-floss) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `urls`, `ip_addresses`, `secrets`, `malware_iocs` |
+| **A** | [**Loki IOC & YARA Scanner**](https://github.com/Neo23x0/Loki) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **A** | [**yarGen**](https://github.com/Neo23x0/yarGen) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata` |
+| **A** | [**Hayabusa (Yamato Security)**](https://github.com/Yamato-Security/hayabusa) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `ip_addresses`, `usernames`, `malware_iocs` |
+| **A** | [**Chainsaw (WithSecure Labs)**](https://github.com/WithSecureLabs/chainsaw) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `ip_addresses`, `usernames`, `urls`, `malware_iocs` |
+| **S** | [**Volatility 3**](https://github.com/volatilityfoundation/volatility3) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `ip_addresses`, `open_ports`, `secrets`, `malware_iocs` |
+| **S** | [**Velociraptor (Rapid7 / Velocidex)**](https://github.com/Velocidex/velociraptor) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `urls`, `dns_records`, `malware_iocs` |
+| **A** | [**OnionShare**](https://github.com/onionshare/onionshare) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `opsec_protection`, `documents` |
+| **S** | [**Model Context Protocol Reference Servers**](https://github.com/modelcontextprotocol/servers) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `urls`, `documents`, `metadata` |
+| **S** | [**Fabric (Daniel Miessler AI Patterns)**](https://github.com/danielmiessler/fabric) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `entity_graph`, `metadata` |
+| **A** | [**LiteLLM Unified Model Gateway**](https://github.com/BerriAI/litellm) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `opsec_protection`, `metadata` |
+| **B** | [**Terrascan**](https://github.com/tenable/terrascan) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `tech_stack`, `secrets`, `open_ports` |
+| **A** | [**tfsec**](https://github.com/aquasecurity/tfsec) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack` |
+
+---
+
+## Selector: file_hash
+**File / Cert / DOM Hash** (SHA-256, MD5, JARM, mmh3) — `38` tools (`python3 scripts/osint.py pivot file_hash --passive`)
+
+| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **S** | [**IntelOwl**](https://github.com/intelowlproject/IntelOwl) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `open_ports` |
+| **S** | [**OpenCTI**](https://github.com/OpenCTI-Platform/opencti) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph`, `malware_iocs`, `darkweb_mentions` |
+| **A** | [**TheHive Case Management**](https://github.com/StrangeBee/thehive) | `all-in-one-frameworks` | 🟢 Passive | Freemium | `entity_graph`, `malware_iocs` |
+| **B** | [**Harpoon**](https://github.com/Te-k/harpoon) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `dns_records`, `whois`, `open_ports`, `certificates` |
+| **S** | [**Have I Been Pwned (HIBP)**](https://haveibeenpwned.com/) | `breaches-leaks-stealers` | 🟢 Passive | Freemium | `breach_records` |
+| **A** | [**Pwned Passwords k-Anonymity API**](https://haveibeenpwned.com/Passwords) | `breaches-leaks-stealers` | 🟢 Passive | OSS / Free | `breach_records` |
+| **B** | [**4plebs Archive**](https://archive.4plebs.org/) | `social-media-socmint` | 🟢 Passive | Free | `archived_pages`, `urls` |
+| **A** | [**darknet-mcp-server**](https://github.com/badchars/darknet-mcp-server) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `darkweb_mentions`, `breach_records`, `malware_iocs` |
+| **S** | [**AlienVault Open Threat Exchange (OTX)**](https://otx.alienvault.com/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `dns_records`, `urls`, `subdomains` |
+| **S** | [**Hatching Tria.ge Sandbox**](https://tria.ge/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `secrets`, `ip_addresses` |
+| **S** | [**MalwareBazaar (abuse.ch)**](https://bazaar.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `certificates` |
+| **S** | [**Silent Push Community Edition**](https://www.silentpush.com/community-edition/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `dns_records`, `malware_iocs`, `certificates`, `entity_graph` |
+| **S** | [**ThreatFox (abuse.ch)**](https://threatfox.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs` |
+| **S** | [**urlscan.io**](https://urlscan.io/) | `threat-intel-malware-cti` | 🟡 Hybrid | Freemium | `tech_stack`, `certificates`, `urls`, `archived_pages` |
+| **S** | [**Validin**](https://app.validin.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `dns_records`, `certificates`, `ip_addresses`, `malware_iocs` |
+| **S** | [**VirusTotal & VT Graph**](https://www.virustotal.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records`, `certificates`, `entity_graph` |
+| **A** | [**ANY.RUN Interactive Malware Sandbox**](https://app.any.run/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records`, `ip_addresses` |
+| **A** | [**CIRCL hashlookup (NSRL Known-Good Filter)**](https://hashlookup.circl.lu/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `metadata` |
+| **A** | [**Cisco Talos Intelligence Center**](https://talosintelligence.com/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `whois`, `dns_records` |
+| **A** | [**Hunt.io**](https://hunt.io/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `open_ports`, `certificates`, `entity_graph` |
+| **A** | [**Hybrid Analysis**](https://www.hybrid-analysis.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records` |
+| **A** | [**Joe Sandbox Cloud Basic**](https://www.joesandbox.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records` |
+| **A** | [**MISP (Open Source Threat Intelligence Platform)**](https://www.misp-project.org/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `entity_graph` |
+| **A** | [**Pulsedive**](https://pulsedive.com/) | `threat-intel-malware-cti` | 🟡 Hybrid | Freemium | `malware_iocs`, `dns_records`, `whois`, `open_ports` |
+| **A** | [**SSLBL (abuse.ch Malicious SSL & JA3 Blacklist)**](https://sslbl.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `certificates`, `malware_iocs` |
+| **A** | [**URLhaus (abuse.ch)**](https://urlhaus.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `urls` |
+| **A** | [**YETI (Your Everyday Threat Intelligence)**](https://yeti-platform.io/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `entity_graph`, `malware_iocs`, `dns_records` |
+| **B** | [**ThreatMiner**](https://www.threatminer.org/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `documents`, `dns_records` |
+| **S** | [**Mitaka**](https://github.com/ninoseki/mitaka) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `open_ports` |
+| **B** | [**Sputnik OSINT Browser Extension**](https://github.com/mitchmoser/sputnik) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `open_ports` |
+| **S** | [**YARA-X (VirusTotal)**](https://github.com/VirusTotal/yara-x) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `secrets`, `metadata` |
+| **S** | [**Cortex (TheHive Observable Analyzer)**](https://github.com/TheHive-Project/Cortex) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `subdomains` |
+| **S** | [**capa (Mandiant Capability Detector)**](https://github.com/mandiant/capa) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata` |
+| **A** | [**Loki IOC & YARA Scanner**](https://github.com/Neo23x0/Loki) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **S** | [**Signature-Base (Florian Roth YARA/IOCs)**](https://github.com/Neo23x0/signature-base) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs` |
+| **S** | [**Velociraptor (Rapid7 / Velocidex)**](https://github.com/Velocidex/velociraptor) | `threat-intel-malware-cti` | 🟡 Hybrid | OSS / Free | `urls`, `dns_records`, `malware_iocs` |
+| **A** | [**vt-py (Official VirusTotal Python SDK)**](https://github.com/VirusTotal/vt-py) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `subdomains`, `dns_records`, `certificates` |
+| **B** | [**FIR (Fast Incident Response)**](https://github.com/certsocietegenerale/FIR) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `documents`, `malware_iocs` |
 
 ---
 
@@ -1513,7 +1719,7 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 ---
 
 ## Selector: image
-**Image / Photograph** (JPEG/PNG, face crop, scenery) — `34` tools (`python3 scripts/osint.py pivot image --passive`)
+**Image / Photograph** (JPEG/PNG, face crop, scenery) — `35` tools (`python3 scripts/osint.py pivot image --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1551,75 +1757,52 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**Social Mapper**](https://github.com/Greenwolf/social_mapper) | `username-enumeration` | 🔴 Active | OSS / Free | `social_profiles`, `usernames`, `person_records` |
 | **A** | [**Unredacter (Bishop Fox)**](https://github.com/BishopFox/unredacter) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `secrets` |
 | **A** | [**Eyeballer (Bishop Fox)**](https://github.com/BishopFox/eyeballer) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `metadata`, `urls` |
+| **S** | [**Binwalk**](https://github.com/ReFirmLabs/binwalk) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `secrets`, `documents` |
 
 ---
 
-## Selector: file_hash
-**File / Cert / DOM Hash** (SHA-256, MD5, JARM, mmh3) — `31` tools (`python3 scripts/osint.py pivot file_hash --passive`)
+## Selector: repo_code
+**Git Repo / Package** (GitHub org/repo, npm/PyPI pkg) — `32` tools (`python3 scripts/osint.py pivot repo_code --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
-| **S** | [**IntelOwl**](https://github.com/intelowlproject/IntelOwl) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `open_ports` |
-| **S** | [**OpenCTI**](https://github.com/OpenCTI-Platform/opencti) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph`, `malware_iocs`, `darkweb_mentions` |
-| **A** | [**TheHive Case Management**](https://github.com/StrangeBee/thehive) | `all-in-one-frameworks` | 🟢 Passive | Freemium | `entity_graph`, `malware_iocs` |
-| **B** | [**Harpoon**](https://github.com/Te-k/harpoon) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `dns_records`, `whois`, `open_ports`, `certificates` |
-| **S** | [**Have I Been Pwned (HIBP)**](https://haveibeenpwned.com/) | `breaches-leaks-stealers` | 🟢 Passive | Freemium | `breach_records` |
-| **A** | [**Pwned Passwords k-Anonymity API**](https://haveibeenpwned.com/Passwords) | `breaches-leaks-stealers` | 🟢 Passive | OSS / Free | `breach_records` |
-| **B** | [**4plebs Archive**](https://archive.4plebs.org/) | `social-media-socmint` | 🟢 Passive | Free | `archived_pages`, `urls` |
-| **A** | [**darknet-mcp-server**](https://github.com/badchars/darknet-mcp-server) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `darkweb_mentions`, `breach_records`, `malware_iocs` |
-| **S** | [**AlienVault Open Threat Exchange (OTX)**](https://otx.alienvault.com/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `dns_records`, `urls`, `subdomains` |
-| **S** | [**Hatching Tria.ge Sandbox**](https://tria.ge/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `secrets`, `ip_addresses` |
-| **S** | [**MalwareBazaar (abuse.ch)**](https://bazaar.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `certificates` |
-| **S** | [**Silent Push Community Edition**](https://www.silentpush.com/community-edition/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `dns_records`, `malware_iocs`, `certificates`, `entity_graph` |
-| **S** | [**ThreatFox (abuse.ch)**](https://threatfox.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs` |
-| **S** | [**urlscan.io**](https://urlscan.io/) | `threat-intel-malware-cti` | 🟡 Hybrid | Freemium | `tech_stack`, `certificates`, `urls`, `archived_pages` |
-| **S** | [**Validin**](https://app.validin.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `dns_records`, `certificates`, `ip_addresses`, `malware_iocs` |
-| **S** | [**VirusTotal & VT Graph**](https://www.virustotal.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records`, `certificates`, `entity_graph` |
-| **A** | [**ANY.RUN Interactive Malware Sandbox**](https://app.any.run/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records`, `ip_addresses` |
-| **A** | [**CIRCL hashlookup (NSRL Known-Good Filter)**](https://hashlookup.circl.lu/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `metadata` |
-| **A** | [**Cisco Talos Intelligence Center**](https://talosintelligence.com/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `whois`, `dns_records` |
-| **A** | [**Hunt.io**](https://hunt.io/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `open_ports`, `certificates`, `entity_graph` |
-| **A** | [**Hybrid Analysis**](https://www.hybrid-analysis.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records` |
-| **A** | [**Joe Sandbox Cloud Basic**](https://www.joesandbox.com/) | `threat-intel-malware-cti` | 🟢 Passive | Freemium | `malware_iocs`, `dns_records` |
-| **A** | [**MISP (Open Source Threat Intelligence Platform)**](https://www.misp-project.org/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `entity_graph` |
-| **A** | [**Pulsedive**](https://pulsedive.com/) | `threat-intel-malware-cti` | 🟡 Hybrid | Freemium | `malware_iocs`, `dns_records`, `whois`, `open_ports` |
-| **A** | [**SSLBL (abuse.ch Malicious SSL & JA3 Blacklist)**](https://sslbl.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `certificates`, `malware_iocs` |
-| **A** | [**URLhaus (abuse.ch)**](https://urlhaus.abuse.ch/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `urls` |
-| **A** | [**YETI (Your Everyday Threat Intelligence)**](https://yeti-platform.io/) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `entity_graph`, `malware_iocs`, `dns_records` |
-| **B** | [**ThreatMiner**](https://www.threatminer.org/) | `threat-intel-malware-cti` | 🟢 Passive | Free | `malware_iocs`, `documents`, `dns_records` |
-| **S** | [**Mitaka**](https://github.com/ninoseki/mitaka) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `open_ports` |
-| **B** | [**Sputnik OSINT Browser Extension**](https://github.com/mitchmoser/sputnik) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `open_ports` |
-| **S** | [**YARA-X (VirusTotal)**](https://github.com/VirusTotal/yara-x) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `secrets`, `metadata` |
-
----
-
-## Selector: document
-**Document File** (PDF, DOCX, XLSX, PGP key) — `17` tools (`python3 scripts/osint.py pivot document --passive`)
-
-| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| **S** | [**Gephi**](https://gephi.org/) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
-| **S** | [**IntelOwl**](https://github.com/intelowlproject/IntelOwl) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `malware_iocs`, `whois`, `dns_records`, `open_ports` |
-| **A** | [**Obsidian (Local-First OSINT Case Vault)**](https://obsidian.md/) | `all-in-one-frameworks` | 🟢 Passive | Free | `entity_graph`, `documents` |
-| **B** | [**Cytoscape**](https://cytoscape.org/) | `all-in-one-frameworks` | 🟢 Passive | OSS / Free | `entity_graph` |
-| **S** | [**GHunt**](https://github.com/mxrch/GHunt) | `email-intelligence` | 🟢 Passive | OSS / Free | `person_records`, `social_profiles`, `geolocation`, `metadata` |
-| **S** | [**MXToolbox SuperTool**](https://mxtoolbox.com/SuperTool.aspx) | `email-intelligence` | 🟡 Hybrid | Freemium | `dns_records`, `whois`, `tech_stack` |
+| **S** | [**GH Archive**](https://www.gharchive.org/) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `emails`, `archived_pages`, `social_profiles` |
+| **S** | [**GitHub Native Code Search & `.patch` Trick**](https://github.com/search) | `code-cloud-dev-osint` | 🟢 Passive | Free | `emails`, `secrets`, `urls`, `social_profiles` |
+| **S** | [**Gitleaks**](https://github.com/gitleaks/gitleaks) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `emails` |
+| **S** | [**grep.app**](https://grep.app/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `urls`, `secrets`, `subdomains` |
+| **S** | [**TruffleHog**](https://github.com/trufflesecurity/trufflehog) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `secrets`, `emails`, `urls` |
+| **A** | [**Docker Hub & Layer Inspector (`dive`)**](https://hub.docker.com/) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack` |
+| **A** | [**git-hound**](https://github.com/tillson/git-hound) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `urls` |
 | **A** | [**Nosey Parker**](https://github.com/praetorian-inc/noseyparker) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `emails` |
-| **S** | [**QGIS**](https://qgis.org/) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `satellite_imagery` |
-| **S** | [**ExifTool**](https://exiftool.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `geolocation`, `person_records` |
-| **A** | [**GnuPG (`gpg`) & pgpdump Packet Inspector**](https://gnupg.org/) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `metadata`, `emails`, `certificates`, `person_records` |
-| **S** | [**Dangerzone (Freedom of the Press Foundation)**](https://dangerzone.rocks/) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `opsec_protection`, `documents` |
-| **A** | [**PDFiD & pdf-parser (Didier Stevens Suite)**](https://blog.didierstevens.com/programs/pdf-tools/) | `archiving-evidence-docs` | 🟢 Passive | OSS / Free | `metadata`, `malware_iocs` |
-| **S** | [**CyberChef (GCHQ)**](https://gchq.github.io/CyberChef/) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `metadata`, `urls`, `emails`, `ip_addresses` |
-| **S** | [**Qubes OS**](https://www.qubes-os.org/) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `opsec_protection` |
-| **S** | [**YARA-X (VirusTotal)**](https://github.com/VirusTotal/yara-x) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `secrets`, `metadata` |
-| **S** | [**CAPEv2 Malware Sandbox**](https://github.com/kevoreilly/CAPEv2) | `threat-intel-malware-cti` | 🔴 Active | OSS / Free | `malware_iocs`, `ip_addresses`, `urls`, `secrets` |
-| **A** | [**Strelka (Target)**](https://github.com/target/strelka) | `threat-intel-malware-cti` | 🟢 Passive | OSS / Free | `malware_iocs`, `metadata`, `certificates`, `urls` |
+| **A** | [**Open Source Insights (deps.dev)**](https://deps.dev/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `entity_graph`, `social_profiles`, `tech_stack` |
+| **A** | [**PyPI & npm Registry Metadata API**](https://pypi.org/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `emails`, `person_records`, `metadata` |
+| **A** | [**Sourcegraph Code Search**](https://sourcegraph.com/search) | `code-cloud-dev-osint` | 🟢 Passive | Freemium | `urls`, `secrets`, `emails` |
+| **B** | [**Gitrob / Shhgit**](https://github.com/eth0izzle/shhgit) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `urls` |
+| **B** | [**searchcode**](https://searchcode.com/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `urls`, `secrets` |
+| **A** | [**OctoSuite**](https://github.com/rly0nheart/octosuite) | `username-enumeration` | 🟡 Hybrid | OSS / Free | `social_profiles`, `emails`, `metadata`, `usernames` |
+| **S** | [**jsluice (Bishop Fox)**](https://github.com/BishopFox/jsluice) | `domain-dns-asm` | 🟡 Hybrid | OSS / Free | `urls`, `secrets`, `subdomains` |
+| **S** | [**Slither (Trail of Bits)**](https://github.com/crytic/slither) | `crypto-blockchain-web3` | 🟡 Hybrid | OSS / Free | `metadata`, `entity_graph`, `malware_iocs` |
+| **S** | [**detect-secrets (Yelp)**](https://github.com/Yelp/detect-secrets) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `metadata` |
+| **A** | [**git-secrets (AWS Labs)**](https://github.com/awslabs/git-secrets) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets` |
+| **A** | [**Talisman (Thoughtworks)**](https://github.com/thoughtworks/talisman) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `certificates` |
+| **S** | [**KeyHacks**](https://github.com/streaak/keyhacks) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `secrets`, `metadata` |
+| **B** | [**Credential Detector**](https://github.com/ynori7/credential-detector) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets` |
+| **B** | [**Cloudsplaining (Salesforce)**](https://github.com/salesforce/cloudsplaining) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `metadata` |
+| **S** | [**Trivy (Aqua Security)**](https://github.com/aquasecurity/trivy) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `tech_stack`, `secrets`, `malware_iocs` |
+| **A** | [**Syft (Anchore SBOM Extractor)**](https://github.com/anchore/syft) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `tech_stack`, `metadata` |
+| **A** | [**Grype**](https://github.com/anchore/grype) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `malware_iocs`, `tech_stack` |
+| **A** | [**Checkov**](https://github.com/bridgecrewio/checkov) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack`, `urls` |
+| **S** | [**gf (Grep-Friend Pattern Wrapper)**](https://github.com/tomnomnom/gf) | `domain-dns-asm` | 🟢 Passive | OSS / Free | `secrets`, `urls`, `subdomains` |
+| **S** | [**Model Context Protocol Reference Servers**](https://github.com/modelcontextprotocol/servers) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `urls`, `documents`, `metadata` |
+| **A** | [**OpenHands Autonomous Agent**](https://github.com/All-Hands-AI/OpenHands) | `ai-agents-mcp-opsec` | 🟡 Hybrid | OSS / Free | `documents`, `entity_graph` |
+| **B** | [**Terrascan**](https://github.com/tenable/terrascan) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `tech_stack`, `secrets`, `open_ports` |
+| **A** | [**tfsec**](https://github.com/aquasecurity/tfsec) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack` |
+| **A** | [**Echidna (Trail of Bits EVM Analyzer)**](https://github.com/crytic/echidna) | `crypto-blockchain-web3` | 🟢 Passive | OSS / Free | `metadata`, `malware_iocs` |
 
 ---
 
 ## Selector: rf_frequency
-**RF Frequency (kHz/MHz)** (`8992 kHz` HFGCS, `433.92 MHz`) — `17` tools (`python3 scripts/osint.py pivot rf_frequency --passive`)
+**RF Frequency (kHz/MHz)** (`8992 kHz` HFGCS, `433.92 MHz`) — `21` tools (`python3 scripts/osint.py pivot rf_frequency --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1640,11 +1823,15 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**Project Ubertooth**](https://github.com/greatscottgadgets/ubertooth) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `metadata` |
 | **A** | [**Gqrx SDR**](https://github.com/gqrx-sdr/gqrx) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry` |
 | **A** | [**SigDigger**](https://github.com/BatchDrake/SigDigger) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry`, `metadata` |
+| **A** | [**HackRF Suite (Great Scott Gadgets)**](https://github.com/greatscottgadgets/hackrf) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry` |
+| **B** | [**SoapySDR**](https://github.com/pothosware/SoapySDR) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry` |
+| **A** | [**Flipper Zero Official Firmware**](https://github.com/flipperdevices/flipperzero-firmware) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `metadata` |
+| **B** | [**bladeRF SDR Suite (Nuand)**](https://github.com/Nuand/bladeRF) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry` |
 
 ---
 
 ## Selector: vessel_imo
-**Vessel IMO / MMSI** (7-digit IMO or 9-digit MMSI) — `17` tools (`python3 scripts/osint.py pivot vessel_imo --passive`)
+**Vessel IMO / MMSI** (7-digit IMO or 9-digit MMSI) — `18` tools (`python3 scripts/osint.py pivot vessel_imo --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1665,35 +1852,12 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**US Treasury OFAC Sanctions List Search**](https://sanctionssearch.ofac.treas.gov/) | `corporate-financial-sanctions` | 🟢 Passive | Free | `sanctions_hits` |
 | **A** | [**satellite-mcp**](https://github.com/badchars/satellite-mcp) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `satellite_imagery`, `geolocation`, `flight_tracks`, `vessel_tracks` |
 | **S** | [**AIS-catcher**](https://github.com/jvde-github/AIS-catcher) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `vessel_tracks`, `signal_telemetry`, `geolocation` |
-
----
-
-## Selector: repo_code
-**Git Repo / Package** (GitHub org/repo, npm/PyPI pkg) — `16` tools (`python3 scripts/osint.py pivot repo_code --passive`)
-
-| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| **S** | [**GH Archive**](https://www.gharchive.org/) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `emails`, `archived_pages`, `social_profiles` |
-| **S** | [**GitHub Native Code Search & `.patch` Trick**](https://github.com/search) | `code-cloud-dev-osint` | 🟢 Passive | Free | `emails`, `secrets`, `urls`, `social_profiles` |
-| **S** | [**Gitleaks**](https://github.com/gitleaks/gitleaks) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `emails` |
-| **S** | [**grep.app**](https://grep.app/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `urls`, `secrets`, `subdomains` |
-| **S** | [**TruffleHog**](https://github.com/trufflesecurity/trufflehog) | `code-cloud-dev-osint` | 🟡 Hybrid | OSS / Free | `secrets`, `emails`, `urls` |
-| **A** | [**Docker Hub & Layer Inspector (`dive`)**](https://hub.docker.com/) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `tech_stack` |
-| **A** | [**git-hound**](https://github.com/tillson/git-hound) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `urls` |
-| **A** | [**Nosey Parker**](https://github.com/praetorian-inc/noseyparker) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `emails` |
-| **A** | [**Open Source Insights (deps.dev)**](https://deps.dev/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `entity_graph`, `social_profiles`, `tech_stack` |
-| **A** | [**PyPI & npm Registry Metadata API**](https://pypi.org/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `emails`, `person_records`, `metadata` |
-| **A** | [**Sourcegraph Code Search**](https://sourcegraph.com/search) | `code-cloud-dev-osint` | 🟢 Passive | Freemium | `urls`, `secrets`, `emails` |
-| **B** | [**Gitrob / Shhgit**](https://github.com/eth0izzle/shhgit) | `code-cloud-dev-osint` | 🟢 Passive | OSS / Free | `secrets`, `urls` |
-| **B** | [**searchcode**](https://searchcode.com/) | `code-cloud-dev-osint` | 🟢 Passive | Free | `urls`, `secrets` |
-| **A** | [**OctoSuite**](https://github.com/rly0nheart/octosuite) | `username-enumeration` | 🟡 Hybrid | OSS / Free | `social_profiles`, `emails`, `metadata`, `usernames` |
-| **S** | [**jsluice (Bishop Fox)**](https://github.com/BishopFox/jsluice) | `domain-dns-asm` | 🟡 Hybrid | OSS / Free | `urls`, `secrets`, `subdomains` |
-| **S** | [**Slither (Trail of Bits)**](https://github.com/crytic/slither) | `crypto-blockchain-web3` | 🟡 Hybrid | OSS / Free | `metadata`, `entity_graph`, `malware_iocs` |
+| **S** | [**Yente (OpenSanctions Self-Hosted API)**](https://github.com/opensanctions/yente) | `corporate-financial-sanctions` | 🟢 Passive | OSS / Free | `sanctions_hits`, `corporate_records`, `entity_graph` |
 
 ---
 
 ## Selector: onion_url
-**Tor `.onion` Address** (v3 hidden service URL) — `15` tools (`python3 scripts/osint.py pivot onion_url --passive`)
+**Tor `.onion` Address** (v3 hidden service URL) — `17` tools (`python3 scripts/osint.py pivot onion_url --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1712,11 +1876,13 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **A** | [**Onioff**](https://github.com/k4m4/onioff) | `darkweb-tor-underground` | 🔴 Active | OSS / Free | `darkweb_mentions`, `urls`, `metadata` |
 | **A** | [**TorCrawl.py**](https://github.com/MikeMeliz/TorCrawl.py) | `darkweb-tor-underground` | 🔴 Active | OSS / Free | `darkweb_mentions`, `archived_pages`, `urls` |
 | **A** | [**Ahmia Crawler**](https://github.com/ahmia/ahmia-crawler) | `darkweb-tor-underground` | 🔴 Active | OSS / Free | `darkweb_mentions`, `urls`, `archived_pages` |
+| **S** | [**Stem (Tor Controller Python Library)**](https://github.com/torproject/stem) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `ip_addresses`, `darkweb_mentions`, `opsec_protection` |
+| **A** | [**OnionShare**](https://github.com/onionshare/onionshare) | `darkweb-tor-underground` | 🟢 Passive | OSS / Free | `opsec_protection`, `documents` |
 
 ---
 
 ## Selector: aircraft_hex
-**Aircraft ICAO Hex / Tail** (Mode-S `AE01D5`, `N123AB`) — `14` tools (`python3 scripts/osint.py pivot aircraft_hex --passive`)
+**Aircraft ICAO Hex / Tail** (Mode-S `AE01D5`, `N123AB`) — `16` tools (`python3 scripts/osint.py pivot aircraft_hex --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1734,11 +1900,13 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**US Treasury OFAC Sanctions List Search**](https://sanctionssearch.ofac.treas.gov/) | `corporate-financial-sanctions` | 🟢 Passive | Free | `sanctions_hits` |
 | **A** | [**satellite-mcp**](https://github.com/badchars/satellite-mcp) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `satellite_imagery`, `geolocation`, `flight_tracks`, `vessel_tracks` |
 | **S** | [**readsb (1090 MHz ADS-B Decoder)**](https://github.com/wiedehopf/readsb) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `flight_tracks`, `signal_telemetry`, `geolocation` |
+| **A** | [**CesiumJS 3D Geospatial Engine**](https://github.com/CesiumGS/cesium) | `geoint-maps-satellites` | 🟢 Passive | OSS / Free | `geolocation`, `flight_tracks` |
+| **S** | [**tar1090 (ADS-B Historical Track UI)**](https://github.com/wiedehopf/tar1090) | `aviation-maritime-transport` | 🟢 Passive | OSS / Free | `flight_tracks`, `geolocation`, `signal_telemetry` |
 
 ---
 
 ## Selector: mac_bssid
-**Wi-Fi BSSID / BLE MAC** (`00:11:22:33:44:55`) — `9` tools (`python3 scripts/osint.py pivot mac_bssid --passive`)
+**Wi-Fi BSSID / BLE MAC** (`00:11:22:33:44:55`) — `11` tools (`python3 scripts/osint.py pivot mac_bssid --passive`)
 
 | Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
 | :---: | :--- | :--- | :--- | :--- | :--- |
@@ -1751,6 +1919,25 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **S** | [**Aircrack-ng Suite (airodump-ng)**](https://github.com/aircrack-ng/aircrack-ng) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `geolocation`, `metadata` |
 | **S** | [**Scapy**](https://github.com/secdev/scapy) | `sigint-wireless-space-rf` | 🔴 Active | OSS / Free | `open_ports`, `signal_telemetry`, `ip_addresses`, `metadata` |
 | **A** | [**Project Ubertooth**](https://github.com/greatscottgadgets/ubertooth) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `metadata` |
+| **S** | [**Wireshark / tshark**](https://github.com/wireshark/wireshark) | `network-ip-iot-search` | 🟢 Passive | OSS / Free | `ip_addresses`, `dns_records`, `certificates`, `metadata` |
+| **A** | [**Flipper Zero Official Firmware**](https://github.com/flipperdevices/flipperzero-firmware) | `sigint-wireless-space-rf` | 🟡 Hybrid | OSS / Free | `signal_telemetry`, `metadata` |
+
+---
+
+## Selector: video
+**Video Clip** (MP4, livestream, social upload) — `9` tools (`python3 scripts/osint.py pivot video --passive`)
+
+| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **S** | [**ExifTool**](https://exiftool.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `geolocation`, `person_records` |
+| **S** | [**FFmpeg**](https://ffmpeg.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata` |
+| **S** | [**InVID / WeVerify Verification Plugin**](https://www.invid-project.eu/tools-and-services/invid-verification-plugin/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `urls` |
+| **A** | [**BirdNET Analyzer**](https://birdnet.cornell.edu/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `geolocation`, `metadata` |
+| **A** | [**Hugin Panorama Stitcher**](https://hugin.sourceforge.io/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `geolocation` |
+| **A** | [**TrueMedia.org Deepfake Detector**](https://www.truemedia.org/) | `image-video-media-forensics` | 🟢 Passive | Free | `metadata` |
+| **B** | [**Hiya AI Voice & Audio Deepfake Detector**](https://www.hiya.com/products/deepfake-voice-detector) | `image-video-media-forensics` | 🟢 Passive | Freemium | `metadata` |
+| **S** | [**OpenAI Whisper (Local Speech-to-Text)**](https://github.com/openai/whisper) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `documents`, `metadata` |
+| **S** | [**Fabric (Daniel Miessler AI Patterns)**](https://github.com/danielmiessler/fabric) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `malware_iocs`, `entity_graph`, `metadata` |
 
 ---
 
@@ -1767,22 +1954,6 @@ Real-world investigations start from a **known selector** (an email, handle, pho
 | **B** | [**Hiya AI Voice & Audio Deepfake Detector**](https://www.hiya.com/products/deepfake-voice-detector) | `image-video-media-forensics` | 🟢 Passive | Freemium | `metadata` |
 | **S** | [**OpenAI Whisper (Local Speech-to-Text)**](https://github.com/openai/whisper) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `documents`, `metadata` |
 | **A** | [**SigDigger**](https://github.com/BatchDrake/SigDigger) | `sigint-wireless-space-rf` | 🟢 Passive | OSS / Free | `signal_telemetry`, `metadata` |
-
----
-
-## Selector: video
-**Video Clip** (MP4, livestream, social upload) — `8` tools (`python3 scripts/osint.py pivot video --passive`)
-
-| Tier | Tool | Category | OPSEC | Pricing | Outputs Produced |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| **S** | [**ExifTool**](https://exiftool.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `geolocation`, `person_records` |
-| **S** | [**FFmpeg**](https://ffmpeg.org/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata` |
-| **S** | [**InVID / WeVerify Verification Plugin**](https://www.invid-project.eu/tools-and-services/invid-verification-plugin/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `metadata`, `urls` |
-| **A** | [**BirdNET Analyzer**](https://birdnet.cornell.edu/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `geolocation`, `metadata` |
-| **A** | [**Hugin Panorama Stitcher**](https://hugin.sourceforge.io/) | `image-video-media-forensics` | 🟢 Passive | OSS / Free | `geolocation` |
-| **A** | [**TrueMedia.org Deepfake Detector**](https://www.truemedia.org/) | `image-video-media-forensics` | 🟢 Passive | Free | `metadata` |
-| **B** | [**Hiya AI Voice & Audio Deepfake Detector**](https://www.hiya.com/products/deepfake-voice-detector) | `image-video-media-forensics` | 🟢 Passive | Freemium | `metadata` |
-| **S** | [**OpenAI Whisper (Local Speech-to-Text)**](https://github.com/openai/whisper) | `ai-agents-mcp-opsec` | 🟢 Passive | OSS / Free | `documents`, `metadata` |
 
 ---
 

@@ -716,10 +716,10 @@
 
   let lastHuntReport = null;
 
-  async function openActiveAuthorizationModal(targetOverride) {
+  async function openActiveAuthorizationModal(targetOverride, fromCaseId) {
     const inputEl = document.getElementById("huntTargetInput");
     const target = (targetOverride || inputEl.value || "").trim();
-    if (!target) {
+    if (!target && !fromCaseId) {
       inputEl.focus();
       return;
     }
@@ -727,13 +727,13 @@
     const backdrop = document.getElementById("activeAuthBackdrop");
     const modal = document.getElementById("activeAuthModalContent");
     backdrop.classList.add("open");
-    modal.innerHTML = `<div style="padding:24px; text-align:center;"><h3>🔒 Preparing Active OSINT Scope (Zero Packets Sent)...</h3></div>`;
+    modal.innerHTML = `<div style="padding:24px; text-align:center;"><h3>🔒 Preparing Active OSINT Scope Across All Discovered Infrastructure (Zero Packets Sent)...</h3></div>`;
 
     try {
-      const resp = await fetch("./api/hunt/prepare-active", {
+      const resp = await fetch("./api/hunt/active/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target }),
+        body: JSON.stringify(fromCaseId ? { target, from_case: fromCaseId } : { target }),
       });
       const plan = await resp.json();
       if (!resp.ok || plan.error) throw new Error(plan.error || `HTTP ${resp.status}`);
@@ -941,28 +941,83 @@
       .join("");
 
     const isAct = m.opsec_mode === "Active+Passive";
+    const syn = report.intelligence_synthesis || {};
+    const expScore = syn.exposure_score ?? 0;
+    const expRating = syn.exposure_rating || "MINIMAL";
+    const expColor = expScore >= 70 ? "#ef4444" : expScore >= 40 ? "#f59e0b" : "#10b981";
+    const idC = syn.identity_cluster || {};
+    const infC = syn.infrastructure_cluster || {};
+
+    const synHtml = `
+      <div class="collector-card" style="border-color:rgba(56,189,248,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <h3 style="margin:0; font-size:15.5px;">🧠 Cross-Stage Executive Intelligence Synthesis</h3>
+          <span class="badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${expColor}; color:${expColor}; font-weight:800; font-size:12.5px;">
+            EXPOSURE SCORE: ${esc(expScore)}/100 · ${esc(expRating)}
+          </span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; font-size:12.5px;">
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
+            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">👤 Identity Cluster</div>
+            <div><strong>Names/Orgs:</strong> ${esc([...(idC.person_names || []), ...(idC.organizations || [])].join(", ") || "—")}</div>
+            <div><strong>Handles:</strong> ${esc((idC.usernames_and_variants || []).slice(0, 8).join(", ") || "—")}</div>
+            <div><strong>Emails:</strong> ${esc((idC.emails || []).slice(0, 6).join(", ") || "—")}</div>
+          </div>
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
+            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">🌐 Infrastructure Cluster</div>
+            <div><strong>Domains:</strong> ${esc((infC.domains_and_subdomains || []).slice(0, 6).join(", ") || "—")}</div>
+            <div><strong>IPs / ASNs:</strong> ${esc([...(infC.ip_addresses || []), ...(infC.asns || [])].slice(0, 6).join(", ") || "—")}</div>
+            <div><strong>Locations:</strong> ${esc((idC.locations || []).slice(0, 5).join(", ") || "—")}</div>
+          </div>
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
+            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">🔗 Attribution Bridges &amp; OPSEC</div>
+            <div><strong>Bridges:</strong> ${esc((syn.cross_entity_attribution_bridges || []).slice(0, 3).join(" · ") || "Seed stage")}</div>
+            <div style="margin-top:3px;"><strong>Exposures:</strong> ${esc((syn.security_and_opsec_exposures || []).slice(0, 2).join(" · ") || "None flagged")}</div>
+          </div>
+        </div>
+      </div>`;
+
     outArea.innerHTML = `
       <div class="collector-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; border-color:${isAct ? "var(--red)" : "var(--border-hi)"};">
         <div>
-          <strong>${isAct ? "🔴 Active+Passive" : "🟢 Passive"} Case <code>${esc(m.case_id)}</code> Complete in ${esc(m.duration_seconds)}s</strong>
+          <strong>${isAct ? "🔴 Active+Passive" : "🟢 Passive"} Case <code>${esc(m.case_id)}</code> · ${esc(m.stages_executed || m.depth)} Stage(s) in ${esc(m.duration_seconds)}s</strong>
           <div style="font-size:12px; color:var(--text-2);">
-            ${report.graph.nodes.length} Entity Node(s) · ${report.graph.edges.length} Pivot Edge(s) · ${isAct ? `Authorized via <code>${esc(m.approval_request_id)}</code> · ` : ""}Saved to <code>${esc(m.case_dir || "memory")}/</code>
+            ${report.graph.nodes.length} Entity Node(s) · ${report.graph.edges.length} Pivot Edge(s) · Converged: <code>${esc(Boolean(m.converged))}</code> · ${isAct ? `Authorized via <code>${esc(m.approval_request_id)}</code> · ` : ""}Saved to <code>${esc(m.case_dir || "memory")}/</code>
           </div>
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          ${!isAct ? `<button class="btn-sm" id="escalateActiveBtn" style="border-color:var(--red); color:#fca5a5;">🔴 Escalate to Active OSINT (Ask Approval)...</button>` : ""}
-          <button class="btn-sm" id="dlDossierMd">📄 Download Dossier (.md)</button>
-          <button class="btn-sm" id="dlStixJson">🛡️ Download STIX 2.1 (.json)</button>
-          <button class="btn-sm" id="dlFullJson">📦 Download Report (.json)</button>
+        <div style="display:flex; gap:7px; flex-wrap:wrap;">
+          ${!isAct ? `<button class="btn-sm" id="escalateActiveBtn" style="border-color:var(--red); color:#fca5a5;">🔴 Escalate All Discovered Infra to Active OSINT...</button>` : ""}
+          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 Executive HTML Report ↗</a>` : ""}
+          <button class="btn-sm" id="dlDossierMd">📄 Dossier (.md)</button>
+          <button class="btn-sm" id="dlEntitiesCsv">📊 Entities (.csv)</button>
+          <button class="btn-sm" id="dlStixJson">🛡️ STIX 2.1 (.json)</button>
+          <button class="btn-sm" id="dlFullJson">📦 Full JSON</button>
         </div>
       </div>
 
+      ${synHtml}
+
       <div class="graph-box">
         <div style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase; margin-bottom:6px;">
-          🕸️ Autonomous Entity &amp; Pivot Graph (Click Any Node to Re-Hunt Focused)
+          🕸️ Autonomous Multi-Stage Entity &amp; Pivot Graph (Click Any Node to Focus-Hunt)
         </div>
         ${svg}
       </div>
+
+      ${
+        m.case_id
+          ? `<div class="collector-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                <strong>🔄 Multi-Stage Case Expansion — Feed External Stage Findings into <code>${esc(m.case_id)}</code></strong>
+                <span style="font-size:11.5px; color:var(--text-2);">Carves every new handle, phone, WhatsApp link, email &amp; domain and hunts ALL of them</span>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <input type="text" id="expandCaseTextInput" class="hunter-input" style="flex:1; min-width:260px;" placeholder="Paste search snippets, Instagram/TikTok bios, Linktree URLs, or directory text to carve &amp; hunt next stage..." />
+                <button class="btn-sm" id="expandCaseBtn" style="border-color:var(--cyan); color:var(--cyan); font-weight:700;">⚡ Expand Case &amp; Hunt All Clues</button>
+              </div>
+            </div>`
+          : ""
+      }
 
       ${waveHtml}
 
@@ -975,14 +1030,43 @@
 
     const escBtn = document.getElementById("escalateActiveBtn");
     if (escBtn) {
-      escBtn.onclick = () => openActiveAuthorizationModal(m.raw_input);
+      escBtn.onclick = () => openActiveAuthorizationModal(m.raw_input, m.case_id);
     }
     document.getElementById("dlDossierMd").onclick = () =>
       downloadBlob(`${m.case_id}-dossier.md`, report.dossier_markdown, "text/markdown;charset=utf-8");
+    const csvBtn = document.getElementById("dlEntitiesCsv");
+    if (csvBtn) {
+      csvBtn.onclick = () =>
+        downloadBlob(`${m.case_id}-entities.csv`, report.entities_csv || "", "text/csv;charset=utf-8");
+    }
     document.getElementById("dlStixJson").onclick = () =>
       downloadBlob(`${m.case_id}-stix2.json`, JSON.stringify(report.stix2_bundle, null, 2), "application/json");
     document.getElementById("dlFullJson").onclick = () =>
       downloadBlob(`${m.case_id}-report.json`, JSON.stringify(report, null, 2), "application/json");
+
+    const expCaseBtn = document.getElementById("expandCaseBtn");
+    if (expCaseBtn) {
+      expCaseBtn.onclick = async () => {
+        const txt = (document.getElementById("expandCaseTextInput")?.value || "").trim();
+        if (!txt) return;
+        expCaseBtn.disabled = true;
+        expCaseBtn.textContent = "⏳ Expanding Stage...";
+        try {
+          const r = await fetch("./api/cases/expand", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ case_id: m.case_id, ingested_text: txt, additional_stages: 3 }),
+          });
+          const nextRep = await r.json();
+          if (!r.ok || nextRep.error) throw new Error(nextRep.error || `HTTP ${r.status}`);
+          lastHuntReport = nextRep;
+          renderHuntReport(nextRep);
+        } catch (e) {
+          expCaseBtn.textContent = `⚠️ ${e.message}`;
+          expCaseBtn.disabled = false;
+        }
+      };
+    }
 
     outArea.querySelectorAll("[data-rehunt]").forEach((g) => {
       g.addEventListener("click", () => {
@@ -1219,10 +1303,83 @@
     });
   }
 
+  function initDecoderControls() {
+    const inp = document.getElementById("forensicDecodeInput");
+    const btn = document.getElementById("runDecodeBtn");
+    const out = document.getElementById("forensicDecodeResults");
+    if (!inp || !btn || !out) return;
+
+    async function runDecode() {
+      const payload = inp.value.trim();
+      if (!payload) {
+        inp.focus();
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "⏳ DECODING...";
+      try {
+        const r = await fetch("./api/decode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ payload }),
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
+        const arts = data.results || [];
+        if (!arts.length) {
+          out.innerHTML = `<div class="collector-card"><h3>⚪ No Offline Forensic Structure Matched</h3><p style="color:var(--text-2);">Input did not match a valid TikTok ID/URL, Snowflake, UUID/ULID/ObjectId, IBAN, E.164 phone, VIN, ICAO24, IMO/MMSI, MAC/BSSID, or JWT.</p></div>`;
+        } else {
+          out.innerHTML = arts
+            .map(
+              (a) => `
+              <div class="collector-card" style="border-color:rgba(16,185,129,0.45);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <div>
+                    <span class="badge opsec-Passive">🟢 ZERO-PACKET DECODE</span>
+                    <strong style="margin-left:8px; font-size:15px;">${esc(a.decoder)}</strong>
+                  </div>
+                  <button class="btn-sm" data-hunt-from-decode="${esc(payload)}">⚡ Send to Autonomous Hunter</button>
+                </div>
+                <div class="code-block">${esc(JSON.stringify(a, null, 2))}</div>
+              </div>`
+            )
+            .join("");
+          out.querySelectorAll("[data-hunt-from-decode]").forEach((b) => {
+            b.onclick = () => {
+              document.getElementById("huntTargetInput").value = b.dataset.huntFromDecode;
+              switchView("hunter");
+              executeLiveHunt();
+            };
+          });
+        }
+      } catch (err) {
+        out.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Decode API Unreachable (${esc(err.message)})</h3><p style="color:var(--text-1);">Run <code>python3 scripts/osint.py decode "${esc(payload)}"</code> from CLI or start <code>python3 scripts/server.py</code>.</p></div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "🧬 DECODE OFFLINE";
+      }
+    }
+
+    btn.addEventListener("click", runDecode);
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runDecode();
+      }
+    });
+    document.querySelectorAll("[data-decode-preset]").forEach((p) => {
+      p.addEventListener("click", () => {
+        inp.value = p.dataset.decodePreset;
+        runDecode();
+      });
+    });
+  }
+
   initHeaderTelemetry();
   initSelectDropdowns();
   bindGlobalControls();
   initHunterControls();
+  initDecoderControls();
   renderArsenal();
   renderPivotMatrix();
   renderWorkflows();

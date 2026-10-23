@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Querying Certificate Transparency (`crt.sh`), passive DNS (`SecurityTrails`), and RDAP is 100% passive. Running `httpx`, `Katana`, or DNS brute-forcing touches target servers and leaves logs.
 
-**Discipline Telemetry**: `86` Verified Tools · `26` S-Tier Flagships · `26` Passive · `76` Free/Open-Source
+**Discipline Telemetry**: `92` Verified Tools · `29` S-Tier Flagships · `31` Passive · `82` Free/Open-Source
 
 ## Subcategories
 - [Tech Profiling & Tag Pivoting](#tech-profiling-tag-pivoting) (4)
@@ -19,15 +19,17 @@
 - [DNS Diagnostics & Topology](#dns-diagnostics-topology) (2)
 - [Active Web & VHost Discovery](#active-web-vhost-discovery) (5)
 - [Active DNS Resolution & Bruteforce](#active-dns-resolution-bruteforce) (7)
-- [Active DNS Enumeration](#active-dns-enumeration) (4)
+- [Active DNS Enumeration](#active-dns-enumeration) (5)
 - [Subdomain Enumeration](#subdomain-enumeration) (2)
 - [Subdomain Takeover Detection](#subdomain-takeover-detection) (7)
 - [Web Tech & WAF Fingerprinting](#web-tech-waf-fingerprinting) (8)
-- [Active Parameter & JS Recon](#active-parameter-js-recon) (6)
+- [Active Parameter & JS Recon](#active-parameter-js-recon) (8)
 - [Active Web Spiders](#active-web-spiders) (1)
 - [Active Web Probing](#active-web-probing) (6)
 - [Root Domain & TLD Discovery](#root-domain-tld-discovery) (1)
-- [Historical URL Discovery](#historical-url-discovery) (1)
+- [Historical URL Discovery](#historical-url-discovery) (2)
+- [Passive Subdomain & DNS History](#passive-subdomain-dns-history) (1)
+- [Analytics & Ad-Tag Attribution](#analytics-ad-tag-attribution) (1)
 
 ---
 
@@ -509,6 +511,7 @@
 | **A** | [**dnsenum**](https://github.com/fwaeytens/dnsenum) ([GitHub](https://github.com/fwaeytens/dnsenum)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, subdomains, ip_addresses` |
 | **A** | [**hakrevdns**](https://github.com/hakluke/hakrevdns) ([GitHub](https://github.com/hakluke/hakrevdns)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `subdomains, dns_records` |
 | **A** | [**hakip2host**](https://github.com/hakluke/hakip2host) ([GitHub](https://github.com/hakluke/hakip2host)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `subdomains, certificates, dns_records` |
+| **A** | [**Cero (Go TLS SAN Scraper)**](https://github.com/glebarez/cero) ([GitHub](https://github.com/glebarez/cero)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain, asn` → `subdomains, certificates` |
 
 ### [DNSRecon](https://github.com/darkoperator/dnsrecon) `[S-Tier]`
 - **ID**: `dnsrecon` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`darkoperator/dnsrecon`](https://github.com/darkoperator/dnsrecon)
@@ -537,6 +540,13 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `ssl-san`, `ptr`, `ip-to-domain`, `hakluke`, `active`
 - **Overview**: Active IP-to-hostname resolver combining live TLS port 443 SAN/CN certificate extraction with reverse PTR DNS queries across target IP ranges.
 - **Quick-Start / Tradecraft**: `cat ips.txt | hakip2host`
+
+### [Cero (Go TLS SAN Scraper)](https://github.com/glebarez/cero) `[A-Tier]`
+- **ID**: `cero-tls` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`glebarez/cero`](https://github.com/glebarez/cero)
+- **Inputs**: `ip`, `domain`, `asn` → **Outputs**: `subdomains`, `certificates`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `tls-san`, `cidr-sweep`, `cert-scraping`, `active`
+- **Overview**: Ultra-fast concurrent Go scanner connecting directly to arbitrary ports across IP/CIDR ranges to harvest X.509 certificate SAN domain names.
+- **Quick-Start / Tradecraft**: `cero 198.51.100.0/24 -p 443,8443`
 
 ---
 
@@ -707,6 +717,8 @@
 | **S** | [**xnLinkFinder**](https://github.com/xnl-h4ck3r/xnLinkFinder) ([GitHub](https://github.com/xnl-h4ck3r/xnLinkFinder)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls, subdomains, metadata` |
 | **B** | [**getJS**](https://github.com/003random/getJS) ([GitHub](https://github.com/003random/getJS)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls` |
 | **A** | [**subjs**](https://github.com/lc/subjs) ([GitHub](https://github.com/lc/subjs)) | CLI | OSS / Free | 🔴 Active | ✅ | `url, domain` → `urls` |
+| **S** | [**gf (Grep-Friend Pattern Wrapper)**](https://github.com/tomnomnom/gf) ([GitHub](https://github.com/tomnomnom/gf)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, url, repo_code` → `secrets, urls, subdomains` |
+| **B** | [**qsreplace**](https://github.com/tomnomnom/qsreplace) ([GitHub](https://github.com/tomnomnom/qsreplace)) | CLI | OSS / Free | 🟢 Passive | ✅ | `url` → `urls` |
 
 ### [Arjun](https://github.com/s0md3v/Arjun) `[S-Tier]`
 - **ID**: `arjun` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`s0md3v/Arjun`](https://github.com/s0md3v/Arjun)
@@ -749,6 +761,20 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `javascript`, `pipeline`, `endpoints`, `active`
 - **Overview**: Go pipeline tool actively fetching live pages across subdomain lists to extract every referenced JavaScript file URL for secret and route carving.
 - **Quick-Start / Tradecraft**: `cat live_urls.txt | subjs`
+
+### [gf (Grep-Friend Pattern Wrapper)](https://github.com/tomnomnom/gf) `[S-Tier]`
+- **ID**: `tomnomnom-gf` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/gf`](https://github.com/tomnomnom/gf)
+- **Inputs**: `document`, `url`, `repo_code` → **Outputs**: `secrets`, `urls`, `subdomains`
+- **Platforms**: CLI, Linux, macOS, Go · **Tags**: `grep-patterns`, `tomnomnom`, `js-carving`, `secrets`
+- **Overview**: Pattern-matching wrapper around `grep` for rapidly carving AWS keys, URLs, S3 buckets, base64 blobs, and debug parameters out of HTTP/JS dumps.
+- **Quick-Start / Tradecraft**: `gf aws-keys ./responses/`
+
+### [qsreplace](https://github.com/tomnomnom/qsreplace) `[B-Tier]`
+- **ID**: `tomnomnom-qsreplace` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/qsreplace`](https://github.com/tomnomnom/qsreplace)
+- **Inputs**: `url` → **Outputs**: `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `url-dedup`, `query-params`, `tomnomnom`, `pipeline`
+- **Overview**: Pipeline URL query-string normalizer deduplicating parameter combinations across large historical Wayback and spider endpoint lists.
+- **Quick-Start / Tradecraft**: `cat urls.txt | qsreplace -a`
 
 ---
 
@@ -842,6 +868,7 @@
 | Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- |
 | **A** | [**URLFinder (ProjectDiscovery)**](https://github.com/projectdiscovery/urlfinder) ([GitHub](https://github.com/projectdiscovery/urlfinder)) | CLI | OSS / Free | 🟢 Passive | ✅ | `domain` → `urls, subdomains` |
+| **S** | [**unfurl**](https://github.com/tomnomnom/unfurl) ([GitHub](https://github.com/tomnomnom/unfurl)) | CLI | OSS / Free | 🟢 Passive | ✅ | `url` → `subdomains, urls, metadata` |
 
 ### [URLFinder (ProjectDiscovery)](https://github.com/projectdiscovery/urlfinder) `[A-Tier]`
 - **ID**: `urlfinder` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`projectdiscovery/urlfinder`](https://github.com/projectdiscovery/urlfinder)
@@ -849,6 +876,43 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `url-discovery`, `projectdiscovery`, `wayback`, `passive`
 - **Overview**: High-speed passive URL harvester aggregating historical endpoints across CommonCrawl, Wayback Machine, AlienVault OTX, and URLScan.
 - **Quick-Start / Tradecraft**: `urlfinder -d example.com`
+
+### [unfurl](https://github.com/tomnomnom/unfurl) `[S-Tier]`
+- **ID**: `tomnomnom-unfurl` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/unfurl`](https://github.com/tomnomnom/unfurl)
+- **Inputs**: `url` → **Outputs**: `subdomains`, `urls`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `url-parsing`, `tomnomnom`, `pipeline`, `wayback`
+- **Overview**: Pipeline URL parser slicing massive Wayback/CommonCrawl URL lists into unique subdomains, paths, query keys, and parameter values.
+- **Quick-Start / Tradecraft**: `cat urls.txt | unfurl --unique domains`
+
+---
+
+## Passive Subdomain & DNS History
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**haktrails**](https://github.com/hakluke/haktrails) ([GitHub](https://github.com/hakluke/haktrails)) | CLI | OSS / Free | 🟢 Passive | 🔑 | `domain, ip, company` → `subdomains, dns_records, whois` |
+
+### [haktrails](https://github.com/hakluke/haktrails) `[A-Tier]`
+- **ID**: `haktrails` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: Required (Account / API Key) · **GitHub**: [`hakluke/haktrails`](https://github.com/hakluke/haktrails)
+- **Inputs**: `domain`, `ip`, `company` → **Outputs**: `subdomains`, `dns_records`, `whois`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `securitytrails`, `passive-dns`, `hakluke`, `pipeline`
+- **Overview**: Go CLI querying SecurityTrails passive DNS, historical WHOIS, and associated domain endpoints in Unix pipelines.
+- **Quick-Start / Tradecraft**: `echo example.com | haktrails subdomains`
+
+---
+
+## Analytics & Ad-Tag Attribution
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Wayback Google Analytics (Bellingcat)**](https://github.com/bellingcat/wayback-google-analytics) ([GitHub](https://github.com/bellingcat/wayback-google-analytics)) | CLI | OSS / Free | 🟢 Passive | ✅ | `domain, url` → `entity_graph, archived_pages, metadata` |
+
+### [Wayback Google Analytics (Bellingcat)](https://github.com/bellingcat/wayback-google-analytics) `[S-Tier]`
+- **ID**: `bellingcat-wayback-ga` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`bellingcat/wayback-google-analytics`](https://github.com/bellingcat/wayback-google-analytics)
+- **Inputs**: `domain`, `url` → **Outputs**: `entity_graph`, `archived_pages`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `bellingcat`, `google-analytics`, `wayback`, `attribution`
+- **Overview**: Bellingcat Python CLI scraping historical Wayback Machine snapshots to extract `UA-`, `G-`, and `GTM-` tracking codes across time to link covert site networks.
+- **Quick-Start / Tradecraft**: `wayback-google-analytics -u https://example.com`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🔓 Breaches & Infostealers](./06-breaches-leaks-stealers.md) · [📡 Cyberspace & Network Search ▶](./08-network-ip-iot-search.md)

@@ -34,7 +34,7 @@
      *(Or call MCP tool `osint_ingest_and_expand_case`.)*
    - The Stage Analyzer (`osint_hunter/stage_analyzer.py`) carves **every** newly discovered handle, handle mutation, phone (`+E.164` / `wa.me`), email (including obfuscated `[at]`), domain, subdomain, URL, real name, and organization/clinic, filters out generic CDN/CA noise, hunts **all** new leads across collectors, and forges new `web_search` dorks for every newly discovered clue.
    - Run `web_search` on the newly forged Stage-2/3 dorks and repeat `--resume-case` until a stage yields **0 new unvisited target leads** (`converged: true`).
-3. **Deliver the Unified Multi-Stage Passive Dossier** (`cases/<CASE_ID>/dossier.md`, `stix2_bundle.json`, `manifest.sha256`).
+3. **Deliver the Unified Multi-Stage Passive Dossier** (`cases/<CASE_ID>/dossier.md`, `report.html`, `entities.csv`, `stix2_bundle.json`, `manifest.sha256`).
 4. **Full-Surface Active Escalation Offer (When Live Surface Exists or User Requested Full/Active Recon)**:
    - Prepare a zero-packet Active Authorization Request covering **every** domain, URL, IP, email, and handle discovered across **all** passive stages:
      ```bash
@@ -90,19 +90,27 @@ python3 scripts/hunt.py "<TARGET>" --active --request-id ACT-XXXXXXXX --user-app
 ## 4. Fast CLI & MCP Reference
 
 ```bash
-# Passive Hunt — Runs immediately with ZERO questions
-python3 scripts/hunt.py "<target_or_prompt>" --depth 2
+# Passive Hunt — Runs immediately with ZERO questions (exhaustive up to 4 stages)
+python3 scripts/hunt.py "<target_or_prompt>" --depth 4
 
-# Active Hunt Step 1 — Prepare OPSEC scope & Request ID (sends 0 packets)
-python3 scripts/hunt.py "<target>" --prepare-active
+# Expand Case with External Stage Findings & Cross-Case Link Analysis
+python3 scripts/hunt.py --resume-case <CASE_ID> --ingest-file <stage_findings.txt>
+python3 scripts/hunt.py --compare-cases <CASE_A> <CASE_B>
+
+# Zero-Network Forensic & Chronolocation Decoder (TikTok UTC, Snowflake, UUIDv1/v7, IBAN, Phone, VIN, MAC)
+python3 scripts/osint.py decode "<token_or_url>"
+
+# Active Hunt Step 1 — Prepare OPSEC scope & Request ID across ALL discovered surface (sends 0 packets)
+python3 scripts/hunt.py --prepare-active --from-case <CASE_ID>
 
 # Active Hunt Step 2 — Execute ONLY AFTER user approves
 python3 scripts/hunt.py "<target>" --active --request-id ACT-XXXXXXXX --user-approved "yes"
 
-# Arsenal Search, Selector Pivot & Dork Forge
+# 760-Tool Arsenal Search, Environment Doctor, Selector Pivot & 105-Dork Forge
+python3 scripts/osint.py doctor
 python3 scripts/osint.py pivot domain --passive --free
 python3 scripts/osint.py dorks --engine Shodan --target "<domain>"
 
-# Start Web Command Center + REST API + Streamable HTTP MCP on 0.0.0.0:8000
+# Start Web Command Center + REST API on 0.0.0.0:8000
 python3 scripts/server.py --port 8000
 ```

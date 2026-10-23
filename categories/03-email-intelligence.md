@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Some password-reset enumeration modules can trigger 'password reset requested' emails or SMS alerts on poorly designed websites. Stick to silent registration-check tools (e.g., Holehe passive modules, Epieos, GHunt) for covert work.
 
-**Discipline Telemetry**: `30` Verified Tools · `10` S-Tier Flagships · `21` Passive · `20` Free/Open-Source
+**Discipline Telemetry**: `34` Verified Tools · `11` S-Tier Flagships · `21` Passive · `24` Free/Open-Source
 
 ## Subcategories
 - [Reverse Email & Phone Portals](#reverse-email-phone-portals) (2)
@@ -20,7 +20,8 @@
 - [Developer Email Attribution](#developer-email-attribution) (1)
 - [Email-to-Phone Pivoting](#email-to-phone-pivoting) (1)
 - [Active Email Verification](#active-email-verification) (3)
-- [Mail Server & SMTP Posture](#mail-server-smtp-posture) (2)
+- [Mail Server & SMTP Posture](#mail-server-smtp-posture) (5)
+- [Active Email & Account Verification](#active-email-account-verification) (1)
 
 ---
 
@@ -331,6 +332,9 @@
 | :---: | :--- | :--- | :--- | :--- | :---: | :--- |
 | **S** | [**checkdmarc**](https://github.com/domainaware/checkdmarc) ([GitHub](https://github.com/domainaware/checkdmarc)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `dns_records, certificates, metadata` |
 | **A** | [**Ruler (SensePost Exchange Recon)**](https://github.com/sensepost/ruler) ([GitHub](https://github.com/sensepost/ruler)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, email` → `emails, urls, tech_stack` |
+| **S** | [**ROADtools (Entra ID / Azure AD Recon)**](https://github.com/dirkjanm/ROADtools) ([GitHub](https://github.com/dirkjanm/ROADtools)) | Framework | OSS / Free | 🔴 Active | ✅ | `domain, email` → `subdomains, emails, usernames` |
+| **B** | [**o365recon**](https://github.com/nyxgeek/o365recon) ([GitHub](https://github.com/nyxgeek/o365recon)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain` → `subdomains, corporate_records, metadata` |
+| **A** | [**GraphRunner**](https://github.com/dafthack/GraphRunner) ([GitHub](https://github.com/dafthack/GraphRunner)) | Framework | OSS / Free | 🔴 Active | 🔑 | `domain, email` → `emails, documents, usernames` |
 
 ### [checkdmarc](https://github.com/domainaware/checkdmarc) `[S-Tier]`
 - **ID**: `checkdmarc` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`domainaware/checkdmarc`](https://github.com/domainaware/checkdmarc)
@@ -345,6 +349,42 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `exchange`, `autodiscover`, `mail-recon`, `active`
 - **Overview**: Microsoft Exchange and Autodiscover reconnaissance tool mapping Exchange MAPI/RPC endpoints, domain autodiscover records, and mail infrastructure.
 - **Quick-Start / Tradecraft**: `ruler --domain example.com autodiscover`
+
+### [ROADtools (Entra ID / Azure AD Recon)](https://github.com/dirkjanm/ROADtools) `[S-Tier]`
+- **ID**: `roadtools` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`dirkjanm/ROADtools`](https://github.com/dirkjanm/ROADtools)
+- **Inputs**: `domain`, `email` → **Outputs**: `subdomains`, `emails`, `usernames`, `entity_graph`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `entra-id`, `azure-ad`, `tenant-recon`, `m365`, `active`
+- **Overview**: Microsoft Entra ID (Azure AD) reconnaissance suite including `roadrecon` for tenant OIDC metadata, federated domains, and directory graphing.
+- **Quick-Start / Tradecraft**: `roadrecon auth --tenant example.com`
+
+### [o365recon](https://github.com/nyxgeek/o365recon) `[B-Tier]`
+- **ID**: `o365recon` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`nyxgeek/o365recon`](https://github.com/nyxgeek/o365recon)
+- **Inputs**: `domain` → **Outputs**: `subdomains`, `corporate_records`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `office365`, `tenant-id`, `unauthenticated-recon`, `active`
+- **Overview**: Unauthenticated Microsoft 365 and Azure tenant reconnaissance script retrieving federation brand names, tenant IDs, and MDI instances.
+- **Quick-Start / Tradecraft**: `./o365recon.sh -d example.com`
+
+### [GraphRunner](https://github.com/dafthack/GraphRunner) `[A-Tier]`
+- **ID**: `graphrunner` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`dafthack/GraphRunner`](https://github.com/dafthack/GraphRunner)
+- **Inputs**: `domain`, `email` → **Outputs**: `emails`, `documents`, `usernames`
+- **Platforms**: CLI, Windows, Linux, macOS · **Tags**: `ms-graph`, `sharepoint`, `teams-osint`, `active`
+- **Overview**: Microsoft Graph API reconnaissance toolkit enumerating tenant external collaboration policies, Teams channels, and SharePoint exposure.
+- **Quick-Start / Tradecraft**: `Import-Module ./GraphRunner.ps1; Invoke-Recon`
+
+---
+
+## Active Email & Account Verification
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**o365spray**](https://github.com/0xZDH/o365spray) ([GitHub](https://github.com/0xZDH/o365spray)) | CLI | OSS / Free | 🔴 Active | ✅ | `domain, email` → `emails, tech_stack, metadata` |
+
+### [o365spray](https://github.com/0xZDH/o365spray) `[A-Tier]`
+- **ID**: `o365spray` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`0xZDH/o365spray`](https://github.com/0xZDH/o365spray)
+- **Inputs**: `domain`, `email` → **Outputs**: `emails`, `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Python · **Tags**: `m365`, `federation`, `email-enum`, `active`
+- **Overview**: Microsoft 365 federation posture profiler and active account existence enumerator checking Autodiscover, OneDrive, and OAuth2 endpoints.
+- **Quick-Start / Tradecraft**: `python3 o365spray.py --validate --domain example.com`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🕵️ Username & Handle Recon](./02-username-enumeration.md) · [📱 Phone & Messaging OSINT ▶](./04-phone-messaging-osint.md)

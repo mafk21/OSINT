@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Querying WiGLE, OpenCelliD, CelesTrak, and KiwiSDR receivers online is passive. Local RF collection with SDR hardware is passive receive-only, but must comply with local telecommunications laws.
 
-**Discipline Telemetry**: `30` Verified Tools · `15` S-Tier Flagships · `25` Passive · `28` Free/Open-Source
+**Discipline Telemetry**: `34` Verified Tools · `15` S-Tier Flagships · `28` Passive · `32` Free/Open-Source
 
 ## Subcategories
 - [Wi-Fi, Bluetooth & Cell Geolocation](#wi-fi,-bluetooth-cell-geolocation) (5)
@@ -18,6 +18,8 @@
 - [Packet Crafting & Active Probing](#packet-crafting-active-probing) (1)
 - [SDR Aviation & Maritime RF](#sdr-aviation-maritime-rf) (2)
 - [Software Defined Radio](#software-defined-radio) (2)
+- [SDR & RF Spectrum Analysis](#sdr-rf-spectrum-analysis) (3)
+- [Sub-GHz, NFC & BLE Field Recon](#sub-ghz,-nfc-ble-field-recon) (1)
 
 ---
 
@@ -321,6 +323,52 @@
 - **Platforms**: Linux, macOS, Windows · **Tags**: `rf-analysis`, `demodulation`, `sdr`, `sigint`
 - **Overview**: Qt digital signal analyzer for blind unknown RF protocol reverse-engineering, FSK/PSK/ASK demodulation, and satellite/telemetry inspection.
 - **Quick-Start / Tradecraft**: `SigDigger`
+
+---
+
+## SDR & RF Spectrum Analysis
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**HackRF Suite (Great Scott Gadgets)**](https://github.com/greatscottgadgets/hackrf) ([GitHub](https://github.com/greatscottgadgets/hackrf)) | CLI | OSS / Free | 🟢 Passive | ✅ | `rf_frequency` → `signal_telemetry` |
+| **B** | [**SoapySDR**](https://github.com/pothosware/SoapySDR) ([GitHub](https://github.com/pothosware/SoapySDR)) | Library | OSS / Free | 🟢 Passive | ✅ | `rf_frequency` → `signal_telemetry` |
+| **B** | [**bladeRF SDR Suite (Nuand)**](https://github.com/Nuand/bladeRF) ([GitHub](https://github.com/Nuand/bladeRF)) | CLI | OSS / Free | 🟢 Passive | ✅ | `rf_frequency` → `signal_telemetry` |
+
+### [HackRF Suite (Great Scott Gadgets)](https://github.com/greatscottgadgets/hackrf) `[A-Tier]`
+- **ID**: `hackrf-tools` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`greatscottgadgets/hackrf`](https://github.com/greatscottgadgets/hackrf)
+- **Inputs**: `rf_frequency` → **Outputs**: `signal_telemetry`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `sdr`, `hackrf`, `spectrum-sweep`, `sigint`
+- **Overview**: Wideband 1 MHz–6 GHz Software-Defined Radio utilities (`hackrf_sweep`, `hackrf_transfer`) for wideband RF spectrum survey and signal capture.
+- **Quick-Start / Tradecraft**: `hackrf_sweep -f 400:470 -w 100000 -r sweep.csv`
+
+### [SoapySDR](https://github.com/pothosware/SoapySDR) `[B-Tier]`
+- **ID**: `soapysdr` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`pothosware/SoapySDR`](https://github.com/pothosware/SoapySDR)
+- **Inputs**: `rf_frequency` → **Outputs**: `signal_telemetry`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `sdr`, `rtl-sdr`, `rf-capture`, `sigint`
+- **Overview**: Vendor-neutral SDR hardware abstraction toolkit unifying RTL-SDR, HackRF, Airspy, PlutoSDR, and LimeSDR receivers for SIGINT pipelines.
+- **Quick-Start / Tradecraft**: `SoapySDRUtil --find`
+
+### [bladeRF SDR Suite (Nuand)](https://github.com/Nuand/bladeRF) `[B-Tier]`
+- **ID**: `bladerf-sdr` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`Nuand/bladeRF`](https://github.com/Nuand/bladeRF)
+- **Inputs**: `rf_frequency` → **Outputs**: `signal_telemetry`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `bladerf`, `sdr`, `cellular-sigint`, `rf`
+- **Overview**: Full-duplex 47 MHz–6 GHz Software-Defined Radio CLI and library for cellular base-station survey, ADS-B, and wideband RF spectrum capture.
+- **Quick-Start / Tradecraft**: `bladeRF-cli -i # probe connected bladeRF transceiver`
+
+---
+
+## Sub-GHz, NFC & BLE Field Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Flipper Zero Official Firmware**](https://github.com/flipperdevices/flipperzero-firmware) ([GitHub](https://github.com/flipperdevices/flipperzero-firmware)) | OS / Distro | OSS / Free | 🟡 Hybrid | ✅ | `rf_frequency, mac_bssid` → `signal_telemetry, metadata` |
+
+### [Flipper Zero Official Firmware](https://github.com/flipperdevices/flipperzero-firmware) `[A-Tier]`
+- **ID**: `flipperzero-rf` · **Type**: `OS / Distro` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`flipperdevices/flipperzero-firmware`](https://github.com/flipperdevices/flipperzero-firmware)
+- **Inputs**: `rf_frequency`, `mac_bssid` → **Outputs**: `signal_telemetry`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `sub-ghz`, `nfc`, `ble-recon`, `field-sigint`
+- **Overview**: Open-source portable multi-band Sub-GHz, 125kHz RFID, NFC, BLE, and IR signal analysis platform for physical-perimeter RF inspection.
+- **Quick-Start / Tradecraft**: `./fbt # Inspect .sub Sub-GHz captures`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🗄️ Archiving, Evidence & Docs](./18-archiving-evidence-docs.md) · [🤖 AI Agents, MCP & OPSEC ▶](./20-ai-agents-mcp-opsec.md)

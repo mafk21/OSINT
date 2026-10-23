@@ -211,7 +211,38 @@ def main() -> int:
         assert ("email", "contact@horizondiagnostics-example.org") in hunted_waves, "Email lead was carved but not hunted!"
         assert ("domain", "horizondiagnostics-example.org") in hunted_waves, "Domain lead was carved but not hunted!"
 
-        # Verify --prepare-active --from-case covers the full multi-stage discovered surface!
+        # Verify all 7 forensic artifacts + SHA-256 manifest + Intelligence Synthesis + Exposure Score!
+        for req_art in ("dossier.md", "report.html", "report.json", "entities.csv", "graph.json", "graph.mermaid", "stix2_bundle.json", "manifest.sha256"):
+            assert (case_dir_created / req_art).is_file(), f"Missing case artifact: {req_art}"
+        assert "intelligence_synthesis" in exp_rep and isinstance(exp_rep["intelligence_synthesis"]["exposure_score"], int)
+        assert "<!DOCTYPE html>" in (case_dir_created / "report.html").read_text(encoding="utf-8")
+
+        # Create a second standalone case sharing the phone + domain to test Cross-Case Link Analysis!
+        p_case2 = subprocess.run(
+            [sys.executable, str(hunt_script), "+966559876543 horizondiagnostics-example.org", "--depth", "1"],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        assert p_case2.returncode == 0
+        all_cases = sorted((work_cwd / "cases").glob("*"))
+        assert len(all_cases) == 2
+
+        p_cmp = subprocess.run(
+            [sys.executable, str(hunt_script), "--compare-cases", str(all_cases[0]), str(all_cases[1])],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert p_cmp.returncode == 0
+        cmp_json = json.loads(p_cmp.stdout)
+        assert cmp_json["cases_linked"] is True and len(cmp_json["exact_entity_overlaps"]) >= 2 and "horizondiagnostics-example.org" in cmp_json["shared_corporate_domains"]
+
+        # Verify standalone --prepare-active --from-case covers the full multi-stage discovered surface!
         p_prep_full = subprocess.run(
             [sys.executable, str(hunt_script), "--prepare-active", "--from-case", str(case_dir_created), "--json"],
             cwd=str(work_cwd),
@@ -247,7 +278,68 @@ def main() -> int:
         )
         assert p_arsenal.returncode == 0 and len(json.loads(p_arsenal.stdout)) >= 10
 
-    print("SELFTEST PASS: Schema, Classifier, Decoders, Active Gate, MCP & Standalone Portable Skills verified.")
+    # 8. Verify New Zero-Network Forensic Decoders, CLI Doctor/Decode, MCP & Live REST API
+    from osint_hunter.offline_intel import universal_forensic_decode
+
+    tt_dec = universal_forensic_decode("https://www.tiktok.com/@bellingcat/video/7345123456789012485")
+    assert any(a["decoder"] == "tiktok_chronolocation" and "2024-03-11" in a["upload_utc_iso"] for a in tt_dec["results"])
+    iban_dec = universal_forensic_decode("SA0380000000608010167519")
+    assert any(a["decoder"] == "iban_iso13616" and "Al Rajhi Bank" in (a.get("bank_name") or "") for a in iban_dec["results"])
+    uuid_dec = universal_forensic_decode("d9b2d63d-a233-11ee-8c90-005056c00008")
+    assert any(a["decoder"] == "uuid_forensics" and a["embedded_node_mac"] == "00:50:56:C0:00:08" for a in uuid_dec["results"])
+    ae_dec = universal_forensic_decode("+971501234567")
+    assert any(a["decoder"] == "phone_itu_e164" and a["country"] == "United Arab Emirates" for a in ae_dec["results"])
+
+    p_doc = subprocess.run([sys.executable, str(ROOT / "scripts" / "osint.py"), "doctor", "--json"], capture_output=True, text=True, timeout=15)
+    assert p_doc.returncode == 0
+    doc_json = json.loads(p_doc.stdout)
+    assert doc_json["catalog_health"]["tools"] >= 760 and doc_json["catalog_health"]["dorks"] >= 105 and doc_json["catalog_health"]["workflows"] >= 20
+
+    # Test MCP osint_forensic_decode via process_rpc
+    rpc_dec = process_rpc({"jsonrpc": "2.0", "id": 99, "method": "tools/call", "params": {"name": "osint_forensic_decode", "arguments": {"payload": "65f1a2b3c4d5e6f7a8b9c0d1"}}})
+    assert "mongodb_objectid_forensics" in rpc_dec["result"]["content"][0]["text"]
+
+    # Test Live HTTP Command Center REST API on ephemeral port 0
+    import threading
+    import urllib.error
+    import urllib.request
+    from http.server import ThreadingHTTPServer
+    from scripts.server import OSINTCommandHandler
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), OSINTCommandHandler)
+    port = httpd.server_address[1]
+    srv_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    srv_thread.start()
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=5) as resp:
+            h_data = json.loads(resp.read().decode("utf-8"))
+            assert h_data["status"] == "ok" and h_data["tools"] >= 760
+        req_dec = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/decode",
+            data=json.dumps({"payload": "SA0380000000608010167519"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req_dec, timeout=5) as resp:
+            d_data = json.loads(resp.read().decode("utf-8"))
+            assert d_data["decoded_count"] >= 1
+        # Verify unapproved /api/hunt/active without modal header returns 403
+        req_act = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/hunt/active",
+            data=json.dumps({"target": "example.com"}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req_act, timeout=5)
+            raise AssertionError("Expected 403 from unapproved /api/hunt/active!")
+        except urllib.error.HTTPError as he:
+            assert he.code == 403
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    print("SELFTEST PASS: 760-Tool Catalog, Classifier, Forensic Decoders, Correlator, HTML/CSV/STIX, Active Gate, MCP, REST API & Portable Skills verified.")
     return 0
 
 

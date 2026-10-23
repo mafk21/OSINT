@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: On-chain queries through public explorers are passive, but never connect a personal Web3 wallet (MetaMask/Phantom) to investigation pages or interact with suspect tokens/airdrops.
 
-**Discipline Telemetry**: `27` Verified Tools · `10` S-Tier Flagships · `24` Passive · `17` Free/Open-Source
+**Discipline Telemetry**: `32` Verified Tools · `10` S-Tier Flagships · `29` Passive · `22` Free/Open-Source
 
 ## Subcategories
 - [Attribution & Entity Visualizers](#attribution-entity-visualizers) (3)
@@ -18,6 +18,10 @@
 - [AML & Exploit Tracing](#aml-exploit-tracing) (3)
 - [Crypto Tradecraft Manuals](#crypto-tradecraft-manuals) (1)
 - [Active EVM RPC & Contract Recon](#active-evm-rpc-contract-recon) (3)
+- [On-Chain Forensics & RPC](#on-chain-forensics-rpc) (1)
+- [Multi-Chain Wallet Profilers](#multi-chain-wallet-profilers) (1)
+- [Web3 Drainer & Scam Threat Intel](#web3-drainer-scam-threat-intel) (2)
+- [Smart Contract & DeFi Recon](#smart-contract-defi-recon) (1)
 
 ---
 
@@ -297,6 +301,74 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Rust · **Tags**: `evm-rpc`, `parquet`, `blockchain-forensics`, `paradigm`, `active`
 - **Overview**: High-throughput Rust EVM data extractor pulling blocks, internal traces, ERC-20 transfers, and contract logs directly from live RPC endpoints into Parquet/JSON.
 - **Quick-Start / Tradecraft**: `cryo logs --contract 0xAddress --rpc https://eth.llamarpc.com`
+
+---
+
+## On-Chain Forensics & RPC
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Ethereum ETL**](https://github.com/blockchain-etl/ethereum-etl) ([GitHub](https://github.com/blockchain-etl/ethereum-etl)) | CLI | OSS / Free | 🟢 Passive | ✅ | `crypto_address` → `tx_graph, metadata` |
+
+### [Ethereum ETL](https://github.com/blockchain-etl/ethereum-etl) `[A-Tier]`
+- **ID**: `ethereum-etl` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`blockchain-etl/ethereum-etl`](https://github.com/blockchain-etl/ethereum-etl)
+- **Inputs**: `crypto_address` → **Outputs**: `tx_graph`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `evm-traces`, `erc20`, `onchain-forensics`, `csv-export`
+- **Overview**: Python CLI exporting EVM blocks, internal traces, ERC-20/721 transfers, and contract deployments to CSV/JSON/SQL for forensic graph queries.
+- **Quick-Start / Tradecraft**: `ethereumetl export_token_transfers --start-block 19000000 --end-block 19000100`
+
+---
+
+## Multi-Chain Wallet Profilers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **B** | [**Rotki**](https://github.com/rotki/rotki) ([GitHub](https://github.com/rotki/rotki)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `crypto_address` → `tx_graph, metadata` |
+
+### [Rotki](https://github.com/rotki/rotki) `[B-Tier]`
+- **ID**: `rotki-portfolio` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`rotki/rotki`](https://github.com/rotki/rotki)
+- **Inputs**: `crypto_address` → **Outputs**: `tx_graph`, `metadata`
+- **Platforms**: Linux, macOS, Windows, Docker, Python · **Tags**: `multi-chain`, `defi-decoding`, `local-first`, `ens`
+- **Overview**: Local-first open-source multi-chain address tracker decoding DeFi positions, ENS names, NFT holdings, and cross-chain bridge histories privately.
+- **Quick-Start / Tradecraft**: `Launch Rotki locally and track target EVM/BTC addresses`
+
+---
+
+## Web3 Drainer & Scam Threat Intel
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**MetaMask Eth-Phishing-Detect**](https://github.com/MetaMask/eth-phishing-detect) ([GitHub](https://github.com/MetaMask/eth-phishing-detect)) | Dataset / Registry | OSS / Free | 🟢 Passive | ✅ | `domain, url` → `malware_iocs` |
+| **A** | [**ScamSniffer Drainer Database**](https://github.com/scamsniffer/scam-database) ([GitHub](https://github.com/scamsniffer/scam-database)) | Dataset / Registry | OSS / Free | 🟢 Passive | ✅ | `crypto_address, domain` → `malware_iocs, sanctions_hits` |
+
+### [MetaMask Eth-Phishing-Detect](https://github.com/MetaMask/eth-phishing-detect) `[A-Tier]`
+- **ID**: `metamask-phishing-db` · **Type**: `Dataset / Registry` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`MetaMask/eth-phishing-detect`](https://github.com/MetaMask/eth-phishing-detect)
+- **Inputs**: `domain`, `url` → **Outputs**: `malware_iocs`
+- **Platforms**: Web, CLI, Node.js · **Tags**: `wallet-drainers`, `web3-phishing`, `metamask`, `domain-blocklist`
+- **Overview**: Continuously updated open registry of verified Web3 wallet-drainer domains, typosquatting dApps, and allowlisted crypto infrastructure.
+- **Quick-Start / Tradecraft**: `Query src/config.json blacklist for suspect Web3 domain`
+
+### [ScamSniffer Drainer Database](https://github.com/scamsniffer/scam-database) `[A-Tier]`
+- **ID**: `scamsniffer-db` · **Type**: `Dataset / Registry` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`scamsniffer/scam-database`](https://github.com/scamsniffer/scam-database)
+- **Inputs**: `crypto_address`, `domain` → **Outputs**: `malware_iocs`, `sanctions_hits`
+- **Platforms**: Web, CLI · **Tags**: `drainer-wallets`, `scamsniffer`, `crypto-scams`, `cti`
+- **Overview**: Community threat intelligence feed mapping malicious EVM drainer addresses and phishing domains tied to Pink/Angel/Inferno Drainer kits.
+- **Quick-Start / Tradecraft**: `Cross-check suspect 0x address against blacklist/address.json`
+
+---
+
+## Smart Contract & DeFi Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Echidna (Trail of Bits EVM Analyzer)**](https://github.com/crytic/echidna) ([GitHub](https://github.com/crytic/echidna)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, crypto_address` → `metadata, malware_iocs` |
+
+### [Echidna (Trail of Bits EVM Analyzer)](https://github.com/crytic/echidna) `[A-Tier]`
+- **ID**: `echidna-evm` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`crytic/echidna`](https://github.com/crytic/echidna)
+- **Inputs**: `repo_code`, `crypto_address` → **Outputs**: `metadata`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Docker · **Tags**: `trailofbits`, `smart-contracts`, `rugpull-detection`, `evm`
+- **Overview**: Trail of Bits Ethereum smart-contract property analyzer inspecting suspicious DeFi/token contracts for hidden backdoors and rug-pull invariants.
+- **Quick-Start / Tradecraft**: `echidna contract.sol --contract Token`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🏛️ Corporate, Finance & Sanctions](./14-corporate-financial-sanctions.md) · [🧅 Dark Web & Underground ▶](./16-darkweb-tor-underground.md)

@@ -15,6 +15,13 @@ from .active_collectors import collect_active_for_selector
 from .approval import ACTIVE_MODULES_CATALOG, verify_and_consume_approval
 from .classify import extract_selectors
 from .collectors import collect_for_selector
+from .correlator import (
+    compare_cases,
+    render_entities_csv,
+    render_mermaid_graph,
+    render_standalone_html_dossier,
+    synthesize_intelligence,
+)
 from .offline_intel import INTEL_TABLES
 from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
 from .stage_analyzer import (
@@ -273,16 +280,44 @@ def render_markdown_dossier(report: dict) -> str:
         if is_active
         else "`🟢 Strictly Passive (Zero Direct Packets to Target Infrastructure)`"
     )
+    syn = report.get("intelligence_synthesis") or synthesize_intelligence(report)
     lines = [
         f"# 🛰️ OSINT Intelligence Dossier — `{meta['case_id']}`",
         "",
         f"- **Generated (UTC)**: `{meta['timestamp_utc']}`",
         f"- **Raw Target Input**: `{meta['raw_input']}`",
         f"- **OPSEC Posture**: {opsec_line}",
+        f"- **Exposure Rating**: **`{syn['exposure_score']}/100 — {syn['exposure_rating']}`**",
         f"- **Multi-Stage Surface Expansion**: `{meta.get('stages_executed', meta['depth'])}` stage(s) executed (max `{meta['depth']}`) · Converged: `{meta.get('converged', False)}` · `{meta['duration_seconds']}s` elapsed · `{len(report['graph']['nodes'])}` entity node(s) · `{len(report['graph']['edges'])}` pivot edge(s)",
     ]
     if is_active:
         lines.append(f"- **User Authorization Audit**: Request `{meta.get('approval_request_id')}` · Confirmation: `\"{meta.get('user_confirmation', '')}\"`")
+
+    id_c = syn["identity_cluster"]
+    inf_c = syn["infrastructure_cluster"]
+    lines.extend(["", "---", "", "## 0. Executive Intelligence Synthesis", ""])
+    if id_c["person_names"] or id_c["organizations"]:
+        lines.append(f"- **Resolved Names / Organizations**: `{', '.join(id_c['person_names'] + id_c['organizations'])}`")
+    if id_c["usernames_and_variants"]:
+        lines.append(f"- **Handles & Variants**: `{', '.join(id_c['usernames_and_variants'][:12])}`")
+    if id_c["emails"]:
+        lines.append(f"- **Attributed Emails**: `{', '.join(id_c['emails'][:10])}`")
+    if id_c["phones"]:
+        ph_strs = [f"{p['e164']}" + (f" ({p.get('country')}, {p.get('carrier')})" if p.get("country") else "") for p in id_c["phones"][:8]]
+        lines.append(f"- **Decoded Phones**: `{'; '.join(ph_strs)}`")
+    if id_c["locations"]:
+        lines.append(f"- **Geographic Indicators**: `{', '.join(id_c['locations'][:8])}`")
+    if inf_c["domains_and_subdomains"] or inf_c["ip_addresses"]:
+        lines.append(f"- **Domains & Hosts**: `{', '.join((inf_c['domains_and_subdomains'] + inf_c['ip_addresses'])[:12])}`")
+    if syn["cross_entity_attribution_bridges"]:
+        lines.append("- **High-Confidence Attribution Bridges**:")
+        for b in syn["cross_entity_attribution_bridges"][:8]:
+            lines.append(f"  - `{b}`")
+    if syn["security_and_opsec_exposures"]:
+        lines.append("- **Technical / OPSEC Exposures Flagged**:")
+        for ex in syn["security_and_opsec_exposures"][:8]:
+            lines.append(f"  - ⚠️ {ex}")
+
     lines.extend([
         "",
         "---",
@@ -296,6 +331,9 @@ def render_markdown_dossier(report: dict) -> str:
     for n in report["graph"]["nodes"]:
         origin = "Initial Seed" if n["wave"] == 1 else edge_lookup.get(n["id"], n.get("note") or "Stage Analyzer Pivot")
         lines.append(f"| `Stage {n['wave']}` | **`{n['type']}`** | `{n['value']}` | {origin} |")
+
+    if len(report["graph"]["nodes"]) > 1:
+        lines.extend(["", "```mermaid", render_mermaid_graph(report["graph"]["nodes"], report["graph"]["edges"]).rstrip(), "```"])
 
     stage_logs = report.get("stage_analyses") or []
     if stage_logs:
@@ -382,13 +420,20 @@ def _write_case_artifacts(case_dir: Path, report: dict, dossier_md: str, stix_bu
     except ValueError:
         report["meta"]["case_dir"] = str(case_dir)
 
+    html_doc = render_standalone_html_dossier(report)
+    csv_doc = render_entities_csv(report)
+    mermaid_doc = render_mermaid_graph(report["graph"]["nodes"], report["graph"]["edges"])
+
     (case_dir / "dossier.md").write_text(dossier_md, encoding="utf-8")
+    (case_dir / "report.html").write_text(html_doc, encoding="utf-8")
     (case_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (case_dir / "entities.csv").write_text(csv_doc, encoding="utf-8")
     (case_dir / "graph.json").write_text(json.dumps(report["graph"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (case_dir / "graph.mermaid").write_text(mermaid_doc, encoding="utf-8")
     (case_dir / "stix2_bundle.json").write_text(json.dumps(stix_bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     manifest_lines = []
-    for artifact in ("dossier.md", "report.json", "graph.json", "stix2_bundle.json"):
+    for artifact in ("dossier.md", "report.html", "report.json", "entities.csv", "graph.json", "graph.mermaid", "stix2_bundle.json"):
         digest = hashlib.sha256((case_dir / artifact).read_bytes()).hexdigest()
         manifest_lines.append(f"{digest}  {artifact}")
     (case_dir / "manifest.sha256").write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
@@ -622,6 +667,7 @@ def run_autonomous_hunt(
         "arsenal": arsenal,
     }
 
+    report["intelligence_synthesis"] = synthesize_intelligence(report)
     dossier_md = render_markdown_dossier(report)
     stix_bundle = build_stix2_bundle(case_id, raw_input, nodes, edges)
 
@@ -752,12 +798,20 @@ def expand_existing_case(
     report["meta"]["converged"] = converged
     report["meta"]["duration_seconds"] = round(report["meta"].get("duration_seconds", 0.0) + (time.monotonic() - t0), 2)
 
+    report["intelligence_synthesis"] = synthesize_intelligence(report)
     dossier_md = render_markdown_dossier(report)
     stix_bundle = build_stix2_bundle(report["meta"]["case_id"], report["meta"]["raw_input"], nodes, edges)
     _write_case_artifacts(case_dir, report, dossier_md, stix_bundle)
     report["dossier_markdown"] = dossier_md
     report["newly_hunted_entities"] = [{"type": t, "value": v} for t, v in next_queue]
     return report
+
+
+def compare_saved_cases(case_a: str | Path, case_b: str | Path, cases_dir: str | Path | None = None) -> dict:
+    """Compare two saved cases for shared selectors, domains, /24 IP subnets, and analytics tags."""
+    dir_a = _resolve_case_dir(case_a, cases_dir=cases_dir)
+    dir_b = _resolve_case_dir(case_b, cases_dir=cases_dir)
+    return compare_cases(dir_a, dir_b)
 
 
 def get_case_active_target_string(case_id_or_dir: str | Path, cases_dir: str | Path | None = None) -> str:

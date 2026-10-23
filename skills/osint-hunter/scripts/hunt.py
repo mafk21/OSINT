@@ -32,10 +32,13 @@ from osint_hunter.approval import (  # noqa: E402
     prepare_active_request,
 )
 from osint_hunter.engine import (  # noqa: E402
+    compare_saved_cases,
     expand_existing_case,
     get_case_active_target_string,
     run_autonomous_hunt,
 )
+from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
+from osint_hunter.paths import get_cases_dir  # noqa: E402
 
 
 def _print_approval_prompt_sheet(plan: dict) -> None:
@@ -69,6 +72,9 @@ def main() -> int:
     parser.add_argument("--from-case", help="Build --prepare-active target scope from ALL entities discovered in an existing CASE_ID")
     parser.add_argument("--ingest-text", help="Unstructured findings (e.g. web_search snippets, bios, Linktree text) to carve & hunt")
     parser.add_argument("--ingest-file", help="Path to text/markdown/json file of external stage findings to carve & hunt")
+    parser.add_argument("--decode", action="store_true", help="Run zero-network offline forensic decoder on input (Phone, IBAN, VIN, ICAO24, IMO, MAC, JWT, UUID, TikTok/Snowflake)")
+    parser.add_argument("--list-cases", action="store_true", help="List saved forensic investigation cases")
+    parser.add_argument("--compare-cases", nargs=2, metavar=("CASE_A", "CASE_B"), help="Cross-case link analysis finding shared entities, domains, /24 IPs & analytics IDs")
     parser.add_argument("--cases-dir", help="Custom output directory for forensic case bundles")
     parser.add_argument("--no-save", action="store_true", help="Do not write dossier/STIX artifacts to cases/")
     parser.add_argument("--json", action="store_true", help="Print structured JSON output")
@@ -94,6 +100,39 @@ def main() -> int:
 
     raw_target = " ".join(args.target).strip()
     mod_list = [m.strip() for m in args.active_modules.split(",") if m.strip()] if args.active_modules else None
+
+    if args.decode:
+        if not raw_target:
+            parser.error("--decode requires an input token, URL, or file path")
+        print(json.dumps(universal_forensic_decode(raw_target), indent=2, ensure_ascii=False))
+        return 0
+
+    if args.list_cases:
+        cbase = get_cases_dir(args.cases_dir)
+        rows = []
+        if cbase.exists():
+            for d in sorted(cbase.iterdir(), reverse=True):
+                rf = d / "report.json"
+                if d.is_dir() and rf.is_file():
+                    rep = json.loads(rf.read_text(encoding="utf-8"))
+                    syn = rep.get("intelligence_synthesis") or {}
+                    rows.append(
+                        {
+                            "case_id": rep["meta"]["case_id"],
+                            "timestamp_utc": rep["meta"]["timestamp_utc"],
+                            "opsec_mode": rep["meta"]["opsec_mode"],
+                            "entities": len(rep.get("graph", {}).get("nodes", [])),
+                            "exposure_score": syn.get("exposure_score"),
+                            "raw_input": rep["meta"]["raw_input"],
+                        }
+                    )
+        print(json.dumps(rows, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.compare_cases:
+        cmp_res = compare_saved_cases(args.compare_cases[0], args.compare_cases[1], cases_dir=args.cases_dir)
+        print(json.dumps(cmp_res, indent=2, ensure_ascii=False))
+        return 0
 
     ingested_parts: list[str] = []
     if args.ingest_text:
@@ -210,10 +249,13 @@ def main() -> int:
     print(report["dossier_markdown"])
     if report["meta"].get("case_dir"):
         cdir = report["meta"]["case_dir"]
+        syn = report.get("intelligence_synthesis") or {}
         print("=" * 78)
-        print(f"  FORENSIC CASE SAVED : {cdir}/  (Mode: {report['meta']['opsec_mode']})")
-        print(f"    - {cdir}/dossier.md        (Executive Markdown Intelligence Report)")
-        print(f"    - {cdir}/report.json       (Machine-Readable Full Telemetry)")
+        print(f"  FORENSIC CASE SAVED : {cdir}/  (Mode: {report['meta']['opsec_mode']} · Exposure: {syn.get('exposure_score', 0)}/100)")
+        print(f"    - {cdir}/dossier.md        (Executive Markdown + Mermaid Graph)")
+        print(f"    - {cdir}/report.html       (Standalone Dark-Mode Executive HTML + SVG Map)")
+        print(f"    - {cdir}/report.json       (Machine-Readable Full Telemetry + Synthesis)")
+        print(f"    - {cdir}/entities.csv      (Excel / Maltego / Gephi Spreadsheet Export)")
         print(f"    - {cdir}/graph.json        (Entity Nodes & Pivot Edges)")
         print(f"    - {cdir}/stix2_bundle.json (OASIS STIX 2.1 CTI Bundle)")
         print(f"    - {cdir}/manifest.sha256   (SHA-256 Chain-of-Custody Hashes)")
