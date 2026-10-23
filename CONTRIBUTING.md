@@ -4,7 +4,7 @@ Contributions of verified, high-signal, actively maintained OSINT tools, dorks, 
 
 ## Architecture: Single Source of Truth
 
-All Markdown tables (`README.md`, `categories/*.md`, `docs/PIVOT_MATRIX.md`, `docs/WORKFLOWS.md`, `docs/DORKS_ARSENAL.md`, `docs/GRAVEYARD_2026.md`), flat exports (`data/tools.csv`, `data/tools.jsonl`), the relational database (`data/osint.sqlite`), and the web bundle (`web/data.js`) are **100% deterministically generated** from the JSON files in `data/`:
+All Markdown tables (`README.md`, `categories/*.md`, `docs/FULL_INDEX.md`, `docs/PIVOT_MATRIX.md`, `docs/WORKFLOWS.md`, `docs/DORKS_ARSENAL.md`, `docs/GRAVEYARD_2026.md`, `docs/SKILLS_SETUP.md`), portable agent skills (`skills/*`, `releases/*.zip`), flat exports (`data/tools.csv`, `data/tools.jsonl`), the relational database (`data/osint.sqlite`), and the web bundle (`web/data.js`) are **100% deterministically generated** from the JSON files in `data/`:
 
 - `data/tools.json` — Tool entries conforming strictly to `data/schema.json`
 - `data/categories.json` — 20 intelligence discipline definitions
@@ -56,7 +56,8 @@ All Markdown tables (`README.md`, `categories/*.md`, `docs/PIVOT_MATRIX.md`, `do
    ```bash
    python3 scripts/validate.py
    ```
-3. Rebuild all Markdown docs, CSV/JSONL/SQLite exports, and the Web Explorer bundle:
+3. Rebuild all Markdown docs, CSV/JSONL/SQLite exports, portable skills, and the Web Workspace bundle, then run the full self-test suite:
    ```bash
    python3 scripts/build.py
+   python3 scripts/selftest.py
    ```

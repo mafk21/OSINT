@@ -1,10 +1,10 @@
 # OSINT Hunter — Collector & Active Gate Reference
 
-## Passive Collectors & Offline Decoders (Law 1 — Instant, 0 Target Packets)
-- **Offline Decoders**: ITU E.164 phone + NANPA/carrier hints, ICAO 24-bit hex + military block flag, Maritime IMO checksum + MMSI MID flag state, ISO 3779 17-char VIN WMI/year/check-digit, IEEE OUI MAC + Wi-Fi BSSID bit analysis, JWT header/payload/expiry, local JPEG EXIF GPS + PNG/PDF/DOCX/XLSX/ZIP author carving.
-- **Passive Public APIs**: GitHub profile + `.patch` commit email leak + `.keys` SSH + `.gpg` OpenPGP UID carving, GitLab, Keybase cryptographic proofs, Reddit JSON, HackerNews Firebase, npm & PyPI maintainer registries, Gravatar SHA-256, Google DoH (`A`/`AAAA`/`MX`/`TXT`/`NS`/`SOA`/`CAA`) + DMARC/SPF/BIMId, `crt.sh` Certificate Transparency, IANA RDAP, Wayback CDX + sensitive path scan, HackerTarget passive hosts, URLhaus, Shodan InternetDB, RIPEstat BGP/ASN, Nominatim reverse geocode, Mempool.space BTC & Ethereum JSON-RPC.
+## Passive Collectors & Offline DFIR Decoders (Law 1 — Instant, 0 Target Packets)
+- **Offline DFIR & Chronolocation Decoders**: `.eml` hop/SPF/DKIM/DMARC spoofing, `.pcap`/`.pcapng` DNS/SNI/HTTP carver, `.har`, `.mp4`/`.mov` `mvhd`+GPS, PNG/WebP C2PA Content Credentials & ComfyUI/Stable Diffusion AI provenance, Google Search `ei=` timestamp, OpenSSH/PEM fingerprints, TikTok/Snowflake/UUIDv1-v7/ULID/ObjectId UTC, ISO 13616 IBAN (SAMA), ITU E.164 phone + NANPA/GCC/MENA carriers, ICAO 24-bit hex + military block flag, Maritime IMO + MMSI MID, ISO 3779 VIN, IEEE OUI MAC/BSSID, JWT, JPEG EXIF GPS & PDF/OOXML authors.
+- **Passive Public APIs + Optional BYOK**: GitHub profile + `.patch` commit email + `.keys` SSH + `.gpg` OpenPGP, GitLab, HuggingFace Hub, Crates.io, Docker Hub, Packagist, npm, PyPI, Bluesky ATProto + `plc.directory` handle-rename audit, Mastodon `rel=me`, Keybase, Reddit, HackerNews, Gravatar, Microsoft Entra ID / M365 tenant, Google DoH + DMARC/SPF/BIMI, `crt.sh` CT SANs, IANA RDAP, Wayback CDX, HackerTarget, URLhaus, Shodan InternetDB, RIPEstat BGP/ASN, Nominatim, Mempool.space BTC & Ethereum RPC, plus optional BYOK (`SHODAN_API_KEY`, `VT_API_KEY`, `URLSCAN_API_KEY`, `HIBP_API_KEY`, `SECURITYTRAILS_API_KEY`, `ABUSEIPDB_API_KEY`, `GITHUB_TOKEN`).
 
-## 22 Gated Active Modules (Law 2 — Requires Single-Use `ACT-XXXXXXXX` Approval)
+## 22 Gated Active Modules (Law 3 — Requires Single-Use `ACT-XXXXXXXX` Approval)
 1. `active_dns_live_resolver` — **Live DNS & Reverse PTR Resolution** (`domain, url, ip, email`)
 2. `active_dns_zone_transfer_axfr` — **Authoritative DNS Zone Transfer (AXFR) & CHAOS Version Audit** (`domain, url`)
 3. `active_dns_srv_and_federation` — **Live SRV Service Records & M365/Entra Tenant Federation Probe** (`domain, email`)

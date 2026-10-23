@@ -4,13 +4,13 @@
     "name": "mafk21"
   },
   "metadata": {
-    "description": "Autonomous Multi-Stage Passive & 22-Probe User-Gated Active OSINT Hunter + 760-Tool Intelligence Arsenal & Forensic Decoders",
-    "version": "1.2.0"
+    "description": "Autonomous Multi-Stage Passive & 22-Probe User-Gated Active OSINT Hunter + DFIR/Chronolocation Decoders + Local Web Workspace + 760-Tool Arsenal",
+    "version": "1.3.0"
   },
   "plugins": [
     {
       "name": "osint-monster",
-      "description": "Complete OSINT suite: Exhaustive Multi-Stage Passive Hunter (zero questions on Turn 1) + Zero-Network Forensic Decoders + 22-Probe User-Gated Active Recon + 760-Tool Arsenal (201 Active/Hybrid), 105 Dorks & 20 Playbooks",
+      "description": "Complete OSINT suite: Exhaustive Multi-Stage Passive Hunter (45+ collectors, zero questions on Turn 1) + Offline DFIR/Chronolocation Decoders + 22-Probe User-Gated Active Recon + 760-Tool Arsenal, 105 Dorks & 20 Playbooks",
       "source": "./",
       "strict": false,
       "skills": [
@@ -20,7 +20,7 @@
     },
     {
       "name": "osint-hunter",
-      "description": "Autonomous Multi-Stage Passive OSINT Hunter (Turn 1 zero-question execution across 35+ collectors + zero-network forensic decoders) + Mandatory User-Gated Active Recon Engine",
+      "description": "Autonomous Multi-Stage Passive OSINT Hunter (Turn 1 zero-question execution across 45+ collectors + 18 offline DFIR & chronolocation decoders + Gephi/Neo4j/Obsidian/STIX 2.1 exports) + Mandatory User-Gated Active Recon Engine",
       "source": "./",
       "strict": false,
       "skills": [

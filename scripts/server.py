@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Unified OSINT Command Center + Autonomous Hunter HTTP Server (Zero Dependencies).
+"""Local OSINT Web Workspace + Autonomous Hunter HTTP Server (Zero Dependencies).
 
-Serves the interactive web interface (`web/`) AND provides live REST endpoints:
-  - GET  /api/health
-  - GET  /api/cases
-  - GET  /api/cases/<CASE_ID>
-  - GET  /api/cases/<CASE_ID>/html
+Serves the clean 5-tab browser workspace (`web/`: Investigate, Decode, Cases, Directory, Settings)
+and provides live JSON/HTML/Graph REST endpoints:
+  - GET  /api/health, /api/doctor, /api/watchlist
+  - GET  /api/cases, /api/cases/<CASE_ID>, /api/cases/<CASE_ID>/html, /api/cases/<CASE_ID>/obsidian.zip
+  - GET  /api/cases/<CASE_ID>/{gexf,graphml,cypher}
   - POST /api/detect
-  - POST /api/decode
-  - POST /api/hunt               (Instant Passive Multi-Stage Hunt)
-  - POST /api/cases/expand       (Ingest Findings & Expand Multi-Stage Case)
-  - POST /api/cases/compare      (Cross-Case Link Analysis)
+  - POST /api/decode, /api/decode/file
+  - POST /api/hunt, /api/hunt/file
+  - POST /api/cases/expand, /api/cases/compare, /api/cases/diff
+  - POST /api/typosquats, /api/graph/path
+  - POST /api/watchlist/{add,remove,run}
+  - POST /api/settings/byok
   - POST /api/hunt/active/prepare (and alias /api/hunt/prepare-active)
-  - POST /api/hunt/active        (User-Approved Active+Passive Hunt)
+  - POST /api/hunt/active
 """
 
 from __future__ import annotations

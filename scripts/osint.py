@@ -387,7 +387,8 @@ def cmd_doctor(args, categories, tools, workflows, dorks, graveyard) -> int:
     print(f"  Python Runtime       : {diag['python_version']} (Zero pip deps required)")
     print(f"  Catalog Integrity    : {len(tools)} tools · {len(workflows)} playbooks · {len(dorks)} dorks · {len(graveyard)} graveyard")
     print(f"  SQLite FTS5 Index    : {'READY' if sqlite_ok else 'Standalone JSON Mode'}")
-    print(f"  Autonomous Hunter    : {'READY (35+ Passive + 22 Gated Active Probes)' if diag['hunter_engine_present'] else 'Skill-Only Arsenal Mode'}")
+    print(f"  Autonomous Hunter    : {'READY (45+ Passive + 18 Offline DFIR + 22 Gated Active Probes)' if diag['hunter_engine_present'] else 'Skill-Only Arsenal Mode'}")
+    print(f"  Optional BYOK Keys   : {sum(1 for p in byok_info if p.get('configured'))}/{len(byok_info)} configured")
     print(f"  Detected CLI Tools   : {len(installed_bins)}/{len(cli_probes)} ({', '.join(installed_bins.keys()) or 'none'})")
     print("=" * 78)
     return 0

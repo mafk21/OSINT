@@ -34,7 +34,7 @@
      *(Or call MCP tool `osint_ingest_and_expand_case`.)*
    - The Stage Analyzer (`osint_hunter/stage_analyzer.py`) carves **every** newly discovered handle, handle mutation, phone (`+E.164` / `wa.me`), email (including obfuscated `[at]`), domain, subdomain, URL, real name, and organization/clinic, filters out generic CDN/CA noise, hunts **all** new leads across collectors, and forges new `web_search` dorks for every newly discovered clue.
    - Run `web_search` on the newly forged Stage-2/3 dorks and repeat `--resume-case` until a stage yields **0 new unvisited target leads** (`converged: true`).
-3. **Deliver the Unified Multi-Stage Passive Dossier** (`cases/<CASE_ID>/dossier.md`, `report.html`, `entities.csv`, `stix2_bundle.json`, `manifest.sha256`).
+3. **Deliver the Unified Multi-Stage Passive Dossier** (`cases/<CASE_ID>/dossier.md`, `report.html`, `entities.csv`, `graph.gexf`, `graph.graphml`, `neo4j.cypher`, `obsidian/`, `stix2_bundle.json`, `manifest.sha256`).
 4. **Full-Surface Active Escalation Offer (When Live Surface Exists or User Requested Full/Active Recon)**:
    - Prepare a zero-packet Active Authorization Request covering **every** domain, URL, IP, email, and handle discovered across **all** passive stages:
      ```bash
@@ -93,12 +93,15 @@ python3 scripts/hunt.py "<TARGET>" --active --request-id ACT-XXXXXXXX --user-app
 # Passive Hunt — Runs immediately with ZERO questions (exhaustive up to 4 stages)
 python3 scripts/hunt.py "<target_or_prompt>" --depth 4
 
-# Expand Case with External Stage Findings & Cross-Case Link Analysis
+# Expand Case with External Stage Findings, Cross-Case Link Analysis, Drift & Typosquats
 python3 scripts/hunt.py --resume-case <CASE_ID> --ingest-file <stage_findings.txt>
 python3 scripts/hunt.py --compare-cases <CASE_A> <CASE_B>
+python3 scripts/hunt.py "<target>" --diff-last
+python3 scripts/hunt.py "<domain>" --typosquats
 
-# Zero-Network Forensic & Chronolocation Decoder (TikTok UTC, Snowflake, UUIDv1/v7, IBAN, Phone, VIN, MAC)
+# Zero-Network DFIR & Chronolocation Decoder (.eml, .pcap, .har, .mp4, PNG/C2PA, Google ei=, TikTok, Snowflake, UUID, IBAN, Phone, VIN)
 python3 scripts/osint.py decode "<token_or_url>"
+python3 scripts/hunt.py --decode <local_file_or_token>
 
 # Active Hunt Step 1 — Prepare OPSEC scope & Request ID across ALL discovered surface (sends 0 packets)
 python3 scripts/hunt.py --prepare-active --from-case <CASE_ID>
@@ -111,6 +114,7 @@ python3 scripts/osint.py doctor
 python3 scripts/osint.py pivot domain --passive --free
 python3 scripts/osint.py dorks --engine Shodan --target "<domain>"
 
-# Start Web Command Center + REST API on 0.0.0.0:8000
+# Launch Clean 5-Tab Local Web Workspace + REST API (or double-click Start-Web-UI.bat / Start-Web-UI.command)
+./start-web-ui.sh
 python3 scripts/server.py --port 8000
 ```
