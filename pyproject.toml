@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "osint-monster"
-version = "2026.10.4"
+version = "2026.10.5"
 description = "Autonomous Multi-Stage Passive OSINT Hunter + DFIR/Chronolocation Forensics + 22-Probe User-Gated Active Recon + Gephi/Neo4j/Obsidian Graph Studio + 760-Tool Arsenal & MCP Server"
 readme = "README.md"
 license = {text = "MIT"}

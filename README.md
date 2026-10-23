@@ -48,6 +48,12 @@ flowchart LR
 
 *Runs out of the box on **Python 3.9+ standard library** — **zero `pip install` required** (optional `pip install -e .` provides `osint-hunt`, `osint-arsenal`, `osint-server`, and `osint-mcp` commands).* 
 
+### 🖥️ Option 0 — Zero-Terminal Local Desktop Web App (Double-Click Launch)
+Prefer a full visual workspace instead of the terminal? Double-click the launcher for your OS—it starts the local server on `127.0.0.1` and opens your default browser automatically (including Drag-and-Drop DFIR file analysis, Graph Studio, Watchlist, and optional API Key settings):
+- **Windows**: Double-click **`Start-Web-UI.bat`**
+- **macOS**: Double-click **`Start-Web-UI.command`**
+- **Linux / Any OS**: Run `./start-web-ui.sh` *(or `python3 scripts/server.py --open --auto-port`)*
+
 ### 1️⃣ Exhaustive Multi-Stage Passive Hunting & Case Link Analysis
 ```bash
 # Instant Turn-1 Passive Hunt across multiple selector types (0 questions · 0 packets sent to target servers)

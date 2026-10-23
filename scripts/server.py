@@ -18,15 +18,25 @@ Serves the interactive web interface (`web/`) AND provides live REST endpoints:
 from __future__ import annotations
 
 import argparse
+import base64
+import io
 import json
+import re
+import shutil
 import sys
+import tempfile
+import threading
+import time
 import urllib.parse
+import webbrowser
+import zipfile
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
+DATA_DIR = ROOT / "data"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -48,14 +58,19 @@ from osint_hunter.engine import (  # noqa: E402
     render_markdown_dossier,
     run_autonomous_hunt,
 )
-from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
+from osint_hunter.offline_intel import analyze_local_file, universal_forensic_decode  # noqa: E402
 from osint_hunter.paths import get_cases_dir  # noqa: E402
 from osint_hunter.persona import (  # noqa: E402
     find_shortest_attribution_path,
     generate_domain_typosquats,
 )
-from osint_hunter.providers import get_byok_status  # noqa: E402
-from osint_hunter.watchlist import compute_case_delta  # noqa: E402
+from osint_hunter.providers import get_byok_status, update_byok_dotenv  # noqa: E402
+from osint_hunter.watchlist import (  # noqa: E402
+    add_to_watchlist,
+    compute_case_delta,
+    load_watchlist,
+    remove_from_watchlist,
+)
 
 
 class OSINTCommandHandler(SimpleHTTPRequestHandler):
@@ -66,6 +81,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Human-Modal-Confirmed")
+        self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
     def do_OPTIONS(self) -> None:
@@ -92,7 +108,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0") or 0)
         if length <= 0:
             return {}
-        raw = self.rfile.read(min(length, 4_000_000))
+        raw = self.rfile.read(min(length, 36_000_000))
         return json.loads(raw.decode("utf-8"))
 
     def _find_case_dir(self, case_id: str) -> Path | None:
@@ -111,7 +127,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 {
                     "status": "ok",
                     "engine": "osint-monster-hunter",
-                    "version": "2026.10.4",
+                    "version": "2026.10.5",
                     "tools": len(ALL_TOOLS),
                     "dorks": len(ALL_DORKS),
                     "workflows": len(ALL_WORKFLOWS),
@@ -119,6 +135,35 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                     "byok_providers": get_byok_status(),
                 }
             )
+            return
+
+        if path == "/api/doctor":
+            cli_probes = [
+                "nmap", "rustscan", "naabu", "httpx", "subfinder", "nuclei", "dnsx", "tlsx", "katana",
+                "ffuf", "feroxbuster", "gobuster", "amass", "bbot", "maigret", "sherlock", "holehe",
+                "exiftool", "binwalk", "qpdf", "tshark", "yt-dlp", "instaloader", "tor", "whois", "dig",
+            ]
+            installed = [b for b in cli_probes if shutil.which(b)]
+            self._send_json(
+                {
+                    "python_version": sys.version.split()[0],
+                    "platform": sys.platform,
+                    "cases_dir": str(get_cases_dir()),
+                    "catalog_health": {
+                        "tools": len(ALL_TOOLS),
+                        "workflows": len(ALL_WORKFLOWS),
+                        "dorks": len(ALL_DORKS),
+                        "sqlite_fts5_present": (DATA_DIR / "osint.sqlite").is_file(),
+                    },
+                    "byok_providers": get_byok_status(),
+                    "local_recon_binaries_detected": installed,
+                    "optional_binaries_not_installed": [b for b in cli_probes if b not in installed],
+                }
+            )
+            return
+
+        if path == "/api/watchlist":
+            self._send_json({"watchlist": load_watchlist()})
             return
 
         if path == "/api/cases":
@@ -165,6 +210,23 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                     else:
                         rep = json.loads((cdir / "report.json").read_text(encoding="utf-8"))
                         self._send_html(render_standalone_html_dossier(rep))
+                    return
+                if len(parts) == 5 and parts[4] == "obsidian.zip":
+                    obs_dir = cdir / "obsidian"
+                    if not obs_dir.is_dir():
+                        self._send_json({"error": "Obsidian vault not found for case"}, status=404)
+                        return
+                    buf = io.BytesIO()
+                    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+                        for md_p in sorted(obs_dir.glob("*.md")):
+                            zf.writestr(f"{cid}-obsidian/{md_p.name}", md_p.read_bytes())
+                    zbytes = buf.getvalue()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header("Content-Disposition", f'attachment; filename="{cid}-obsidian-vault.zip"')
+                    self.send_header("Content-Length", str(len(zbytes)))
+                    self.end_headers()
+                    self.wfile.write(zbytes)
                     return
                 if len(parts) == 5 and parts[4] in ("gexf", "graphml", "cypher"):
                     ext_map = {
@@ -219,6 +281,107 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "payload is required"}, status=400)
                 return
             self._send_json(universal_forensic_decode(raw))
+            return
+
+        if path == "/api/decode/file":
+            fname = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(str(data.get("filename") or "evidence.bin")).name)[:120]
+            b64 = str(data.get("content_base64") or "").strip()
+            if "," in b64 and b64.startswith("data:"):
+                b64 = b64.split(",", 1)[1]
+            if not b64:
+                self._send_json({"error": "content_base64 is required"}, status=400)
+                return
+            try:
+                raw_bytes = base64.b64decode(b64)
+            except Exception as exc:
+                self._send_json({"error": f"Invalid base64 payload: {exc}"}, status=400)
+                return
+            with tempfile.TemporaryDirectory(prefix="osint_web_dfir_") as tmpd:
+                fpath = Path(tmpd) / fname
+                fpath.write_bytes(raw_bytes)
+                res = analyze_local_file(str(fpath))
+                res.pop("absolute_path", None)
+                self._send_json({"input": fname, "decoded_count": 1, "results": [{"decoder": "local_binary_forensics", **res}]})
+            return
+
+        if path == "/api/hunt/file":
+            fname = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(str(data.get("filename") or "evidence.bin")).name)[:120]
+            b64 = str(data.get("content_base64") or "").strip()
+            if "," in b64 and b64.startswith("data:"):
+                b64 = b64.split(",", 1)[1]
+            if not b64:
+                self._send_json({"error": "content_base64 is required"}, status=400)
+                return
+            depth = max(1, min(6, int(data.get("depth", 4))))
+            diff_last = bool(data.get("diff_last", False))
+            try:
+                raw_bytes = base64.b64decode(b64)
+                with tempfile.TemporaryDirectory(prefix="osint_web_hunt_") as tmpd:
+                    fpath = Path(tmpd) / fname
+                    fpath.write_bytes(raw_bytes)
+                    report = run_autonomous_hunt(
+                        str(fpath),
+                        depth=depth,
+                        save_case=True,
+                        mode="passive",
+                        diff_last=diff_last,
+                    )
+                    report["meta"]["raw_input"] = f"[Uploaded File] {fname}"
+                report["stix2_bundle"] = build_stix2_bundle(
+                    report["meta"]["case_id"],
+                    fname,
+                    report["graph"]["nodes"],
+                    report["graph"]["edges"],
+                )
+                report["entities_csv"] = render_entities_csv(report)
+                self._send_json(report)
+            except Exception as exc:
+                self._send_json({"error": str(exc)}, status=500)
+            return
+
+        if path == "/api/watchlist/add":
+            tgt = str(data.get("target") or "").strip()
+            if not tgt:
+                self._send_json({"error": "target is required"}, status=400)
+                return
+            depth = max(1, min(6, int(data.get("depth", 3))))
+            note = str(data.get("note") or "").strip()
+            self._send_json({"watchlist": add_to_watchlist(tgt, depth=depth, note=note)})
+            return
+
+        if path == "/api/watchlist/remove":
+            tgt = str(data.get("target") or "").strip()
+            self._send_json({"watchlist": remove_from_watchlist(tgt)})
+            return
+
+        if path == "/api/watchlist/run":
+            items = load_watchlist()
+            results = []
+            for entry in items:
+                rep = run_autonomous_hunt(
+                    entry["target"],
+                    depth=int(entry.get("depth", 3)),
+                    save_case=True,
+                    mode="passive",
+                    diff_last=True,
+                )
+                results.append(
+                    {
+                        "target": entry["target"],
+                        "case_id": rep["meta"]["case_id"],
+                        "exposure_score": rep["intelligence_synthesis"]["exposure_score"],
+                        "surface_delta": rep.get("surface_delta"),
+                    }
+                )
+            self._send_json({"swept_count": len(results), "results": results})
+            return
+
+        if path == "/api/settings/byok":
+            updates = data.get("updates")
+            if not isinstance(updates, dict):
+                self._send_json({"error": "updates object is required"}, status=400)
+                return
+            self._send_json({"byok_providers": update_byok_dotenv(updates)})
             return
 
         if path == "/api/hunt":
@@ -386,17 +549,49 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Serve OSINT Command Center + Autonomous Hunter API")
+    parser = argparse.ArgumentParser(description="Serve OSINT Command Center + Local Web App")
     parser.add_argument("--host", default="0.0.0.0", help="Bind address (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8000, help="TCP port (default: 8000)")
+    parser.add_argument("--open", action="store_true", help="Automatically open the Web UI in your default browser")
+    parser.add_argument("--auto-port", action="store_true", help="Automatically select the next free TCP port if --port is busy")
     args = parser.parse_args()
 
-    httpd = ThreadingHTTPServer((args.host, args.port), OSINTCommandHandler)
-    print(f"OSINT Command Center + Autonomous Hunter running on http://{args.host}:{args.port}")
+    httpd = None
+    chosen_port = args.port
+    max_tries = 25 if args.auto_port else 1
+    for offset in range(max_tries):
+        cand_port = args.port + offset
+        try:
+            httpd = ThreadingHTTPServer((args.host, cand_port), OSINTCommandHandler)
+            chosen_port = cand_port
+            break
+        except OSError:
+            if offset + 1 == max_tries:
+                raise
+
+    browser_host = "127.0.0.1" if args.host in ("0.0.0.0", "::") else args.host
+    local_url = f"http://{browser_host}:{chosen_port}"
+    print("=" * 72)
+    print(f"  🛰️  OSINT MONSTER LOCAL WEB APP RUNNING")
+    print(f"  👉 Open in Browser : {local_url}")
+    print(f"  📁 Saved Cases Dir : {get_cases_dir()}")
+    print("  Press Ctrl+C (or close this window) to stop the local server.")
+    print("=" * 72)
+
+    if args.open:
+        def _launch_browser() -> None:
+            time.sleep(0.35)
+            try:
+                webbrowser.open(local_url)
+            except Exception:
+                pass
+
+        threading.Thread(target=_launch_browser, daemon=True).start()
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nShutting down.")
+        print("\nShutting down local Web UI.")
     return 0
 
 
