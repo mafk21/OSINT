@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Uploading sensitive or unreleased investigation photos to cloud reverse-image or face-search engines (Yandex, PimEyes, VirusTotal-style sandboxes) can cache or index the image; strip borders/EXIF and crop carefully.
 
-**Discipline Telemetry**: `25` Verified Tools · `10` S-Tier Flagships · `25` Passive · `21` Free/Open-Source
+**Discipline Telemetry**: `26` Verified Tools · `11` S-Tier Flagships · `26` Passive · `22` Free/Open-Source
 
 ## Subcategories
 - [Metadata & Container Forensics](#metadata-container-forensics) (3)
@@ -18,6 +18,7 @@
 - [Conflict & Remnant Verification](#conflict-remnant-verification) (1)
 - [AI & Deepfake Detection](#ai-deepfake-detection) (2)
 - [Document & Image De-obfuscation](#document-image-de-obfuscation) (1)
+- [Binary & Firmware Carving](#binary-firmware-carving) (1)
 
 ---
 
@@ -281,6 +282,21 @@
 - **Platforms**: Linux, macOS, Windows, Node.js · **Tags**: `depixelation`, `redaction-forensics`, `bishopfox`, `imint`
 - **Overview**: Forensic image analysis tool demonstrating deterministic recovery of sensitive text hidden behind mosaic pixelation filters in screenshots and documents.
 - **Quick-Start / Tradecraft**: `npm start # Load cropped pixelated text block in Unredacter`
+
+---
+
+## Binary & Firmware Carving
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Binwalk**](https://github.com/ReFirmLabs/binwalk) ([GitHub](https://github.com/ReFirmLabs/binwalk)) | CLI | OSS / Free | 🟢 Passive | ✅ | `image, document` → `metadata, secrets, documents` |
+
+### [Binwalk](https://github.com/ReFirmLabs/binwalk) `[S-Tier]`
+- **ID**: `binwalk` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`ReFirmLabs/binwalk`](https://github.com/ReFirmLabs/binwalk)
+- **Inputs**: `image`, `document` → **Outputs**: `metadata`, `secrets`, `documents`
+- **Platforms**: CLI, Linux, macOS, Rust, Python · **Tags**: `file-carving`, `firmware-osint`, `steganography`, `iot`
+- **Overview**: Firmware and polyglot file carver scanning images, documents, and IoT ROMs for embedded filesystems, private keys, URLs, and hidden archives.
+- **Quick-Start / Tradecraft**: `binwalk -e suspect_file.bin`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🛰️ GEOINT, Maps & Satellites](./11-geoint-maps-satellites.md) · [✈️ Aviation, Maritime & Transport ▶](./13-aviation-maritime-transport.md)

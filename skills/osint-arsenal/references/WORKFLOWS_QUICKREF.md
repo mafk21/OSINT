@@ -1,4 +1,4 @@
-# 12 OSINT Investigation Playbooks
+# 20 OSINT Investigation Playbooks
 
 ## Person & Digital Footprint Attribution (`person-identity-attribution` — Seed: `username / email / person_name`)
 *Build a verified 360-degree profile of an online persona or individual by chaining handle enumeration, email side-channels, breach metadata, and visual cross-verification.*
@@ -79,4 +79,52 @@
 1. **OUI Vendor & BSSID Geolocation**: Resolve Wi-Fi BSSID / Bluetooth MAC addresses to hardware manufacturers and historical wardriven GPS coordinates. (`wigle, apple-bssid-wps, wireshark-oui-lookup`)
 2. **Cellular Tower & GNSS Interference Mapping**: Map MCC/MNC/LAC/CID cell tower identifiers to physical tower coordinates and inspect regional GPS/GNSS spoofing zones. (`opencellid, cellmapper, gpsjam`)
 3. **Remote SDR & Orbital Downlink Monitoring**: Monitor HF/VHF utility broadcasts via networked Software-Defined Radios and correlate overhead satellite passes. (`kiwisdr, websdr, satnogs, celestrak`)
+
+## Instagram / TikTok / Creator Handle Multi-Stage Surface Expansion (`social-handle-multi-stage-unmasking` — Seed: `username / url`)
+*Turn a single social handle (e.g. Instagram or TikTok username) into a complete cross-platform identity, business, phone, email, and web infrastructure graph using iterative stage-by-stage expansion.*
+1. **Handle Enumeration & Deterministic Alias Mutation**: Sweep exact handle and separator/prefix variants (`.` -> `_`, `-`, concatenated, title-stripped) across 600+ social platforms and developer registries. (`whatsmyname, maigret, sherlock, blackbird`)
+2. **Link-in-Bio, WhatsApp & Contact Carving**: Harvest indexed bios, Linktree/Beacons hubs, and `wa.me/` links to extract E.164 phone numbers, booking emails, and external clinic/brand domains. (`instaloader, yt-dlp, phoneinfoga, holehe`)
+3. **Domain, TLS SAN & Analytics Network Pivot**: Pivot every discovered bio domain through Certificate Transparency, WHOIS/RDAP, and Google Analytics `G-`/`GTM-` IDs to uncover sister properties. (`crt-sh, bellingcat-wayback-ga, urlscan-io, wayback-machine`)
+
+## Unmasking Origin Server IPs Behind Cloudflare & WAFs (`origin-ip-unmasking-behind-cdn-waf` — Seed: `domain`)
+*Identify true backend origin IPv4/IPv6 servers shielded behind Cloudflare, Akamai, or Fastly without triggering WAF rate limits.*
+1. **Historical DNS, SPF & Mail Gateway Leaks**: Inspect historical `A`/`AAAA` records prior to CDN onboarding, plus `SPF` `ip4:` directives and non-proxied `MX`/`mail.*` subdomains. (`securitytrails, viewdns-info, haktrails, checkdmarc`)
+2. **X.509 Certificate & JARM Stack Correlation**: Search global IPv4 TLS scans for non-CDN ASNs presenting valid certificates for `*.target.com` or matching JARM TLS stack fingerprints. (`censys, shodan, tlsx, jarm`)
+3. **Shodan MurmurHash3 Favicon & Body Hash Pivot**: Compute the 32-bit signed `mmh3` hash of `/favicon.ico` and query cyberspace search engines for direct IPs serving identical brand assets. (`shodan, fofa, zoomeye, httpx`)
+
+## Shadow AI, Exposed LLM & Vector-DB Infrastructure Recon (`shadow-ai-llm-infrastructure-recon` — Seed: `domain / asn / company`)
+*Discover unauthenticated Ollama, vLLM, Open WebUI, Gradio, MLflow, Jupyter, and Qdrant/Milvus RAG databases across an organization's cloud perimeter.*
+1. **Cyberspace Banner & Port Discovery**: Query passive internet scan indexes for AI inference ports (`11434` Ollama, `6333` Qdrant, `19530` Milvus, `8000` vLLM, `7860` Gradio) inside target ASNs/certs. (`shodan, censys, fofa, uncover`)
+2. **Code, HuggingFace & MCP Config Leak Hunting**: Search public GitHub orgs and HuggingFace spaces for leaked `.env`, `.mcp.json`, fine-tuned weights, and internal dataset references. (`trufflehog, gitleaks, detect-secrets, keyhacks`)
+3. **Authorized Active Verification**: With explicit authorization, verify exposed OpenAPI `/docs`, `/v1/models`, and CORS policies on discovered AI subdomains. (`httpx, nuclei, nuclei-templates, katana`)
+
+## Ransomware Leak-Site, `.onion` & Threat Actor Attribution (`ransomware-onion-actor-attribution` — Seed: `onion_url / crypto_address / file_hash`)
+*Correlate Tor hidden-service technical mistakes, SSH/TLS key reuse, ransom wallet clusters, and malware artifacts to attribute underground operators.*
+1. **Passive Dark-Web Indexing & Leak Monitoring**: Track actor handles, victim posts, and historical `.onion` mirrors via dark-web threat feeds without touching live C2 infrastructure. (`ransomlook, ahmia, onionsearch, tor-stem`)
+2. **SSH Host-Key, Favicon & Certificate De-Anonymization**: Match hidden-service SSH host keys, HTTP ETag/favicon hashes, and server headers against clearnet IPv4 scans. (`onionscan, shodan, censys, ssh-audit`)
+3. **Ransomware Wallet Clustering & Malware Pivot**: Trace ransom BTC/XMR/TRON flows toward cash-out exchanges and link binary capabilities to known actor toolsets. (`graphsense, mempool-space, mandiant-capa, misp`)
+
+## Cross-Border Shell Company, Sanctions & Beneficial Ownership Tracing (`sanctions-evasion-shell-company-finint` — Seed: `company / person_name / vessel_imo`)
+*Unravel multi-jurisdictional holding structures, nominee directors, sanctioned oligarch proxies, and shadow-fleet maritime tankers.*
+1. **Global Corporate Registry & LEI Mapping**: Resolve legal entity identifiers, parent-subsidiary trees, officer appointments, and SEC/gazette filings. (`opencorporates, gleif-lei-search, bellingcat-edgar, icij-offshore-leaks`)
+2. **Sanctions, PEP & Leaked Archive Cross-Matching**: Screen entities and directors against OFAC/EU/UN watchlists and cross-border investigative leak archives. (`opensanctions, opensanctions-yente, occrp-aleph, documentcloud`)
+3. **Physical Asset Verification (Vessels & Aircraft)**: Link corporate SPVs to hull IMO numbers, MMSI flag-hopping histories, and executive jet ICAO24 transponders. (`equasis, marinetraffic, readsb, tar1090`)
+
+## Enterprise Cloud, Microsoft Entra ID & Storage Perimeter Recon (`cloud-entra-m365-tenant-recon` — Seed: `domain / company`)
+*Map an enterprise's external cloud identity tenant (Entra ID / Google Workspace), federated domains, public storage buckets, and IaC leaks.*
+1. **OIDC Tenant, Mail & Federation Mapping**: Query OpenID Connect discovery documents, MX/SPF/DMARC/BIMI records, and federated sibling domains tied to the corporate tenant. (`roadtools, o365recon, checkdmarc, crt-sh`)
+2. **Public Cloud Bucket & Artifact Enumeration**: Identify AWS S3, Google Cloud Storage, and Azure Blob containers matching company brand slugs and JS bundle references. (`grayhatwarfare, cloud-enum, s3scanner, gcpbucketbrute`)
+3. **Repository IaC, Container & CI/CD Audit**: Inspect public GitHub Actions workflows, Terraform files, and container images for leaked AWS Account IDs and secrets. (`trufflehog, checkov-iac, trivy-scanner, prowler-cloud`)
+
+## Investigative Media Verification, Chronolocation & Document Forensics (`document-media-chronolocation-verification` — Seed: `image / video / document / url`)
+*Authenticate user-generated conflict or corporate media, extract exact upload timestamps, geolocate terrain landmarks, and preserve court-grade evidence.*
+1. **Evidentiary Capture & Cryptographic Hashing**: Preserve volatile videos, posts, and webpages into signed WACZ/HTML bundles before takedown. (`bellingcat-auto-archiver, monolith, singlefile, archive-today`)
+2. **Container Metadata, Embedded Timestamps & ELA**: Extract EXIF/XMP/OLE author trails, decode 64-bit TikTok/Snowflake upload timestamps, and check compression tampering. (`exiftool, oletools, qpdf-forensics, forensically`)
+3. **Terrain Triangulation & Shadow Chronolocation**: Match skyline geometry, road intersections, and solar azimuth shadow angles against satellite constellations. (`bellingcat-osm-search, suncalc, copernicus-browser, google-earth-pro`)
+
+## Web3 Phishing Kit, Wallet Drainer & Laundering Attribution (`web3-drainer-scam-cluster-investigation` — Seed: `crypto_address / domain / url`)
+*Pivot from a phishing dApp or victim transaction hash to unmask the drainer operator's smart contracts, sister domains, and cash-out infrastructure.*
+1. **Drainer Domain, JS Bundle & Analytics Clustering**: Capture the dApp DOM, extract hardcoded receiver/contract addresses from JS bundles, and pivot shared `G-`/Cloudflare patterns. (`urlscan-io, metamask-phishing-db, scamsniffer-db, publicwww`)
+2. **Smart Contract Bytecode & Approval Tracing**: Decompile `Permit2`/approval drainer contracts and export ERC-20/NFT victim transfer traces. (`etherscan, foundry-cast, slither-analyzer, ethereum-etl`)
+3. **Cross-Chain Bridge & Off-Ramp Attribution**: Follow consolidated funds across bridges, DEX swaps, and Tron/BTC hops to attributed exchange deposit addresses. (`arkham-intelligence, graphsense, breadcrumbs, opensanctions`)
 

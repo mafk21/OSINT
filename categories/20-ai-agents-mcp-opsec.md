@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: When connecting LLM agents to MCP OSINT servers, review whether active/noisy tools are disabled by default (e.g. `OpenOSINT` passive mode) and avoid sending sensitive PII to cloud LLM providers without zero-data-retention.
 
-**Discipline Telemetry**: `34` Verified Tools · `11` S-Tier Flagships · `26` Passive · `30` Free/Open-Source
+**Discipline Telemetry**: `39` Verified Tools · `13` S-Tier Flagships · `28` Passive · `35` Free/Open-Source
 
 ## Subcategories
 - [Analyst Decoders & Swiss-Army Knives](#analyst-decoders-swiss-army-knives) (1)
@@ -17,6 +17,10 @@
 - [OSINT MCP Servers & AI Agents](#osint-mcp-servers-ai-agents) (8)
 - [Sock Puppet & Identity Compartmentalization](#sock-puppet-identity-compartmentalization) (2)
 - [Active Recon MCP Servers](#active-recon-mcp-servers) (6)
+- [MCP Intelligence Servers](#mcp-intelligence-servers) (1)
+- [AI Recon & Threat Synthesis](#ai-recon-threat-synthesis) (1)
+- [Autonomous Agent Runtimes](#autonomous-agent-runtimes) (2)
+- [Local & Private LLM Gateways](#local-private-llm-gateways) (1)
 
 ---
 
@@ -345,6 +349,74 @@
 - **Platforms**: CLI, Linux, macOS, Python · **Tags**: `easm`, `mcp`, `attack-surface`, `active-recon`
 - **Overview**: Modular external attack surface mapping MCP server integrating subdomain discovery, DNS resolution, port probing, and HTTP tech fingerprinting for AI agents.
 - **Quick-Start / Tradecraft**: `python3 server.py # ExternalAttacker MCP`
+
+---
+
+## MCP Intelligence Servers
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Model Context Protocol Reference Servers**](https://github.com/modelcontextprotocol/servers) ([GitHub](https://github.com/modelcontextprotocol/servers)) | AI / MCP | OSS / Free | 🟡 Hybrid | ✅ | `url, keyword, repo_code` → `urls, documents, metadata` |
+
+### [Model Context Protocol Reference Servers](https://github.com/modelcontextprotocol/servers) `[S-Tier]`
+- **ID**: `mcp-official-servers` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers)
+- **Inputs**: `url`, `keyword`, `repo_code`, `document` → **Outputs**: `urls`, `documents`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python, Node.js · **Tags**: `mcp`, `brave-search`, `fetch-mcp`, `sqlite-mcp`
+- **Overview**: Official Anthropic MCP server collection (`fetch`, `git`, `filesystem`, `puppeteer`, `brave-search`, `sqlite`) composable with OSINT agents.
+- **Quick-Start / Tradecraft**: `npx -y @modelcontextprotocol/server-fetch`
+
+---
+
+## AI Recon & Threat Synthesis
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Fabric (Daniel Miessler AI Patterns)**](https://github.com/danielmiessler/fabric) ([GitHub](https://github.com/danielmiessler/fabric)) | AI / MCP | OSS / Free | 🟢 Passive | 🔑 | `document, url, video` → `malware_iocs, entity_graph, metadata` |
+
+### [Fabric (Daniel Miessler AI Patterns)](https://github.com/danielmiessler/fabric) `[S-Tier]`
+- **ID**: `fabric-ai` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: Required (Account / API Key) · **GitHub**: [`danielmiessler/fabric`](https://github.com/danielmiessler/fabric)
+- **Inputs**: `document`, `url`, `video` → **Outputs**: `malware_iocs`, `entity_graph`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `daniel-miessler`, `ioc-extraction`, `threat-synthesis`, `cli-ai`
+- **Overview**: Open-source modular prompt and CLI pipeline (`fabric -p analyze_threat_report`, `extract_ioc`) distilling raw OSINT dumps and transcripts into structured intel.
+- **Quick-Start / Tradecraft**: `cat raw_report.txt | fabric --pattern analyze_threat_report`
+
+---
+
+## Autonomous Agent Runtimes
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**OpenHands Autonomous Agent**](https://github.com/All-Hands-AI/OpenHands) ([GitHub](https://github.com/All-Hands-AI/OpenHands)) | AI / MCP | OSS / Free | 🟡 Hybrid | 🔑 | `keyword, domain, repo_code` → `documents, entity_graph` |
+| **A** | [**CrewAI Multi-Agent Orchestrator**](https://github.com/crewAIInc/crewAI) ([GitHub](https://github.com/crewAIInc/crewAI)) | Framework | OSS / Free | 🟡 Hybrid | 🔑 | `keyword, domain, company` → `documents, entity_graph` |
+
+### [OpenHands Autonomous Agent](https://github.com/All-Hands-AI/OpenHands) `[A-Tier]`
+- **ID**: `openhands-agent` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: Required (Account / API Key) · **GitHub**: [`All-Hands-AI/OpenHands`](https://github.com/All-Hands-AI/OpenHands)
+- **Inputs**: `keyword`, `domain`, `repo_code` → **Outputs**: `documents`, `entity_graph`
+- **Platforms**: Web, CLI, Linux, macOS, Docker, Python · **Tags**: `autonomous-agent`, `sandboxed-runtime`, `mcp-host`
+- **Overview**: Sandboxed autonomous coding and terminal agent platform capable of mounting OSINT skills, running recon pipelines, and compiling dossiers.
+- **Quick-Start / Tradecraft**: `docker run -p 3000:3000 docker.all-hands.dev/all-hands-ai/openhands`
+
+### [CrewAI Multi-Agent Orchestrator](https://github.com/crewAIInc/crewAI) `[A-Tier]`
+- **ID**: `crewai` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: Required (Account / API Key) · **GitHub**: [`crewAIInc/crewAI`](https://github.com/crewAIInc/crewAI)
+- **Inputs**: `keyword`, `domain`, `company`, `person_name` → **Outputs**: `documents`, `entity_graph`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `multi-agent`, `osint-crew`, `python-agents`
+- **Overview**: Python multi-agent orchestration framework for building specialized Collector, Pivoting Analyst, Verifier, and STIX Report Writer OSINT crews.
+- **Quick-Start / Tradecraft**: `pip install crewai && crewai create crew osint-team`
+
+---
+
+## Local & Private LLM Gateways
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**LiteLLM Unified Model Gateway**](https://github.com/BerriAI/litellm) ([GitHub](https://github.com/BerriAI/litellm)) | AI / MCP | OSS / Free | 🟢 Passive | ✅ | `document, keyword` → `opsec_protection, metadata` |
+
+### [LiteLLM Unified Model Gateway](https://github.com/BerriAI/litellm) `[A-Tier]`
+- **ID**: `litellm-proxy` · **Type**: `AI / MCP` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`BerriAI/litellm`](https://github.com/BerriAI/litellm)
+- **Inputs**: `document`, `keyword` → **Outputs**: `opsec_protection`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `local-llm`, `airgapped-ai`, `ollama-gateway`, `opsec`
+- **Overview**: Unified OpenAI-compatible gateway routing OSINT agent tool calls across local Ollama/vLLM air-gapped models or 100+ cloud providers with OPSEC logging.
+- **Quick-Start / Tradecraft**: `litellm --model ollama/llama3.3`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 📻 SIGINT, Wireless, SDR & Space](./19-sigint-wireless-space-rf.md)

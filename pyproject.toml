@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "osint-monster"
+version = "2026.10.3"
+description = "Autonomous Multi-Stage Passive OSINT Hunter + 22-Probe User-Gated Active Recon Engine + 760-Tool Intelligence Arsenal, Forensic Decoders & MCP Server"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [{name = "mafk21"}]
+keywords = ["osint", "reconnaissance", "threat-intelligence", "stix2", "mcp", "socmint", "dfir", "cybersecurity"]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/mafk21/OSINT"
+
+[project.scripts]
+osint-hunt = "scripts.hunt:main"
+osint-arsenal = "scripts.osint:main"
+osint-server = "scripts.server:main"
+osint-mcp = "scripts.mcp_server:main"
+
+[tool.setuptools]
+packages = ["osint_hunter", "scripts"]

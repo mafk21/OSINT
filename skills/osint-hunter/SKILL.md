@@ -40,7 +40,8 @@ When the user supplies **any target** (handle, email, phone, domain, IP, ASN, UR
      python3 "$HUNT_PY" --resume-case <CASE_ID> --ingest-file <stage_findings.txt>
      ```
    - Repeat for any newly forged Stage-2/3 dorks until a stage yields **0 new unvisited target leads (`converged: true`)**.
-4. Present the unified **Multi-Stage Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, `manifest.sha256`).
+   - Need zero-network chronolocation or checksum decoding (TikTok URL/ID, Discord/X Snowflake, UUIDv1/v6/v7, ULID, MongoDB ObjectId, IBAN, phone, VIN, ICAO24, IMO/MMSI, MAC)? Run `python3 "$HUNT_PY" --decode "<token_or_url>"`.
+4. Present the unified **Multi-Stage Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.html`, `report.json`, `entities.csv`, `graph.json`, `graph.mermaid`, `stix2_bundle.json`, `manifest.sha256`).
 
 ---
 

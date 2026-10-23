@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Platforms like LinkedIn, TikTok, and Instagram notify users of profile views or suggest 'People You May Know' if sock puppets share browser fingerprints, IPs, or phone numbers.
 
-**Discipline Telemetry**: `31` Verified Tools · `11` S-Tier Flagships · `28` Passive · `26` Free/Open-Source
+**Discipline Telemetry**: `32` Verified Tools · `11` S-Tier Flagships · `28` Passive · `27` Free/Open-Source
 
 ## Subcategories
 - [Cross-Platform Academic & Disinfo Suites](#cross-platform-academic-disinfo-suites) (1)
@@ -23,6 +23,7 @@
 - [Media & Profile Archivers](#media-profile-archivers) (1)
 - [X / Twitter OSINT](#x-twitter-osint) (1)
 - [Fediverse & Decentralized Social](#fediverse-decentralized-social) (1)
+- [Cross-Platform Feed Monitoring](#cross-platform-feed-monitoring) (1)
 
 ---
 
@@ -369,6 +370,21 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `bluesky`, `atproto`, `did-plc`, `firehose`, `socmint`
 - **Overview**: Python AT Protocol SDK and CLI querying Bluesky DID documents, PLC audit logs, live Jetstream/Firehose feeds, and social graphs.
 - **Quick-Start / Tradecraft**: `pip install atproto && atproto-cli`
+
+---
+
+## Cross-Platform Feed Monitoring
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**RSSHub**](https://github.com/DIYgod/RSSHub) ([GitHub](https://github.com/DIYgod/RSSHub)) | Web Platform | OSS / Free | 🟡 Hybrid | ✅ | `username, url, keyword` → `social_profiles, urls, metadata` |
+
+### [RSSHub](https://github.com/DIYgod/RSSHub) `[A-Tier]`
+- **ID**: `rsshub` · **Type**: `Web Platform` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`DIYgod/RSSHub`](https://github.com/DIYgod/RSSHub)
+- **Inputs**: `username`, `url`, `keyword` → **Outputs**: `social_profiles`, `urls`, `metadata`
+- **Platforms**: Web, Docker, Node.js · **Tags**: `rss-monitoring`, `telegram`, `social-feeds`, `socmint`
+- **Overview**: Massive open-source feed aggregator generating structured RSS/JSON monitoring streams across 1,000+ social platforms, Telegram channels, and forums.
+- **Quick-Start / Tradecraft**: `docker run -d -p 1200:1200 diygod/rsshub`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 📡 Cyberspace & Network Search](./08-network-ip-iot-search.md) · [💻 Code, Secrets & Cloud OSINT ▶](./10-code-cloud-dev-osint.md)

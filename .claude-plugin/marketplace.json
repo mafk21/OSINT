@@ -4,13 +4,13 @@
     "name": "mafk21"
   },
   "metadata": {
-    "description": "Autonomous Passive & 22-Probe User-Gated Active OSINT Hunter + 680-Tool Intelligence Arsenal",
-    "version": "1.1.0"
+    "description": "Autonomous Multi-Stage Passive & 22-Probe User-Gated Active OSINT Hunter + 760-Tool Intelligence Arsenal & Forensic Decoders",
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "osint-monster",
-      "description": "Complete OSINT suite: Autonomous Passive Hunter (zero questions on Turn 1) + 22-Probe User-Gated Active Recon + 680-Tool Arsenal (178 Active/Hybrid), Selector Pivots & Dork Forge",
+      "description": "Complete OSINT suite: Exhaustive Multi-Stage Passive Hunter (zero questions on Turn 1) + Zero-Network Forensic Decoders + 22-Probe User-Gated Active Recon + 760-Tool Arsenal (201 Active/Hybrid), 105 Dorks & 20 Playbooks",
       "source": "./",
       "strict": false,
       "skills": [
@@ -20,7 +20,7 @@
     },
     {
       "name": "osint-hunter",
-      "description": "Autonomous Passive OSINT Hunter (Turn 1 zero-question execution across 35+ collectors) + Mandatory User-Gated Active Recon Engine",
+      "description": "Autonomous Multi-Stage Passive OSINT Hunter (Turn 1 zero-question execution across 35+ collectors + zero-network forensic decoders) + Mandatory User-Gated Active Recon Engine",
       "source": "./",
       "strict": false,
       "skills": [
@@ -29,7 +29,7 @@
     },
     {
       "name": "osint-arsenal",
-      "description": "680-Tool OSINT Catalog Search (502 Passive + 178 Active/Hybrid), 24-Selector Pivot Matrix, 12 Playbooks, 56 Search Engine Dorks & 2026 Graveyard Warnings",
+      "description": "760-Tool OSINT Catalog Search (559 Passive + 201 Active/Hybrid), 24-Selector Pivot Matrix, 20 Playbooks, 105 Search Engine Dorks & 25 Graveyard Warnings",
       "source": "./",
       "strict": false,
       "skills": [

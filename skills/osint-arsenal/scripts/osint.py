@@ -147,9 +147,10 @@ def cmd_pivot(args, _categories, tools, *_rest) -> int:
         print(f"Unknown selector '{selector}'. Run with --list to inspect valid selectors.", file=sys.stderr)
         return 1
 
+    opsec_val = args.opsec or ("Passive" if args.passive else None)
     pool = filter_tools(
         tools,
-        opsec="Passive" if args.passive else None,
+        opsec=opsec_val,
         free_only=args.free,
         no_auth=args.no_auth,
         tier=args.tier,
@@ -284,6 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pivot.add_argument("selector", nargs="?", help="Input selector (e.g. email, username, domain, image, crypto_address)")
     p_pivot.add_argument("--list", action="store_true", help="List all 24 supported input selectors")
     p_pivot.add_argument("--passive", action="store_true", help="Strictly passive tools (zero target packets)")
+    p_pivot.add_argument("-o", "--opsec", choices=["Passive", "Active", "Hybrid"], help="Filter by OPSEC mode")
     p_pivot.add_argument("--free", action="store_true", help="Only free / open-source tools")
     p_pivot.add_argument("--no-auth", action="store_true", help="Only keyless / accountless tools")
     p_pivot.add_argument("--tier", choices=["S", "A", "B"], help="Filter by tier")
@@ -304,9 +306,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("graveyard", help="Inspect retired/hijacked OSINT tools and 2026 replacements")
 
+    p_dec = sub.add_parser("decode", help="Zero-network forensic decoder (Phone, IBAN, VIN, ICAO24, IMO/MMSI, MAC/BSSID, JWT, UUIDv1/v7, ObjectId, TikTok/Snowflake)")
+    p_dec.add_argument("payload", nargs="+", help="Token(s), URL(s), or local file path to decode offline")
+
+    p_doc = sub.add_parser("doctor", help="Audit Python runtime, catalog health, installed skills & local CLI recon binaries")
+    p_doc.add_argument("--json", action="store_true", help="Output JSON environment diagnostics")
+
     p_hunt = sub.add_parser("hunt", help="Execute OSINT hunt (Passive instant by default; --active ALWAYS asks user first)")
     p_hunt.add_argument("target", nargs="+", help="Any selector, URL, file path, or natural-language prompt")
-    p_hunt.add_argument("-d", "--depth", type=int, default=2, choices=[1, 2, 3], help="Recursive pivot depth (default: 2)")
+    p_hunt.add_argument("-d", "--depth", type=int, default=4, choices=[1, 2, 3, 4, 5, 6], help="Max exhaustive stages (default: 4)")
     p_hunt.add_argument("--prepare-active", action="store_true", help="Prepare Active OSINT approval request (sends 0 packets)")
     p_hunt.add_argument("--active", action="store_true", help="Run Active OSINT mode (requires user confirmation)")
     p_hunt.add_argument("--request-id", help="Single-use approval request_id")
@@ -314,6 +322,64 @@ def build_parser() -> argparse.ArgumentParser:
     p_hunt.add_argument("--no-save", action="store_true", help="Do not persist artifacts in cases/")
     p_hunt.add_argument("--json", action="store_true", help="Output raw JSON report")
     return parser
+
+
+def cmd_decode(args, *_rest) -> int:
+    raw = " ".join(args.payload).strip()
+    for cand in (ROOT, Path(__file__).resolve().parent):
+        if (cand / "osint_hunter").is_dir() and str(cand) not in sys.path:
+            sys.path.insert(0, str(cand))
+            break
+    try:
+        from osint_hunter.offline_intel import universal_forensic_decode
+    except ImportError:
+        print("Offline forensic decoder requires osint_hunter (use osint-hunter skill or full repository).", file=sys.stderr)
+        return 1
+    print(json.dumps(universal_forensic_decode(raw), indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_doctor(args, categories, tools, workflows, dorks, graveyard) -> int:
+    import shutil
+
+    cli_probes = [
+        "nmap", "rustscan", "naabu", "httpx", "subfinder", "nuclei", "dnsx", "tlsx", "katana",
+        "ffuf", "feroxbuster", "gobuster", "amass", "bbot", "maigret", "sherlock", "holehe",
+        "exiftool", "binwalk", "qpdf", "tshark", "yt-dlp", "instaloader", "tor", "whois", "dig",
+    ]
+    installed_bins = {b: shutil.which(b) for b in cli_probes if shutil.which(b)}
+    missing_bins = [b for b in cli_probes if b not in installed_bins]
+    sqlite_ok = (DATA_DIR / "osint.sqlite").is_file()
+
+    diag = {
+        "python_version": sys.version.split()[0],
+        "catalog_health": {
+            "tools": len(tools),
+            "disciplines": len(categories),
+            "workflows": len(workflows),
+            "dorks": len(dorks),
+            "graveyard": len(graveyard),
+            "sqlite_fts5_present": sqlite_ok,
+        },
+        "hunter_engine_present": (ROOT / "osint_hunter" / "engine.py").is_file(),
+        "local_recon_binaries_detected": list(installed_bins.keys()),
+        "local_recon_binaries_count": len(installed_bins),
+        "optional_binaries_not_installed": missing_bins,
+    }
+    if getattr(args, "json", False):
+        print(json.dumps(diag, indent=2))
+        return 0
+
+    print("=" * 78)
+    print("  OSINT MONSTER ENVIRONMENT DOCTOR")
+    print("=" * 78)
+    print(f"  Python Runtime       : {diag['python_version']} (Zero pip deps required)")
+    print(f"  Catalog Integrity    : {len(tools)} tools · {len(workflows)} playbooks · {len(dorks)} dorks · {len(graveyard)} graveyard")
+    print(f"  SQLite FTS5 Index    : {'READY' if sqlite_ok else 'Standalone JSON Mode'}")
+    print(f"  Autonomous Hunter    : {'READY (35+ Passive + 22 Gated Active Probes)' if diag['hunter_engine_present'] else 'Skill-Only Arsenal Mode'}")
+    print(f"  Detected CLI Tools   : {len(installed_bins)}/{len(cli_probes)} ({', '.join(installed_bins.keys()) or 'none'})")
+    print("=" * 78)
+    return 0
 
 
 def cmd_hunt(args, *_rest) -> int:
@@ -348,6 +414,8 @@ def main() -> int:
         "workflows": cmd_workflows,
         "dorks": cmd_dorks,
         "graveyard": cmd_graveyard,
+        "decode": cmd_decode,
+        "doctor": cmd_doctor,
         "hunt": cmd_hunt,
     }
     fn = dispatch.get(args.cmd or "stats")

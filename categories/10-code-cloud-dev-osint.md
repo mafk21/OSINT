@@ -6,13 +6,13 @@
 >
 > **OPSEC Advisory**: Cloning a public GitHub repo is passive, but running live credential verification (`trufflehog` without `--no-verification`) hits third-party APIs and can trigger canarytoken alerts!
 
-**Discipline Telemetry**: `37` Verified Tools · `14` S-Tier Flagships · `20` Passive · `33` Free/Open-Source
+**Discipline Telemetry**: `54` Verified Tools · `19` S-Tier Flagships · `30` Passive · `50` Free/Open-Source
 
 ## Subcategories
 - [Multi-Cloud Asset Discovery](#multi-cloud-asset-discovery) (4)
 - [Developer Activity Archives](#developer-activity-archives) (1)
 - [Global Code & HTML Search Engines](#global-code-html-search-engines) (6)
-- [Secret & Credential Scanners](#secret-credential-scanners) (5)
+- [Secret & Credential Scanners](#secret-credential-scanners) (9)
 - [AI & ML Supply Chain OSINT](#ai-ml-supply-chain-osint) (1)
 - [Package & Supply Chain Recon](#package-supply-chain-recon) (3)
 - [API & Workspace Leaks](#api-workspace-leaks) (1)
@@ -21,6 +21,10 @@
 - [Secret & Code Leaks](#secret-code-leaks) (1)
 - [Cloud Asset & Bucket Enumeration](#cloud-asset-bucket-enumeration) (6)
 - [API & GraphQL Active Recon](#api-graphql-active-recon) (6)
+- [API Key Triage & Validation](#api-key-triage-validation) (1)
+- [Cloud & Storage Enumeration](#cloud-storage-enumeration) (6)
+- [Container & SBOM OSINT](#container-sbom-osint) (3)
+- [IaC & Cloud Config Recon](#iac-cloud-config-recon) (3)
 
 ---
 
@@ -142,6 +146,10 @@
 | **A** | [**git-hound**](https://github.com/tillson/git-hound) ([GitHub](https://github.com/tillson/git-hound)) | CLI | OSS / Free | 🟢 Passive | 🔑 | `domain, keyword, repo_code` → `secrets, urls` |
 | **A** | [**Nosey Parker**](https://github.com/praetorian-inc/noseyparker) ([GitHub](https://github.com/praetorian-inc/noseyparker)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `secrets, emails` |
 | **B** | [**Gitrob / Shhgit**](https://github.com/eth0izzle/shhgit) ([GitHub](https://github.com/eth0izzle/shhgit)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, company` → `secrets, urls` |
+| **S** | [**detect-secrets (Yelp)**](https://github.com/Yelp/detect-secrets) ([GitHub](https://github.com/Yelp/detect-secrets)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `secrets, metadata` |
+| **A** | [**git-secrets (AWS Labs)**](https://github.com/awslabs/git-secrets) ([GitHub](https://github.com/awslabs/git-secrets)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code` → `secrets` |
+| **A** | [**Talisman (Thoughtworks)**](https://github.com/thoughtworks/talisman) ([GitHub](https://github.com/thoughtworks/talisman)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code` → `secrets, certificates` |
+| **B** | [**Credential Detector**](https://github.com/ynori7/credential-detector) ([GitHub](https://github.com/ynori7/credential-detector)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `secrets` |
 
 ### [Gitleaks](https://github.com/gitleaks/gitleaks) `[S-Tier]`
 - **ID**: `gitleaks` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`gitleaks/gitleaks`](https://github.com/gitleaks/gitleaks)
@@ -177,6 +185,34 @@
 - **Platforms**: Linux, macOS, Docker, Go · **Tags**: `secret-signatures`, `tfstate-leaks`, `ssh-keys`, `gitlab-github`
 - **Overview**: Monitors real-time GitHub/GitLab/Bitbucket public commit streams or local repos against 120+ secret signatures and suspicious filenames (`id_rsa`, `.npmrc`, `credentials.xml`, `terraform.tfstate`).
 - **Quick-Start / Tradecraft**: `Audit `.terraform.tfstate` and `.npmrc` hits carefully without invoking live third-party credentials.`
+
+### [detect-secrets (Yelp)](https://github.com/Yelp/detect-secrets) `[S-Tier]`
+- **ID**: `detect-secrets` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`Yelp/detect-secrets`](https://github.com/Yelp/detect-secrets)
+- **Inputs**: `repo_code`, `document` → **Outputs**: `secrets`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `secrets`, `entropy-scanning`, `git-history`, `yelp`
+- **Overview**: Enterprise-grade secret detection suite scanning codebases and git histories using high-entropy heuristics and service-specific regex plugins.
+- **Quick-Start / Tradecraft**: `detect-secrets scan --all-files ./target-repo`
+
+### [git-secrets (AWS Labs)](https://github.com/awslabs/git-secrets) `[A-Tier]`
+- **ID**: `aws-git-secrets` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`awslabs/git-secrets`](https://github.com/awslabs/git-secrets)
+- **Inputs**: `repo_code` → **Outputs**: `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `aws-keys`, `git-commits`, `credential-leak`
+- **Overview**: AWS Labs scanner inspecting commit logs and branches for leaked AWS access keys, session tokens, and cloud credential patterns.
+- **Quick-Start / Tradecraft**: `git secrets --register-aws && git secrets --scan-history`
+
+### [Talisman (Thoughtworks)](https://github.com/thoughtworks/talisman) `[A-Tier]`
+- **ID**: `talisman-scanner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`thoughtworks/talisman`](https://github.com/thoughtworks/talisman)
+- **Inputs**: `repo_code` → **Outputs**: `secrets`, `certificates`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `git-history`, `private-keys`, `secrets-osint`
+- **Overview**: Git repository history analyzer detecting private keys, bearer tokens, high-entropy strings, and sensitive certificates across commits.
+- **Quick-Start / Tradecraft**: `talisman --scan`
+
+### [Credential Detector](https://github.com/ynori7/credential-detector) `[B-Tier]`
+- **ID**: `credential-detector` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`ynori7/credential-detector`](https://github.com/ynori7/credential-detector)
+- **Inputs**: `repo_code`, `document` → **Outputs**: `secrets`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `config-files`, `credentials`, `static-analysis`
+- **Overview**: Go static scanner parsing YAML, JSON, properties, XML, and source files to uncover hardcoded passwords, private keys, and tokens.
+- **Quick-Start / Tradecraft**: `credential-detector /path/to/repo`
 
 ---
 
@@ -401,6 +437,138 @@
 - **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `nuclei`, `yaml-templates`, `exposed-panels`, `osint-templates`, `active`
 - **Overview**: Community-curated library of 10,000+ YAML active detection templates covering exposed panels, cloud misconfigurations, OSINT user checks, and tech fingerprints.
 - **Quick-Start / Tradecraft**: `nuclei -u https://example.com -tags exposure,panel,tech`
+
+---
+
+## API Key Triage & Validation
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**KeyHacks**](https://github.com/streaak/keyhacks) ([GitHub](https://github.com/streaak/keyhacks)) | Dataset / Registry | OSS / Free | 🟡 Hybrid | ✅ | `keyword, repo_code` → `secrets, metadata` |
+
+### [KeyHacks](https://github.com/streaak/keyhacks) `[S-Tier]`
+- **ID**: `keyhacks` · **Type**: `Dataset / Registry` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`streaak/keyhacks`](https://github.com/streaak/keyhacks)
+- **Inputs**: `keyword`, `repo_code` → **Outputs**: `secrets`, `metadata`
+- **Platforms**: Web, CLI · **Tags**: `api-keys`, `key-validation`, `secrets-triage`
+- **Overview**: Canonical reference catalog of 150+ third-party API key formats and exact commands to verify whether a discovered API token is live.
+- **Quick-Start / Tradecraft**: `Search KeyHacks for service curl validation snippet`
+
+---
+
+## Cloud & Storage Enumeration
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Prowler**](https://github.com/toniblyx/prowler) ([GitHub](https://github.com/toniblyx/prowler)) | CLI | OSS / Free | 🔴 Active | 🔑 | `company, domain` → `tech_stack, urls, secrets` |
+| **S** | [**ScoutSuite (NCC Group)**](https://github.com/nccgroup/ScoutSuite) ([GitHub](https://github.com/nccgroup/ScoutSuite)) | CLI | OSS / Free | 🔴 Active | 🔑 | `company, domain` → `tech_stack, open_ports, urls` |
+| **A** | [**Pacu (Rhino Security Labs)**](https://github.com/RhinoSecurityLabs/pacu) ([GitHub](https://github.com/RhinoSecurityLabs/pacu)) | Framework | OSS / Free | 🔴 Active | ✅ | `domain, company, username` → `usernames, secrets, tech_stack` |
+| **A** | [**CloudMapper (Duo Labs)**](https://github.com/duo-labs/cloudmapper) ([GitHub](https://github.com/duo-labs/cloudmapper)) | CLI | OSS / Free | 🔴 Active | 🔑 | `company, domain` → `ip_addresses, open_ports, entity_graph` |
+| **B** | [**Cloudsplaining (Salesforce)**](https://github.com/salesforce/cloudsplaining) ([GitHub](https://github.com/salesforce/cloudsplaining)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, repo_code` → `secrets, metadata` |
+| **B** | [**SkyArk (Shadow Admin Recon)**](https://github.com/cyberark/SkyArk) ([GitHub](https://github.com/cyberark/SkyArk)) | Framework | OSS / Free | 🔴 Active | 🔑 | `company, domain` → `usernames, entity_graph, metadata` |
+
+### [Prowler](https://github.com/toniblyx/prowler) `[S-Tier]`
+- **ID**: `prowler-cloud` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`toniblyx/prowler`](https://github.com/toniblyx/prowler)
+- **Inputs**: `company`, `domain` → **Outputs**: `tech_stack`, `urls`, `secrets`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `aws`, `azure`, `gcp`, `cloud-inventory`, `active`
+- **Overview**: Flagship open-source cloud security and asset inventory scanner mapping exposed S3/IAM/VPC/EKS/Azure/GCP/M365 services.
+- **Quick-Start / Tradecraft**: `prowler aws --services s3 iam ec2`
+
+### [ScoutSuite (NCC Group)](https://github.com/nccgroup/ScoutSuite) `[S-Tier]`
+- **ID**: `scoutsuite` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`nccgroup/ScoutSuite`](https://github.com/nccgroup/ScoutSuite)
+- **Inputs**: `company`, `domain` → **Outputs**: `tech_stack`, `open_ports`, `urls`, `entity_graph`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `multi-cloud`, `nccgroup`, `attack-surface`, `active`
+- **Overview**: Multi-cloud reconnaissance and attack-surface auditing tool generating interactive HTML topology reports for AWS, Azure, GCP, and Oracle Cloud.
+- **Quick-Start / Tradecraft**: `scout aws --report-dir ./scout-report`
+
+### [Pacu (Rhino Security Labs)](https://github.com/RhinoSecurityLabs/pacu) `[A-Tier]`
+- **ID**: `pacu-aws` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`RhinoSecurityLabs/pacu`](https://github.com/RhinoSecurityLabs/pacu)
+- **Inputs**: `domain`, `company`, `username` → **Outputs**: `usernames`, `secrets`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `aws-recon`, `iam-enum`, `s3`, `active`
+- **Overview**: Modular AWS enumeration and reconnaissance framework mapping IAM principals, Lambda variables, S3 buckets, and cross-account trust.
+- **Quick-Start / Tradecraft**: `pacu # run iam__enum_users_roles_policies_groups`
+
+### [CloudMapper (Duo Labs)](https://github.com/duo-labs/cloudmapper) `[A-Tier]`
+- **ID**: `cloudmapper` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`duo-labs/cloudmapper`](https://github.com/duo-labs/cloudmapper)
+- **Inputs**: `company`, `domain` → **Outputs**: `ip_addresses`, `open_ports`, `entity_graph`
+- **Platforms**: CLI, Linux, macOS, Docker, Python · **Tags**: `aws-topology`, `public-ips`, `network-graph`
+- **Overview**: AWS network topology visualizer and public-exposure mapper discovering internet-facing EC2, ALB, RDS, and S3 endpoints.
+- **Quick-Start / Tradecraft**: `python cloudmapper.py find_admins --account target`
+
+### [Cloudsplaining (Salesforce)](https://github.com/salesforce/cloudsplaining) `[B-Tier]`
+- **ID**: `cloudsplaining` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`salesforce/cloudsplaining`](https://github.com/salesforce/cloudsplaining)
+- **Inputs**: `document`, `repo_code` → **Outputs**: `secrets`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `aws-iam`, `policy-analysis`, `salesforce`
+- **Overview**: AWS IAM policy analyzer pinpointing resource exposure, data exfiltration paths, and cross-account privilege boundaries.
+- **Quick-Start / Tradecraft**: `cloudsplaining scan-policy-file --input-file policy.json`
+
+### [SkyArk (Shadow Admin Recon)](https://github.com/cyberark/SkyArk) `[B-Tier]`
+- **ID**: `skyark-cloud` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`cyberark/SkyArk`](https://github.com/cyberark/SkyArk)
+- **Inputs**: `company`, `domain` → **Outputs**: `usernames`, `entity_graph`, `metadata`
+- **Platforms**: CLI, Windows, Linux, macOS · **Tags**: `shadow-admins`, `aws-iam`, `entra`, `cyberark`
+- **Overview**: AWSStealth and AzureStealth cloud reconnaissance modules enumerating shadow administrative principals across AWS IAM and Microsoft Entra.
+- **Quick-Start / Tradecraft**: `Import-Module ./SkyArk.ps1; Start-AWStealth`
+
+---
+
+## Container & SBOM OSINT
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Trivy (Aqua Security)**](https://github.com/aquasecurity/trivy) ([GitHub](https://github.com/aquasecurity/trivy)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `repo_code, url, domain` → `tech_stack, secrets, malware_iocs` |
+| **A** | [**Syft (Anchore SBOM Extractor)**](https://github.com/anchore/syft) ([GitHub](https://github.com/anchore/syft)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, repo_code` → `tech_stack, metadata` |
+| **A** | [**Grype**](https://github.com/anchore/grype) ([GitHub](https://github.com/anchore/grype)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, repo_code` → `malware_iocs, tech_stack` |
+
+### [Trivy (Aqua Security)](https://github.com/aquasecurity/trivy) `[S-Tier]`
+- **ID**: `trivy-scanner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`aquasecurity/trivy`](https://github.com/aquasecurity/trivy)
+- **Inputs**: `repo_code`, `url`, `domain` → **Outputs**: `tech_stack`, `secrets`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `container-osint`, `sbom`, `secrets`, `cve`
+- **Overview**: All-in-one container image, git repository, filesystem, and Kubernetes scanner extracting SBOM packages, secrets, and CVEs.
+- **Quick-Start / Tradecraft**: `trivy repo https://github.com/org/repo`
+
+### [Syft (Anchore SBOM Extractor)](https://github.com/anchore/syft) `[A-Tier]`
+- **ID**: `syft-sbom` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`anchore/syft`](https://github.com/anchore/syft)
+- **Inputs**: `document`, `repo_code` → **Outputs**: `tech_stack`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `sbom`, `oci-containers`, `dependency-osint`
+- **Overview**: Container image and binary filesystem Software Bill of Materials (SBOM) carver enumerating exact library versions across OCI layers.
+- **Quick-Start / Tradecraft**: `syft alpine:latest -o cyclonedx-json`
+
+### [Grype](https://github.com/anchore/grype) `[A-Tier]`
+- **ID**: `grype-vuln` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`anchore/grype`](https://github.com/anchore/grype)
+- **Inputs**: `document`, `repo_code` → **Outputs**: `malware_iocs`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `cve-matching`, `sbom`, `containers`
+- **Overview**: Fast vulnerability matcher correlating container images and Syft SBOM inventories against NVD, GitHub Advisory, and distro feeds.
+- **Quick-Start / Tradecraft**: `grype sbom:./target.sbom.json`
+
+---
+
+## IaC & Cloud Config Recon
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Checkov**](https://github.com/bridgecrewio/checkov) ([GitHub](https://github.com/bridgecrewio/checkov)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `secrets, tech_stack, urls` |
+| **B** | [**Terrascan**](https://github.com/tenable/terrascan) ([GitHub](https://github.com/tenable/terrascan)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `tech_stack, secrets, open_ports` |
+| **A** | [**tfsec**](https://github.com/aquasecurity/tfsec) ([GitHub](https://github.com/tfsec/tfsec)) | CLI | OSS / Free | 🟢 Passive | ✅ | `repo_code, document` → `secrets, tech_stack` |
+
+### [Checkov](https://github.com/bridgecrewio/checkov) `[A-Tier]`
+- **ID**: `checkov-iac` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`bridgecrewio/checkov`](https://github.com/bridgecrewio/checkov)
+- **Inputs**: `repo_code`, `document` → **Outputs**: `secrets`, `tech_stack`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `terraform`, `kubernetes`, `iac-osint`, `secrets`
+- **Overview**: Static Infrastructure-as-Code analyzer auditing Terraform, CloudFormation, Helm, and Kubernetes manifests for public buckets and secrets.
+- **Quick-Start / Tradecraft**: `checkov -d ./terraform`
+
+### [Terrascan](https://github.com/tenable/terrascan) `[B-Tier]`
+- **ID**: `terrascan-iac` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tenable/terrascan`](https://github.com/tenable/terrascan)
+- **Inputs**: `repo_code`, `document` → **Outputs**: `tech_stack`, `secrets`, `open_ports`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `iac`, `terraform`, `kubernetes`, `cloud-exposure`
+- **Overview**: Static code analyzer auditing Terraform, Kubernetes, Helm, and Kustomize repositories for exposed cloud storage, public security groups, and secrets.
+- **Quick-Start / Tradecraft**: `terrascan scan -d ./iac-repo`
+
+### [tfsec](https://github.com/aquasecurity/tfsec) `[A-Tier]`
+- **ID**: `tfsec-scanner` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tfsec/tfsec`](https://github.com/tfsec/tfsec)
+- **Inputs**: `repo_code`, `document` → **Outputs**: `secrets`, `tech_stack`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `terraform`, `s3-exposure`, `aws-iam`, `go`
+- **Overview**: Fast Go Terraform static analyzer pinpointing public S3 ACLs, unencrypted RDS snapshots, wildcard IAM roles, and hardcoded cloud keys.
+- **Quick-Start / Tradecraft**: `tfsec ./terraform`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 💬 Social Media (SOCMINT)](./09-social-media-socmint.md) · [🛰️ GEOINT, Maps & Satellites ▶](./11-geoint-maps-satellites.md)

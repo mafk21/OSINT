@@ -21,6 +21,7 @@ from .offline_intel import (
     decode_jwt,
     decode_mac_bssid,
     decode_phone,
+    decode_tiktok_id_or_url,
     decode_vessel_identifier,
     decode_vin,
     parse_pgp_armored_keys,
@@ -877,7 +878,7 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
                     ent = ((r.get("attributes") or {}).get("entity") or {})
                     recs.append({"lei": r.get("id"), "legal_name": (ent.get("legalName") or {}).get("name"), "jurisdiction": ent.get("jurisdiction")})
                 out.append(_res("gleif_corporate_lei", "ok", f"Matched {len(recs)} global LEI corporate registration(s)", {"lei_records": recs}))
-        return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 680-tool arsenal pivots for '{value}'", {"query": value})]
+        return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 760-tool arsenal pivots for '{value}'", {"query": value})]
 
     if sel_type in ("url", "onion_url"):
         parsed = urllib.parse.urlparse(value if "://" in value else f"http://{value}")
@@ -886,19 +887,23 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
         for pv in q_params.values():
             if pv.startswith(("http://", "https://")):
                 url_pivots.append({"type": "url", "value": pv})
+        tt_meta = decode_tiktok_id_or_url(value)
+        url_payload = {
+            "url": value,
+            "scheme": parsed.scheme,
+            "hostname": parsed.hostname,
+            "path": parsed.path,
+            "query_params": q_params,
+            "is_tor_onion": (parsed.hostname or "").endswith(".onion"),
+        }
+        if tt_meta:
+            url_payload["tiktok_chronolocation"] = tt_meta
         out = [
             _res(
                 "url_structural_decomposition",
                 "ok",
-                f"Host={(parsed.hostname or '')} · Path={parsed.path or '/'}",
-                {
-                    "url": value,
-                    "scheme": parsed.scheme,
-                    "hostname": parsed.hostname,
-                    "path": parsed.path,
-                    "query_params": q_params,
-                    "is_tor_onion": (parsed.hostname or "").endswith(".onion"),
-                },
+                f"Host={(parsed.hostname or '')} · Path={parsed.path or '/'}" + (f" · TikTok Upload={tt_meta['upload_utc_iso']}" if tt_meta else ""),
+                url_payload,
                 url_pivots,
             )
         ]

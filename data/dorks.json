@@ -446,5 +446,397 @@
     "title": "Direct PostgreSQL Query against `crt.sh:5432`",
     "query": "psql -h crt.sh -p 5432 -U guest certwatch -c \"SELECT DISTINCT ci.NAME_VALUE FROM certificate_identity ci WHERE ci.NAME_TYPE = 'dNSName' AND reverse(lower(ci.NAME_VALUE)) LIKE reverse(lower('%.example.com'));\"",
     "purpose": "Bypass web timeouts on massive domains by querying Sectigo's public read-only `certwatch` Postgres replica directly!"
+  },
+  {
+    "id": "shodan-ollama-open-api",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Unauthenticated Ollama LLM API Servers (:11434)",
+    "query": "port:11434 \"Ollama is running\" org:\"Target Corp\"",
+    "purpose": "Discover exposed self-hosted Ollama inference instances leaking loaded proprietary models via `/api/tags`."
+  },
+  {
+    "id": "shodan-open-webui-instances",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed Open WebUI / Chat Portals",
+    "query": "http.title:\"Open WebUI\" ssl:\"example.com\"",
+    "purpose": "Locate internal LLM chat frontends accidentally exposed on corporate subdomains or cloud IPs."
+  },
+  {
+    "id": "shodan-vllm-openai-server",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed vLLM OpenAI-Compatible Inference Nodes",
+    "query": "http.html:\"/v1/models\" \"vllm\" org:\"Target Corp\"",
+    "purpose": "Identify high-GPU vLLM inference endpoints serving fine-tuned enterprise weights."
+  },
+  {
+    "id": "shodan-qdrant-vector-db",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Unauthenticated Qdrant RAG Vector Databases",
+    "query": "http.title:\"Qdrant\" port:6333 org:\"Target Corp\"",
+    "purpose": "Find exposed RAG vector collections containing embedded internal documents and knowledge bases."
+  },
+  {
+    "id": "shodan-milvus-vector-db",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed Milvus / Attu Vector Clusters",
+    "query": "port:19530 OR http.title:\"Attu\" org:\"Target Corp\"",
+    "purpose": "Detect unauthenticated Milvus vector stores backing enterprise AI pipelines."
+  },
+  {
+    "id": "shodan-mlflow-tracking",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed MLflow Experiment & Artifact Servers",
+    "query": "http.title:\"MLflow\" ssl:\"example.com\"",
+    "purpose": "Uncover MLflow dashboards exposing S3 artifact paths, training datasets, and pipeline parameters."
+  },
+  {
+    "id": "shodan-gradio-apps",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Public Gradio ML Demo & Internal Prototypes",
+    "query": "http.html:\"__gradio_mode__\" ssl:\"example.com\"",
+    "purpose": "Enumerate internal Gradio AI prototypes hosted across corporate cloud netblocks."
+  },
+  {
+    "id": "shodan-jupyter-notebooks",
+    "engine": "Shodan",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed JupyterLab / Notebook Servers",
+    "query": "http.title:\"Jupyter\" ssl:\"example.com\"",
+    "purpose": "Locate data-science notebook servers tied to target TLS certificates."
+  },
+  {
+    "id": "fofa-comfyui-ray-dashboard",
+    "engine": "FOFA",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Exposed Ray Cluster & ComfyUI GPU Dashboards",
+    "query": "(title=\"Ray Dashboard\" || title=\"ComfyUI\") && cert=\"example.com\"",
+    "purpose": "Map distributed Ray compute clusters and generative AI nodes matching target certs."
+  },
+  {
+    "id": "google-mcp-config-leak",
+    "engine": "Google",
+    "category": "Shadow AI & LLM Recon",
+    "title": "Indexed MCP Server Configs & Claude/Cursor Dotfiles",
+    "query": "site:example.com (inurl:\".mcp.json\" OR inurl:\"claude_desktop_config.json\" OR \"mcpServers\")",
+    "purpose": "Find leaked Model Context Protocol configurations revealing internal API URLs and tokens."
+  },
+  {
+    "id": "google-insta-handle-mentions",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "Instagram Handle Bio, Reels & Third-Party Tags",
+    "query": "site:instagram.com \"target_handle\"",
+    "purpose": "Surface indexed Instagram profile bios, reels, and mentions by collaborators even without logging in."
+  },
+  {
+    "id": "google-cross-platform-socmint",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "Multi-Platform Handle Reuse Sweep",
+    "query": "\"target_handle\" (site:tiktok.com OR site:snapchat.com OR site:x.com OR site:threads.net OR site:t.me OR site:youtube.com)",
+    "purpose": "Pivot a single username across six major short-video and messaging ecosystems simultaneously."
+  },
+  {
+    "id": "google-biolink-aggregators",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "Link-in-Bio Hub Discovery (Linktree / Beacons / Taplink)",
+    "query": "\"target_handle\" (site:linktr.ee OR site:beacons.ai OR site:bio.link OR site:taplink.cc OR site:carrd.co)",
+    "purpose": "Locate link-in-bio hubs that bundle a target's personal domains, shops, Telegrams, and booking phones."
+  },
+  {
+    "id": "google-whatsapp-wame-pivot",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "WhatsApp `wa.me` Business Number Unmasking",
+    "query": "\"target_handle\" (\"wa.me/\" OR \"api.whatsapp.com/send?phone=\")",
+    "purpose": "Extract direct E.164 WhatsApp phone numbers linked to a social handle or brand."
+  },
+  {
+    "id": "google-discord-invite-attribution",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "Discord Server Invite Leaks Tied to Domain/Handle",
+    "query": "(\"discord.gg/\" OR \"discord.com/invite/\") \"example.com\"",
+    "purpose": "Discover official or shadow community Discord servers linked to an organization or handle."
+  },
+  {
+    "id": "google-calendly-booking-leak",
+    "engine": "Google",
+    "category": "SOCMINT & Handle Pivots",
+    "title": "Calendly & Executive Booking Slugs",
+    "query": "site:calendly.com \"Target Corp\" OR \"example.com\"",
+    "purpose": "Enumerate employee names, roles, and meeting links via public Calendly scheduling pages."
+  },
+  {
+    "id": "google-notion-public-workspaces",
+    "engine": "Google",
+    "category": "Cloud & Collaboration Leaks",
+    "title": "Public Notion Sites & Internal Wikis",
+    "query": "(site:notion.site OR site:notion.so) \"example.com\"",
+    "purpose": "Uncover public Notion roadmaps, onboarding docs, and org charts referencing the target domain."
+  },
+  {
+    "id": "google-postman-public-workspaces",
+    "engine": "Google",
+    "category": "Cloud & Collaboration Leaks",
+    "title": "Exposed Postman API Collections & Environments",
+    "query": "site:postman.com \"example.com\"",
+    "purpose": "Find public developer Postman workspaces leaking staging URLs, headers, and sample bearer tokens."
+  },
+  {
+    "id": "google-figma-board-exposure",
+    "engine": "Google",
+    "category": "Cloud & Collaboration Leaks",
+    "title": "Public Figma Design Files & Architecture Boards",
+    "query": "site:figma.com \"Target Corp\" OR \"example.com\"",
+    "purpose": "Locate publicly shared UX prototypes and architecture diagrams revealing unreleased products."
+  },
+  {
+    "id": "google-terraform-state-leak",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Indexed `terraform.tfstate` Infrastructure Maps",
+    "query": "site:example.com ext:tfstate OR inurl:\"terraform.tfstate\"",
+    "purpose": "Detect leaked Terraform state files containing full cloud resource graphs and outputs."
+  },
+  {
+    "id": "google-kubeconfig-exposure",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Exposed Kubernetes `kubeconfig` & Cluster YAML",
+    "query": "site:example.com (\"apiVersion: v1\" \"clusters:\" \"certificate-authority-data\")",
+    "purpose": "Identify indexed Kubernetes configuration files leaking API server URLs."
+  },
+  {
+    "id": "google-firebase-io-databases",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Firebase Realtime Database & Storage References",
+    "query": "(\"firebaseio.com\" OR \"firebasestorage.googleapis.com\") \"example.com\"",
+    "purpose": "Find mobile/web backend Firebase project slugs tied to a target domain."
+  },
+  {
+    "id": "google-supabase-project-urls",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Supabase Project URL & Anon Key References",
+    "query": "\"supabase.co\" \"example.com\"",
+    "purpose": "Locate Supabase backend project subdomains (`*.supabase.co`) embedded in client apps or docs."
+  },
+  {
+    "id": "github-supabase-service-role",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "Leaked Supabase & Next.js Public/Service Env Vars",
+    "query": "\"example.com\" (\"NEXT_PUBLIC_SUPABASE_URL\" OR \"SUPABASE_SERVICE_ROLE_KEY\")",
+    "purpose": "Discover repositories linking target domains to Supabase projects and API keys."
+  },
+  {
+    "id": "github-docker-compose-prod",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "Production `docker-compose.yml` Infrastructure Topology",
+    "query": "\"example.com\" filename:docker-compose.yml",
+    "purpose": "Map internal microservices, Redis/Postgres ports, and reverse-proxy hostnames."
+  },
+  {
+    "id": "github-github-actions-oidc",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "GitHub Actions Cloud IAM Role ARNs",
+    "query": "\"example.com\" path:.github/workflows \"arn:aws:iam::\"",
+    "purpose": "Extract AWS Account IDs (12-digit numbers inside IAM ARNs) from public CI/CD workflows!"
+  },
+  {
+    "id": "github-npmrc-private-registry",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "Private `.npmrc` Scopes & Internal Registry URLs",
+    "query": "\"example.com\" filename:.npmrc",
+    "purpose": "Uncover internal Artifactory/Nexus hostnames and scoped package namespaces (`@corp/*`)."
+  },
+  {
+    "id": "github-openapi-specs",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "Committed OpenAPI / Swagger Route Specifications",
+    "query": "\"example.com\" (filename:openapi.yaml OR filename:openapi.json OR filename:swagger.json)",
+    "purpose": "Retrieve complete API endpoint schemas and auth definitions from public repos."
+  },
+  {
+    "id": "github-gitlab-ci-vars",
+    "engine": "GitHub",
+    "category": "Secrets & Code OSINT",
+    "title": "CI/CD `.gitlab-ci.yml` Staging & Runner Hosts",
+    "query": "\"example.com\" filename:.gitlab-ci.yml",
+    "purpose": "Extract staging domains, container registries, and deployment SSH hosts."
+  },
+  {
+    "id": "shodan-jarm-c2-pivot",
+    "engine": "Shodan",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "JARM TLS Stack Cluster Pivot",
+    "query": "ssl.jarm:\"2ad2ad0002ad2ad00042d42d000000ad9bf51cc3f5a1e29eecb81d0c7b06eb\" ssl:\"example.com\"",
+    "purpose": "Cluster all global servers sharing an identical TLS ServerHello JARM stack hash."
+  },
+  {
+    "id": "shodan-etcd-k8s-ports",
+    "engine": "Shodan",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "Kubernetes API (`:6443`) & etcd (`:2379`) Cert Pivot",
+    "query": "(port:6443 OR port:2379) ssl.cert.subject.cn:\"example.com\"",
+    "purpose": "Find raw cloud control-plane IPs holding certificates for the target domain."
+  },
+  {
+    "id": "shodan-smtp-headers-origin",
+    "engine": "Shodan",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "Mail Server `:25/:587` TLS Cert Origin Leak",
+    "query": "(port:25 OR port:587) ssl:\"example.com\"",
+    "purpose": "Unmask non-CDN origin subnets via self-hosted Postfix/Exchange mail gateways."
+  },
+  {
+    "id": "censys-san-sibling-domains",
+    "engine": "Censys",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "X.509 SAN Sibling Domain & Origin IP Discovery",
+    "query": "services.tls.certificates.leaf_data.names: \"example.com\" and not autonomous_system.name: \"CLOUDFLARE*\"",
+    "purpose": "Find non-Cloudflare origin IPs presenting valid TLS certificates for `example.com`!"
+  },
+  {
+    "id": "censys-open-directory-listings",
+    "engine": "Censys",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "Open HTTP Directory Listings Across Target Certs",
+    "query": "services.tls.certificates.leaf_data.names: \"example.com\" and services.http.response.html_title: \"Index of /\"",
+    "purpose": "Spot exposed Apache/Nginx directory listings on target-owned TLS hosts."
+  },
+  {
+    "id": "censys-ssh-hostkey-reuse",
+    "engine": "Censys",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "SSH Host-Key Fingerprint Cross-Host Attribution",
+    "query": "services.ssh.server_host_key.fingerprint_sha256: \"target_keyword\"",
+    "purpose": "Prove two seemingly unrelated servers or `.onion` services are cloned from the same image via shared SSH host keys!"
+  },
+  {
+    "id": "fofa-icon-hash-origin",
+    "engine": "FOFA",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "FOFA Favicon MurmurHash3 Origin Server Hunt",
+    "query": "icon_hash=\"-247388890\" && domain!=\"example.com\"",
+    "purpose": "Locate direct IPv4 origins serving the exact brand favicon without CDN proxying."
+  },
+  {
+    "id": "fofa-spring-boot-actuator",
+    "engine": "FOFA",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "Spring Boot Actuator `/actuator/health` & `/env`",
+    "query": "body=\"\\\"_links\\\":{\\\"self\\\"\" && cert=\"example.com\"",
+    "purpose": "Identify Java Spring Boot microservice management endpoints on target certificates."
+  },
+  {
+    "id": "zoomeye-ssl-org-sweep",
+    "engine": "ZoomEye",
+    "category": "Origin IP & TLS Fingerprinting",
+    "title": "ZoomEye Organization Certificate Sweep",
+    "query": "ssl.cert.subject.organization:\"Target Corp\"",
+    "purpose": "Map global IPv4/IPv6 assets holding OV/EV certificates issued to the legal entity."
+  },
+  {
+    "id": "urlscan-shared-ga-tag",
+    "engine": "URLScan",
+    "category": "Analytics & Ad-Tag Attribution",
+    "title": "URLScan DOM & Script Attribution Pivot",
+    "query": "page.domain:example.com OR task.domain:example.com",
+    "purpose": "Inspect passive DOM snapshots, outgoing third-party script requests, and ASN history."
+  },
+  {
+    "id": "urlscan-adsense-ga4-cluster",
+    "engine": "URLScan",
+    "category": "Analytics & Ad-Tag Attribution",
+    "title": "Shared Google Analytics / GTM / AdSense Network Hunt",
+    "query": "filename:\"gtag\" AND page.body:\"target_keyword\"",
+    "purpose": "Uncover covert sister websites operated by the same actor via shared `G-XXXX` / `GTM-XXXX` IDs."
+  },
+  {
+    "id": "publicwww-ga4-attribution",
+    "engine": "PublicWWW",
+    "category": "Analytics & Ad-Tag Attribution",
+    "title": "HTML Source Code `G-` / `GTM-` / `pub-` Reverse Lookup",
+    "query": "\"G-XXXXXXXXXX\" OR \"GTM-XXXXXXX\"",
+    "purpose": "Search 500M+ indexed web pages' raw HTML source to find every domain sharing an analytics or AdSense ID."
+  },
+  {
+    "id": "publicwww-custom-js-widget",
+    "engine": "PublicWWW",
+    "category": "Analytics & Ad-Tag Attribution",
+    "title": "Embedded Corporate Script / CDN Asset Reverse Search",
+    "query": "\"cdn.example.com/\"",
+    "purpose": "Discover partner, subsidiary, and white-label domains loading assets from the target's CDN."
+  },
+  {
+    "id": "netlas-whois-registrant-org",
+    "engine": "Netlas",
+    "category": "WHOIS & Corporate Pivots",
+    "title": "Netlas Historical WHOIS Organization & Email Reverse Lookup",
+    "query": "whois.registrant.organization:\"Target Corp\"",
+    "purpose": "Pivot from a corporate legal name to legacy domains registered prior to GDPR WHOIS redaction."
+  },
+  {
+    "id": "google-confidential-presentations",
+    "engine": "Google",
+    "category": "Document & Metadata OSINT",
+    "title": "Indexed Slide Decks, Org Charts & Internal Briefings",
+    "query": "site:example.com (filetype:pptx OR filetype:pdf) (\"confidential\" OR \"internal use\" OR \"architecture\" OR \"roadmap\")",
+    "purpose": "Recover public briefings and PDFs rich in author metadata and internal system names."
+  },
+  {
+    "id": "google-excel-rosters-contacts",
+    "engine": "Google",
+    "category": "Document & Metadata OSINT",
+    "title": "Indexed Spreadsheets, Rosters & Vendor Lists",
+    "query": "site:example.com (filetype:xlsx OR filetype:csv) (\"email\" OR \"phone\" OR \"department\" OR \"vendor\")",
+    "purpose": "Surface accidentally indexed staff rosters and supplier contact spreadsheets."
+  },
+  {
+    "id": "google-wellknown-security-txt",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Indexed `security.txt` & Bug Bounty Scope Files",
+    "query": "site:example.com inurl:\"/.well-known/security.txt\"",
+    "purpose": "Passively read security contact emails, PGP keys, and canonical domain lists."
+  },
+  {
+    "id": "google-graphql-playground",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Indexed GraphQL Playgrounds & Apollo Consoles",
+    "query": "site:example.com (inurl:\"/graphql\" OR inurl:\"/graphiql\" OR intitle:\"GraphQL Playground\")",
+    "purpose": "Discover interactive GraphQL API explorers indexed by search crawlers."
+  },
+  {
+    "id": "google-s3-gcs-azure-blobs",
+    "engine": "Google",
+    "category": "Cloud & DevOps Exposure",
+    "title": "Indexed AWS S3, GCS & Azure Blob Buckets Mentioning Target",
+    "query": "(site:s3.amazonaws.com OR site:storage.googleapis.com OR site:blob.core.windows.net) \"target_company\"",
+    "purpose": "Passively find public cloud object storage buckets containing files referencing the target."
+  },
+  {
+    "id": "shodan-rtsp-webcam-iot",
+    "engine": "Shodan",
+    "category": "OT / IoT & Physical Recon",
+    "title": "Exposed RTSP / Network Video Recorders on Target ASN",
+    "query": "(port:554 OR \"Server: hikvision\" OR \"dahua\") org:\"Target Corp\"",
+    "purpose": "Assess exposed physical-security cameras and NVR appliances across corporate IP blocks."
   }
 ]

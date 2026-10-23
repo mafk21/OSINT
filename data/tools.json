@@ -23644,5 +23644,2896 @@
     ],
     "tier": "A",
     "quick_start": "wme screenshot 198.51.100.0/24"
+  },
+  {
+    "id": "detect-secrets",
+    "name": "detect-secrets (Yelp)",
+    "url": "https://github.com/Yelp/detect-secrets",
+    "github": "Yelp/detect-secrets",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Secret & Credential Scanners",
+    "description": "Enterprise-grade secret detection suite scanning codebases and git histories using high-entropy heuristics and service-specific regex plugins.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "secrets",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "secrets",
+      "entropy-scanning",
+      "git-history",
+      "yelp"
+    ],
+    "tier": "S",
+    "quick_start": "detect-secrets scan --all-files ./target-repo"
+  },
+  {
+    "id": "aws-git-secrets",
+    "name": "git-secrets (AWS Labs)",
+    "url": "https://github.com/awslabs/git-secrets",
+    "github": "awslabs/git-secrets",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Secret & Credential Scanners",
+    "description": "AWS Labs scanner inspecting commit logs and branches for leaked AWS access keys, session tokens, and cloud credential patterns.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code"
+    ],
+    "outputs": [
+      "secrets"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "aws-keys",
+      "git-commits",
+      "credential-leak"
+    ],
+    "tier": "A",
+    "quick_start": "git secrets --register-aws && git secrets --scan-history"
+  },
+  {
+    "id": "talisman-scanner",
+    "name": "Talisman (Thoughtworks)",
+    "url": "https://github.com/thoughtworks/talisman",
+    "github": "thoughtworks/talisman",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Secret & Credential Scanners",
+    "description": "Git repository history analyzer detecting private keys, bearer tokens, high-entropy strings, and sensitive certificates across commits.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code"
+    ],
+    "outputs": [
+      "secrets",
+      "certificates"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "git-history",
+      "private-keys",
+      "secrets-osint"
+    ],
+    "tier": "A",
+    "quick_start": "talisman --scan"
+  },
+  {
+    "id": "keyhacks",
+    "name": "KeyHacks",
+    "url": "https://github.com/streaak/keyhacks",
+    "github": "streaak/keyhacks",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "API Key Triage & Validation",
+    "description": "Canonical reference catalog of 150+ third-party API key formats and exact commands to verify whether a discovered API token is live.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "keyword",
+      "repo_code"
+    ],
+    "outputs": [
+      "secrets",
+      "metadata"
+    ],
+    "platforms": [
+      "Web",
+      "CLI"
+    ],
+    "tags": [
+      "api-keys",
+      "key-validation",
+      "secrets-triage"
+    ],
+    "tier": "S",
+    "quick_start": "Search KeyHacks for service curl validation snippet"
+  },
+  {
+    "id": "credential-detector",
+    "name": "Credential Detector",
+    "url": "https://github.com/ynori7/credential-detector",
+    "github": "ynori7/credential-detector",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Secret & Credential Scanners",
+    "description": "Go static scanner parsing YAML, JSON, properties, XML, and source files to uncover hardcoded passwords, private keys, and tokens.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "secrets"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "config-files",
+      "credentials",
+      "static-analysis"
+    ],
+    "tier": "B",
+    "quick_start": "credential-detector /path/to/repo"
+  },
+  {
+    "id": "prowler-cloud",
+    "name": "Prowler",
+    "url": "https://github.com/toniblyx/prowler",
+    "github": "toniblyx/prowler",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "Flagship open-source cloud security and asset inventory scanner mapping exposed S3/IAM/VPC/EKS/Azure/GCP/M365 services.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "company",
+      "domain"
+    ],
+    "outputs": [
+      "tech_stack",
+      "urls",
+      "secrets",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "aws",
+      "azure",
+      "gcp",
+      "cloud-inventory",
+      "active"
+    ],
+    "tier": "S",
+    "quick_start": "prowler aws --services s3 iam ec2"
+  },
+  {
+    "id": "scoutsuite",
+    "name": "ScoutSuite (NCC Group)",
+    "url": "https://github.com/nccgroup/ScoutSuite",
+    "github": "nccgroup/ScoutSuite",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "Multi-cloud reconnaissance and attack-surface auditing tool generating interactive HTML topology reports for AWS, Azure, GCP, and Oracle Cloud.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "company",
+      "domain"
+    ],
+    "outputs": [
+      "tech_stack",
+      "open_ports",
+      "urls",
+      "entity_graph"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "multi-cloud",
+      "nccgroup",
+      "attack-surface",
+      "active"
+    ],
+    "tier": "S",
+    "quick_start": "scout aws --report-dir ./scout-report"
+  },
+  {
+    "id": "pacu-aws",
+    "name": "Pacu (Rhino Security Labs)",
+    "url": "https://github.com/RhinoSecurityLabs/pacu",
+    "github": "RhinoSecurityLabs/pacu",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "Modular AWS enumeration and reconnaissance framework mapping IAM principals, Lambda variables, S3 buckets, and cross-account trust.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "company",
+      "username"
+    ],
+    "outputs": [
+      "usernames",
+      "secrets",
+      "tech_stack"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "aws-recon",
+      "iam-enum",
+      "s3",
+      "active"
+    ],
+    "tier": "A",
+    "quick_start": "pacu # run iam__enum_users_roles_policies_groups"
+  },
+  {
+    "id": "cloudmapper",
+    "name": "CloudMapper (Duo Labs)",
+    "url": "https://github.com/duo-labs/cloudmapper",
+    "github": "duo-labs/cloudmapper",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "AWS network topology visualizer and public-exposure mapper discovering internet-facing EC2, ALB, RDS, and S3 endpoints.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "company",
+      "domain"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "open_ports",
+      "entity_graph"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "aws-topology",
+      "public-ips",
+      "network-graph"
+    ],
+    "tier": "A",
+    "quick_start": "python cloudmapper.py find_admins --account target"
+  },
+  {
+    "id": "cloudsplaining",
+    "name": "Cloudsplaining (Salesforce)",
+    "url": "https://github.com/salesforce/cloudsplaining",
+    "github": "salesforce/cloudsplaining",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "AWS IAM policy analyzer pinpointing resource exposure, data exfiltration paths, and cross-account privilege boundaries.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "repo_code"
+    ],
+    "outputs": [
+      "secrets",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "aws-iam",
+      "policy-analysis",
+      "salesforce"
+    ],
+    "tier": "B",
+    "quick_start": "cloudsplaining scan-policy-file --input-file policy.json"
+  },
+  {
+    "id": "trivy-scanner",
+    "name": "Trivy (Aqua Security)",
+    "url": "https://github.com/aquasecurity/trivy",
+    "github": "aquasecurity/trivy",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Container & SBOM OSINT",
+    "description": "All-in-one container image, git repository, filesystem, and Kubernetes scanner extracting SBOM packages, secrets, and CVEs.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "url",
+      "domain"
+    ],
+    "outputs": [
+      "tech_stack",
+      "secrets",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Go"
+    ],
+    "tags": [
+      "container-osint",
+      "sbom",
+      "secrets",
+      "cve"
+    ],
+    "tier": "S",
+    "quick_start": "trivy repo https://github.com/org/repo"
+  },
+  {
+    "id": "syft-sbom",
+    "name": "Syft (Anchore SBOM Extractor)",
+    "url": "https://github.com/anchore/syft",
+    "github": "anchore/syft",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Container & SBOM OSINT",
+    "description": "Container image and binary filesystem Software Bill of Materials (SBOM) carver enumerating exact library versions across OCI layers.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "repo_code"
+    ],
+    "outputs": [
+      "tech_stack",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Go"
+    ],
+    "tags": [
+      "sbom",
+      "oci-containers",
+      "dependency-osint"
+    ],
+    "tier": "A",
+    "quick_start": "syft alpine:latest -o cyclonedx-json"
+  },
+  {
+    "id": "grype-vuln",
+    "name": "Grype",
+    "url": "https://github.com/anchore/grype",
+    "github": "anchore/grype",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Container & SBOM OSINT",
+    "description": "Fast vulnerability matcher correlating container images and Syft SBOM inventories against NVD, GitHub Advisory, and distro feeds.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "repo_code"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "tech_stack"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Go"
+    ],
+    "tags": [
+      "cve-matching",
+      "sbom",
+      "containers"
+    ],
+    "tier": "A",
+    "quick_start": "grype sbom:./target.sbom.json"
+  },
+  {
+    "id": "checkov-iac",
+    "name": "Checkov",
+    "url": "https://github.com/bridgecrewio/checkov",
+    "github": "bridgecrewio/checkov",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "IaC & Cloud Config Recon",
+    "description": "Static Infrastructure-as-Code analyzer auditing Terraform, CloudFormation, Helm, and Kubernetes manifests for public buckets and secrets.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "secrets",
+      "tech_stack",
+      "urls"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "terraform",
+      "kubernetes",
+      "iac-osint",
+      "secrets"
+    ],
+    "tier": "A",
+    "quick_start": "checkov -d ./terraform"
+  },
+  {
+    "id": "roadtools",
+    "name": "ROADtools (Entra ID / Azure AD Recon)",
+    "url": "https://github.com/dirkjanm/ROADtools",
+    "github": "dirkjanm/ROADtools",
+    "category": "email-intelligence",
+    "subcategory": "Mail Server & SMTP Posture",
+    "description": "Microsoft Entra ID (Azure AD) reconnaissance suite including `roadrecon` for tenant OIDC metadata, federated domains, and directory graphing.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "email"
+    ],
+    "outputs": [
+      "subdomains",
+      "emails",
+      "usernames",
+      "entity_graph"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "entra-id",
+      "azure-ad",
+      "tenant-recon",
+      "m365",
+      "active"
+    ],
+    "tier": "S",
+    "quick_start": "roadrecon auth --tenant example.com"
+  },
+  {
+    "id": "o365spray",
+    "name": "o365spray",
+    "url": "https://github.com/0xZDH/o365spray",
+    "github": "0xZDH/o365spray",
+    "category": "email-intelligence",
+    "subcategory": "Active Email & Account Verification",
+    "description": "Microsoft 365 federation posture profiler and active account existence enumerator checking Autodiscover, OneDrive, and OAuth2 endpoints.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "email"
+    ],
+    "outputs": [
+      "emails",
+      "tech_stack",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Python"
+    ],
+    "tags": [
+      "m365",
+      "federation",
+      "email-enum",
+      "active"
+    ],
+    "tier": "A",
+    "quick_start": "python3 o365spray.py --validate --domain example.com"
+  },
+  {
+    "id": "o365recon",
+    "name": "o365recon",
+    "url": "https://github.com/nyxgeek/o365recon",
+    "github": "nyxgeek/o365recon",
+    "category": "email-intelligence",
+    "subcategory": "Mail Server & SMTP Posture",
+    "description": "Unauthenticated Microsoft 365 and Azure tenant reconnaissance script retrieving federation brand names, tenant IDs, and MDI instances.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "domain"
+    ],
+    "outputs": [
+      "subdomains",
+      "corporate_records",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "office365",
+      "tenant-id",
+      "unauthenticated-recon",
+      "active"
+    ],
+    "tier": "B",
+    "quick_start": "./o365recon.sh -d example.com"
+  },
+  {
+    "id": "graphrunner",
+    "name": "GraphRunner",
+    "url": "https://github.com/dafthack/GraphRunner",
+    "github": "dafthack/GraphRunner",
+    "category": "email-intelligence",
+    "subcategory": "Mail Server & SMTP Posture",
+    "description": "Microsoft Graph API reconnaissance toolkit enumerating tenant external collaboration policies, Teams channels, and SharePoint exposure.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "domain",
+      "email"
+    ],
+    "outputs": [
+      "emails",
+      "documents",
+      "usernames"
+    ],
+    "platforms": [
+      "CLI",
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "tags": [
+      "ms-graph",
+      "sharepoint",
+      "teams-osint",
+      "active"
+    ],
+    "tier": "A",
+    "quick_start": "Import-Module ./GraphRunner.ps1; Invoke-Recon"
+  },
+  {
+    "id": "haktrails",
+    "name": "haktrails",
+    "url": "https://github.com/hakluke/haktrails",
+    "github": "hakluke/haktrails",
+    "category": "domain-dns-asm",
+    "subcategory": "Passive Subdomain & DNS History",
+    "description": "Go CLI querying SecurityTrails passive DNS, historical WHOIS, and associated domain endpoints in Unix pipelines.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": true,
+    "inputs": [
+      "domain",
+      "ip",
+      "company"
+    ],
+    "outputs": [
+      "subdomains",
+      "dns_records",
+      "whois"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "securitytrails",
+      "passive-dns",
+      "hakluke",
+      "pipeline"
+    ],
+    "tier": "A",
+    "quick_start": "echo example.com | haktrails subdomains"
+  },
+  {
+    "id": "cero-tls",
+    "name": "Cero (Go TLS SAN Scraper)",
+    "url": "https://github.com/glebarez/cero",
+    "github": "glebarez/cero",
+    "category": "domain-dns-asm",
+    "subcategory": "Active DNS Enumeration",
+    "description": "Ultra-fast concurrent Go scanner connecting directly to arbitrary ports across IP/CIDR ranges to harvest X.509 certificate SAN domain names.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "ip",
+      "domain",
+      "asn"
+    ],
+    "outputs": [
+      "subdomains",
+      "certificates"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "tls-san",
+      "cidr-sweep",
+      "cert-scraping",
+      "active"
+    ],
+    "tier": "A",
+    "quick_start": "cero 198.51.100.0/24 -p 443,8443"
+  },
+  {
+    "id": "tomnomnom-gf",
+    "name": "gf (Grep-Friend Pattern Wrapper)",
+    "url": "https://github.com/tomnomnom/gf",
+    "github": "tomnomnom/gf",
+    "category": "domain-dns-asm",
+    "subcategory": "Active Parameter & JS Recon",
+    "description": "Pattern-matching wrapper around `grep` for rapidly carving AWS keys, URLs, S3 buckets, base64 blobs, and debug parameters out of HTTP/JS dumps.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "url",
+      "repo_code"
+    ],
+    "outputs": [
+      "secrets",
+      "urls",
+      "subdomains"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Go"
+    ],
+    "tags": [
+      "grep-patterns",
+      "tomnomnom",
+      "js-carving",
+      "secrets"
+    ],
+    "tier": "S",
+    "quick_start": "gf aws-keys ./responses/"
+  },
+  {
+    "id": "tomnomnom-unfurl",
+    "name": "unfurl",
+    "url": "https://github.com/tomnomnom/unfurl",
+    "github": "tomnomnom/unfurl",
+    "category": "domain-dns-asm",
+    "subcategory": "Historical URL Discovery",
+    "description": "Pipeline URL parser slicing massive Wayback/CommonCrawl URL lists into unique subdomains, paths, query keys, and parameter values.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "url"
+    ],
+    "outputs": [
+      "subdomains",
+      "urls",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "url-parsing",
+      "tomnomnom",
+      "pipeline",
+      "wayback"
+    ],
+    "tier": "S",
+    "quick_start": "cat urls.txt | unfurl --unique domains"
+  },
+  {
+    "id": "tomnomnom-anew",
+    "name": "anew",
+    "url": "https://github.com/tomnomnom/anew",
+    "github": "tomnomnom/anew",
+    "category": "all-in-one-frameworks",
+    "subcategory": "Recon Pipeline Utilities",
+    "description": "Continuous attack-surface monitoring helper appending only brand-new subdomains, IPs, or URLs to tracking files while emitting diffs to stdout.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "url",
+      "ip"
+    ],
+    "outputs": [
+      "subdomains",
+      "urls"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "asm-diffing",
+      "continuous-recon",
+      "tomnomnom"
+    ],
+    "tier": "A",
+    "quick_start": "subfinder -d example.com | anew known_subs.txt"
+  },
+  {
+    "id": "open-asset-model",
+    "name": "OWASP Open Asset Model (OAM)",
+    "url": "https://github.com/owasp-amass/open-asset-model",
+    "github": "owasp-amass/open-asset-model",
+    "category": "all-in-one-frameworks",
+    "subcategory": "Graph & Data Schemas",
+    "description": "Standardized OWASP Amass entity-relationship specification modeling domains, ASNs, netblocks, TLS certificates, WHOIS contacts, and orgs.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "ip",
+      "asn",
+      "company"
+    ],
+    "outputs": [
+      "entity_graph"
+    ],
+    "platforms": [
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "owasp-amass",
+      "graph-schema",
+      "asset-modeling"
+    ],
+    "tier": "B",
+    "quick_start": "go get github.com/owasp-amass/open-asset-model"
+  },
+  {
+    "id": "bloodhound-ce",
+    "name": "BloodHound Community Edition",
+    "url": "https://github.com/SpecterOps/BloodHound",
+    "github": "SpecterOps/BloodHound",
+    "category": "network-ip-iot-search",
+    "subcategory": "LAN & Enterprise Service Enum",
+    "description": "Graph-theory Active Directory and Entra ID relationship analyzer visualizing domain trusts, group memberships, and identity attack paths.",
+    "type": "Desktop App",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "company"
+    ],
+    "outputs": [
+      "entity_graph",
+      "usernames",
+      "person_records"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Go"
+    ],
+    "tags": [
+      "active-directory",
+      "graph-analysis",
+      "entra-id",
+      "specterops"
+    ],
+    "tier": "S",
+    "quick_start": "bloodhound-cli containers up"
+  },
+  {
+    "id": "certipy-ad",
+    "name": "Certipy",
+    "url": "https://github.com/ly4k/Certipy",
+    "github": "ly4k/Certipy",
+    "category": "network-ip-iot-search",
+    "subcategory": "LAN & Enterprise Service Enum",
+    "description": "Active Directory Certificate Services (AD CS) enumerator mapping enterprise PKI CAs, certificate templates, and enrollment endpoints.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "domain",
+      "ip"
+    ],
+    "outputs": [
+      "certificates",
+      "tech_stack",
+      "entity_graph"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "adcs",
+      "enterprise-pki",
+      "certificates",
+      "active"
+    ],
+    "tier": "A",
+    "quick_start": "certipy find -u user@corp.local -dc-ip 10.0.0.1"
+  },
+  {
+    "id": "responder-llmnr",
+    "name": "Responder",
+    "url": "https://github.com/lgandx/Responder",
+    "github": "lgandx/Responder",
+    "category": "network-ip-iot-search",
+    "subcategory": "LAN & Enterprise Service Enum",
+    "description": "Local network LLMNR, NBT-NS, and mDNS analyzer (`--analyze` passive mode) inventorying broadcast hostnames, OS builds, and SMB signing posture.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "ip"
+    ],
+    "outputs": [
+      "usernames",
+      "tech_stack",
+      "ip_addresses"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "Python"
+    ],
+    "tags": [
+      "llmnr",
+      "mdns",
+      "netbios",
+      "lan-osint"
+    ],
+    "tier": "A",
+    "quick_start": "sudo python3 Responder.py -I eth0 --analyze"
+  },
+  {
+    "id": "wireshark",
+    "name": "Wireshark / tshark",
+    "url": "https://github.com/wireshark/wireshark",
+    "github": "wireshark/wireshark",
+    "category": "network-ip-iot-search",
+    "subcategory": "Packet & Traffic Forensics",
+    "description": "Industry-standard network protocol analyzer and `tshark` CLI dissecting 3,000+ protocols, TLS SNIs, DNS queries, and JA3/JA4 fingerprints from PCAPs.",
+    "type": "Desktop App",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "ip",
+      "mac_bssid"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "dns_records",
+      "certificates",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "pcap",
+      "tshark",
+      "protocol-dissection",
+      "tls-sni"
+    ],
+    "tier": "S",
+    "quick_start": "tshark -r capture.pcap -Y 'tls.handshake.extensions_server_name' -T fields -e tls.handshake.extensions_server_name"
+  },
+  {
+    "id": "zeek-nsm",
+    "name": "Zeek Network Security Monitor",
+    "url": "https://github.com/zeek/zeek",
+    "github": "zeek/zeek",
+    "category": "network-ip-iot-search",
+    "subcategory": "Packet & Traffic Forensics",
+    "description": "Passive network traffic analysis framework converting PCAPs into structured `dns.log`, `ssl.log`, `http.log`, `x509.log`, and file-hash telemetry.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "ip"
+    ],
+    "outputs": [
+      "dns_records",
+      "certificates",
+      "urls",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker"
+    ],
+    "tags": [
+      "zeek",
+      "pcap-osint",
+      "passive-dns",
+      "x509"
+    ],
+    "tier": "S",
+    "quick_start": "zeek -r capture.pcap"
+  },
+  {
+    "id": "suricata-ids",
+    "name": "Suricata",
+    "url": "https://github.com/OISF/suricata",
+    "github": "OISF/suricata",
+    "category": "network-ip-iot-search",
+    "subcategory": "Packet & Traffic Forensics",
+    "description": "High-performance network threat engine extracting `eve.json` HTTP, TLS JA3/JA4, DNS, SSH, and malware IOC alerts from packet captures.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "ip"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "dns_records",
+      "certificates"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Rust"
+    ],
+    "tags": [
+      "eve-json",
+      "ja4",
+      "pcap-analysis",
+      "ids"
+    ],
+    "tier": "S",
+    "quick_start": "suricata -r capture.pcap -l ./logs"
+  },
+  {
+    "id": "cisa-malcolm",
+    "name": "Malcolm (CISA Network Traffic Suite)",
+    "url": "https://github.com/cisagov/Malcolm",
+    "github": "cisagov/Malcolm",
+    "category": "network-ip-iot-search",
+    "subcategory": "Packet & Traffic Forensics",
+    "description": "CISA's turnkey PCAP and Zeek/Arkime/Suricata visual analytics stack for deep network forensics, ASN mapping, and protocol graphing.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "ip",
+      "domain"
+    ],
+    "outputs": [
+      "entity_graph",
+      "dns_records",
+      "ip_addresses",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "macOS",
+      "Docker"
+    ],
+    "tags": [
+      "cisa",
+      "arkime",
+      "zeek",
+      "pcap-graph"
+    ],
+    "tier": "A",
+    "quick_start": "./scripts/start # Upload PCAP in Arkime/Dashboards"
+  },
+  {
+    "id": "ntop-ndpi",
+    "name": "nDPI (Deep Packet Inspection)",
+    "url": "https://github.com/ntop/nDPI",
+    "github": "ntop/nDPI",
+    "category": "network-ip-iot-search",
+    "subcategory": "Packet & Traffic Forensics",
+    "description": "Open-source deep packet inspection toolkit (`ndpiReader`) identifying encrypted application protocols, VPNs, Tor, and TLS fingerprints.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "ip"
+    ],
+    "outputs": [
+      "tech_stack",
+      "metadata",
+      "ip_addresses"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "dpi",
+      "encrypted-traffic",
+      "ja3",
+      "pcap"
+    ],
+    "tier": "B",
+    "quick_start": "ndpiReader -i capture.pcap -v 2"
+  },
+  {
+    "id": "bellingcat-auto-archiver",
+    "name": "Bellingcat Auto Archiver",
+    "url": "https://github.com/bellingcat/auto-archiver",
+    "github": "bellingcat/auto-archiver",
+    "category": "archiving-evidence-docs",
+    "subcategory": "Forensic Web Preservation",
+    "description": "Bellingcat's evidentiary social media and web preservation pipeline archiving videos, screenshots, WACZ bundles, and SHA-256 hashes before deletion.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": false,
+    "inputs": [
+      "url"
+    ],
+    "outputs": [
+      "archived_pages",
+      "metadata",
+      "documents"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "bellingcat",
+      "evidence-preservation",
+      "wacz",
+      "socmint"
+    ],
+    "tier": "S",
+    "quick_start": "auto-archiver --config config.yaml"
+  },
+  {
+    "id": "bellingcat-wayback-ga",
+    "name": "Wayback Google Analytics (Bellingcat)",
+    "url": "https://github.com/bellingcat/wayback-google-analytics",
+    "github": "bellingcat/wayback-google-analytics",
+    "category": "domain-dns-asm",
+    "subcategory": "Analytics & Ad-Tag Attribution",
+    "description": "Bellingcat Python CLI scraping historical Wayback Machine snapshots to extract `UA-`, `G-`, and `GTM-` tracking codes across time to link covert site networks.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "url"
+    ],
+    "outputs": [
+      "entity_graph",
+      "archived_pages",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "bellingcat",
+      "google-analytics",
+      "wayback",
+      "attribution"
+    ],
+    "tier": "S",
+    "quick_start": "wayback-google-analytics -u https://example.com"
+  },
+  {
+    "id": "bellingcat-edgar",
+    "name": "Bellingcat EDGAR Search",
+    "url": "https://github.com/bellingcat/edgar",
+    "github": "bellingcat/edgar",
+    "category": "corporate-financial-sanctions",
+    "subcategory": "Corporate Filings & Officers",
+    "description": "Investigative toolkit querying SEC EDGAR corporate filings for executive names, subsidiary disclosures, addresses, and insider ownership.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "company",
+      "person_name",
+      "keyword"
+    ],
+    "outputs": [
+      "corporate_records",
+      "documents",
+      "person_records"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "bellingcat",
+      "sec-edgar",
+      "corporate-osint",
+      "filings"
+    ],
+    "tier": "A",
+    "quick_start": "edgar-tool text-search 'Target Subsidiary LLC'"
+  },
+  {
+    "id": "bellingcat-ukraine-timemap",
+    "name": "Civilian Harm TimeMap (Bellingcat)",
+    "url": "https://github.com/bellingcat/ukraine-timemap",
+    "github": "bellingcat/ukraine-timemap",
+    "category": "geoint-maps-satellites",
+    "subcategory": "Conflict & Crisis Mapping",
+    "description": "Geolocated open-source incident verification platform mapping verified imagery, coordinates, timestamps, and weapon/event classifications.",
+    "type": "Web Platform",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "coordinates",
+      "keyword"
+    ],
+    "outputs": [
+      "geolocation",
+      "archived_pages",
+      "metadata"
+    ],
+    "platforms": [
+      "Web"
+    ],
+    "tags": [
+      "bellingcat",
+      "conflict-osint",
+      "geolocation",
+      "timemap"
+    ],
+    "tier": "A",
+    "quick_start": "Filter verified incidents by date range and lat/lon bounding box"
+  },
+  {
+    "id": "rsshub",
+    "name": "RSSHub",
+    "url": "https://github.com/DIYgod/RSSHub",
+    "github": "DIYgod/RSSHub",
+    "category": "social-media-socmint",
+    "subcategory": "Cross-Platform Feed Monitoring",
+    "description": "Massive open-source feed aggregator generating structured RSS/JSON monitoring streams across 1,000+ social platforms, Telegram channels, and forums.",
+    "type": "Web Platform",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "username",
+      "url",
+      "keyword"
+    ],
+    "outputs": [
+      "social_profiles",
+      "urls",
+      "metadata"
+    ],
+    "platforms": [
+      "Web",
+      "Docker",
+      "Node.js"
+    ],
+    "tags": [
+      "rss-monitoring",
+      "telegram",
+      "social-feeds",
+      "socmint"
+    ],
+    "tier": "A",
+    "quick_start": "docker run -d -p 1200:1200 diygod/rsshub"
+  },
+  {
+    "id": "binwalk",
+    "name": "Binwalk",
+    "url": "https://github.com/ReFirmLabs/binwalk",
+    "github": "ReFirmLabs/binwalk",
+    "category": "image-video-media-forensics",
+    "subcategory": "Binary & Firmware Carving",
+    "description": "Firmware and polyglot file carver scanning images, documents, and IoT ROMs for embedded filesystems, private keys, URLs, and hidden archives.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "image",
+      "document"
+    ],
+    "outputs": [
+      "metadata",
+      "secrets",
+      "documents"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Rust",
+      "Python"
+    ],
+    "tags": [
+      "file-carving",
+      "firmware-osint",
+      "steganography",
+      "iot"
+    ],
+    "tier": "S",
+    "quick_start": "binwalk -e suspect_file.bin"
+  },
+  {
+    "id": "oletools",
+    "name": "oletools (decalage2)",
+    "url": "https://github.com/decalage2/oletools",
+    "github": "decalage2/oletools",
+    "category": "archiving-evidence-docs",
+    "subcategory": "Document & Metadata Forensics",
+    "description": "Python forensic suite (`olemeta`, `olevba`, `oleid`, `pyxswf`) extracting author metadata, revision timestamps, external URLs, and macros from MS Office files.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "metadata",
+      "urls",
+      "person_records",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "office-forensics",
+      "olemeta",
+      "olevba",
+      "document-osint"
+    ],
+    "tier": "S",
+    "quick_start": "olemeta report.doc && olevba report.doc"
+  },
+  {
+    "id": "qpdf-forensics",
+    "name": "QPDF",
+    "url": "https://github.com/qpdf/qpdf",
+    "github": "qpdf/qpdf",
+    "category": "archiving-evidence-docs",
+    "subcategory": "Document & Metadata Forensics",
+    "description": "Structural PDF inspection utility decompressing object streams (`--qdf`) to reveal hidden XMP author strings, edit history, and redacted layer remnants.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "metadata",
+      "documents"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "pdf-forensics",
+      "object-streams",
+      "xmp-metadata"
+    ],
+    "tier": "A",
+    "quick_start": "qpdf --qdf --object-streams=disable input.pdf unpacked.pdf"
+  },
+  {
+    "id": "thehive-cortex",
+    "name": "Cortex (TheHive Observable Analyzer)",
+    "url": "https://github.com/TheHive-Project/Cortex",
+    "github": "TheHive-Project/Cortex",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "TIP & IOC Correlation",
+    "description": "Automated observable enrichment engine running 150+ passive and active analyzers across IPs, domains, emails, URLs, and hashes at scale.",
+    "type": "Web Platform",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": true,
+    "inputs": [
+      "ip",
+      "domain",
+      "url",
+      "email",
+      "file_hash"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "whois",
+      "dns_records",
+      "subdomains"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "Docker"
+    ],
+    "tags": [
+      "observable-enrichment",
+      "thehive",
+      "analyzers",
+      "cti"
+    ],
+    "tier": "S",
+    "quick_start": "docker run -p 9001:9001 thehiveproject/cortex"
+  },
+  {
+    "id": "mandiant-capa",
+    "name": "capa (Mandiant Capability Detector)",
+    "url": "https://github.com/mandiant/capa",
+    "github": "mandiant/capa",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Malware & Artifact Scanners",
+    "description": "Mandiant static binary analyzer mapping PE/ELF/.NET executables directly to MITRE ATT&CK behaviors, C2 capabilities, and crypto routines.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "file_hash"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "mandiant",
+      "mitre-attack",
+      "binary-triage",
+      "cti"
+    ],
+    "tier": "S",
+    "quick_start": "capa suspicious_binary.exe"
+  },
+  {
+    "id": "flare-floss",
+    "name": "FLOSS (Mandiant Deobfuscated Strings)",
+    "url": "https://github.com/mandiant/flare-floss",
+    "github": "mandiant/flare-floss",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Malware & Artifact Scanners",
+    "description": "FLARE Obfuscated String Solver automatically decoding stack strings, tight strings, and XOR-encoded C2 URLs/IPs/domains from binaries.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "urls",
+      "ip_addresses",
+      "secrets",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "mandiant",
+      "string-deobfuscation",
+      "c2-extraction",
+      "malware"
+    ],
+    "tier": "S",
+    "quick_start": "floss sample.exe"
+  },
+  {
+    "id": "loki-scanner",
+    "name": "Loki IOC & YARA Scanner",
+    "url": "https://github.com/Neo23x0/Loki",
+    "github": "Neo23x0/Loki",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Malware & Artifact Scanners",
+    "description": "Simple IOC and YARA scanner by Florian Roth checking files and directories against thousands of APT hashes, filenames, and C2 indicators.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "file_hash"
+    ],
+    "outputs": [
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "yara",
+      "ioc-scanner",
+      "apt-attribution",
+      "florian-roth"
+    ],
+    "tier": "A",
+    "quick_start": "python3 loki.py -p ./evidence_dir"
+  },
+  {
+    "id": "signature-base",
+    "name": "Signature-Base (Florian Roth YARA/IOCs)",
+    "url": "https://github.com/Neo23x0/signature-base",
+    "github": "Neo23x0/signature-base",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Threat Feeds & Blocklists",
+    "description": "Curated repository of thousands of production YARA rules, hash IOCs, and C2 regexes attributing nation-state APTs and infostealers.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "file_hash",
+      "domain",
+      "keyword"
+    ],
+    "outputs": [
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "yara-rules",
+      "apt",
+      "infostealers",
+      "ioc-database"
+    ],
+    "tier": "S",
+    "quick_start": "yara -r ./yara/ suspect_artifact.bin"
+  },
+  {
+    "id": "yargen",
+    "name": "yarGen",
+    "url": "https://github.com/Neo23x0/yarGen",
+    "github": "Neo23x0/yarGen",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Malware & Artifact Scanners",
+    "description": "Automated YARA rule generator filtering out goodware opcode/string noise to isolate unique campaign identifiers for retro-hunting.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "yara-generation",
+      "retrohunt",
+      "cti"
+    ],
+    "tier": "A",
+    "quick_start": "python3 yarGen.py -m ./malware_samples"
+  },
+  {
+    "id": "sigma-rules",
+    "name": "SigmaHQ Detection Repository",
+    "url": "https://github.com/SigmaHQ/sigma",
+    "github": "SigmaHQ/sigma",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Threat Feeds & Blocklists",
+    "description": "Open standard library of 3,000+ threat-actor TTP signatures mapping adversary command lines, cloud API abuse, and network indicators.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "keyword",
+      "domain"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "sigma",
+      "ttps",
+      "threat-hunting",
+      "cloud-logs"
+    ],
+    "tier": "A",
+    "quick_start": "sigma convert -t splunk rules/cloud/aws/"
+  },
+  {
+    "id": "hayabusa-evtx",
+    "name": "Hayabusa (Yamato Security)",
+    "url": "https://github.com/Yamato-Security/hayabusa",
+    "github": "Yamato-Security/hayabusa",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "DFIR & Timeline Triage",
+    "description": "Blazing-fast Rust Windows event-log timeline generator extracting attacker IPs, usernames, RDP logons, and C2 beacons from `.evtx` dumps.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "usernames",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Rust"
+    ],
+    "tags": [
+      "evtx",
+      "dfir-timeline",
+      "rust",
+      "rdp-attribution"
+    ],
+    "tier": "A",
+    "quick_start": "hayabusa csv-timeline -d ./evtx_logs -o timeline.csv"
+  },
+  {
+    "id": "chainsaw-dfir",
+    "name": "Chainsaw (WithSecure Labs)",
+    "url": "https://github.com/WithSecureLabs/chainsaw",
+    "github": "WithSecureLabs/chainsaw",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "DFIR & Timeline Triage",
+    "description": "Rapid Rust forensic artifact hunter searching EVTX, MFT, Shimcache, and SRUM tables for IOC domains, IPs, and user execution traces.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "keyword"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "usernames",
+      "urls",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Rust"
+    ],
+    "tags": [
+      "dfir",
+      "srum",
+      "mft",
+      "ioc-search"
+    ],
+    "tier": "A",
+    "quick_start": "chainsaw search 'https://' ./artifacts/"
+  },
+  {
+    "id": "volatility3",
+    "name": "Volatility 3",
+    "url": "https://github.com/volatilityfoundation/volatility3",
+    "github": "VolatilityFoundation/volatility3",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "DFIR & Timeline Triage",
+    "description": "Canonical memory forensics framework carving active TCP/UDP C2 sockets, command histories, injected DLLs, and credentials from RAM captures.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "open_ports",
+      "secrets",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "memory-forensics",
+      "c2-sockets",
+      "dfir",
+      "volatility"
+    ],
+    "tier": "S",
+    "quick_start": "vol -f memory.dmp windows.netscan"
+  },
+  {
+    "id": "velociraptor-dfir",
+    "name": "Velociraptor (Rapid7 / Velocidex)",
+    "url": "https://github.com/Velocidex/velociraptor",
+    "github": "Velocidex/velociraptor",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "DFIR & Timeline Triage",
+    "description": "VQL-powered digital forensics and threat-hunting platform querying browser histories, DNS caches, certificates, and IOCs across artifacts.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "domain",
+      "file_hash"
+    ],
+    "outputs": [
+      "urls",
+      "dns_records",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "vql",
+      "browser-forensics",
+      "threat-hunting"
+    ],
+    "tier": "S",
+    "quick_start": "velociraptor query 'SELECT * FROM info()'"
+  },
+  {
+    "id": "maltrail",
+    "name": "Maltrail",
+    "url": "https://github.com/stamparm/maltrail",
+    "github": "stamparm/maltrail",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Threat Feeds & Blocklists",
+    "description": "Malicious traffic detection system and massive daily-updated open-source aggregator of C2 domains, sinkholes, DGA hosts, and scanner IPs.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "ip",
+      "domain",
+      "url"
+    ],
+    "outputs": [
+      "malware_iocs"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Linux",
+      "Python"
+    ],
+    "tags": [
+      "c2-feeds",
+      "sinkholes",
+      "malicious-ips",
+      "stamparm"
+    ],
+    "tier": "A",
+    "quick_start": "grep -rn 'example.com' ./trails/static/malware/"
+  },
+  {
+    "id": "firehol-ipsets",
+    "name": "FireHOL Blocklist IPsets",
+    "url": "https://github.com/firehol/blocklist-ipsets",
+    "github": "firehol/blocklist-ipsets",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Threat Feeds & Blocklists",
+    "description": "Continuously aggregated reputation database correlating 400+ IP/CIDR threat lists, Tor exits, anonymizers, botnets, and mass scanners.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "ip",
+      "asn"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "ip_addresses"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Linux"
+    ],
+    "tags": [
+      "ip-reputation",
+      "cidr-feeds",
+      "botnets",
+      "anonymizers"
+    ],
+    "tier": "A",
+    "quick_start": "grep '198.51.100.10' ./*.ipset"
+  },
+  {
+    "id": "vt-py",
+    "name": "vt-py (Official VirusTotal Python SDK)",
+    "url": "https://github.com/VirusTotal/vt-py",
+    "github": "VirusTotal/vt-py",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "TIP & IOC Correlation",
+    "description": "Official async Python client for VirusTotal v3 API automating passive DNS, communicating-files graphs, retrohunt jobs, and certificate pivots.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": true,
+    "inputs": [
+      "file_hash",
+      "domain",
+      "ip",
+      "url"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "subdomains",
+      "dns_records",
+      "certificates"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "virustotal-v3",
+      "passive-dns",
+      "async-python",
+      "cti"
+    ],
+    "tier": "A",
+    "quick_start": "pip install vt-py"
+  },
+  {
+    "id": "opensanctions-yente",
+    "name": "Yente (OpenSanctions Self-Hosted API)",
+    "url": "https://github.com/opensanctions/yente",
+    "github": "opensanctions/yente",
+    "category": "corporate-financial-sanctions",
+    "subcategory": "Sanctions, PEPs & Watchlists",
+    "description": "Self-hosted OpenSanctions entity-resolution search and fuzzy-matching API screening names, companies, vessels, and crypto wallets offline.",
+    "type": "API / Service",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "person_name",
+      "company",
+      "vessel_imo",
+      "crypto_address"
+    ],
+    "outputs": [
+      "sanctions_hits",
+      "corporate_records",
+      "entity_graph"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "macOS",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "opensanctions",
+      "pep-screening",
+      "fuzzy-matching",
+      "self-hosted"
+    ],
+    "tier": "S",
+    "quick_start": "docker run -p 8000:8000 ghcr.io/opensanctions/yente:latest"
+  },
+  {
+    "id": "ethereum-etl",
+    "name": "Ethereum ETL",
+    "url": "https://github.com/blockchain-etl/ethereum-etl",
+    "github": "blockchain-etl/ethereum-etl",
+    "category": "crypto-blockchain-web3",
+    "subcategory": "On-Chain Forensics & RPC",
+    "description": "Python CLI exporting EVM blocks, internal traces, ERC-20/721 transfers, and contract deployments to CSV/JSON/SQL for forensic graph queries.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "crypto_address"
+    ],
+    "outputs": [
+      "tx_graph",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "evm-traces",
+      "erc20",
+      "onchain-forensics",
+      "csv-export"
+    ],
+    "tier": "A",
+    "quick_start": "ethereumetl export_token_transfers --start-block 19000000 --end-block 19000100"
+  },
+  {
+    "id": "rotki-portfolio",
+    "name": "Rotki",
+    "url": "https://github.com/rotki/rotki",
+    "github": "rotki/rotki",
+    "category": "crypto-blockchain-web3",
+    "subcategory": "Multi-Chain Wallet Profilers",
+    "description": "Local-first open-source multi-chain address tracker decoding DeFi positions, ENS names, NFT holdings, and cross-chain bridge histories privately.",
+    "type": "Desktop App",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "crypto_address"
+    ],
+    "outputs": [
+      "tx_graph",
+      "metadata"
+    ],
+    "platforms": [
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "multi-chain",
+      "defi-decoding",
+      "local-first",
+      "ens"
+    ],
+    "tier": "B",
+    "quick_start": "Launch Rotki locally and track target EVM/BTC addresses"
+  },
+  {
+    "id": "metamask-phishing-db",
+    "name": "MetaMask Eth-Phishing-Detect",
+    "url": "https://github.com/MetaMask/eth-phishing-detect",
+    "github": "MetaMask/eth-phishing-detect",
+    "category": "crypto-blockchain-web3",
+    "subcategory": "Web3 Drainer & Scam Threat Intel",
+    "description": "Continuously updated open registry of verified Web3 wallet-drainer domains, typosquatting dApps, and allowlisted crypto infrastructure.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "domain",
+      "url"
+    ],
+    "outputs": [
+      "malware_iocs"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Node.js"
+    ],
+    "tags": [
+      "wallet-drainers",
+      "web3-phishing",
+      "metamask",
+      "domain-blocklist"
+    ],
+    "tier": "A",
+    "quick_start": "Query src/config.json blacklist for suspect Web3 domain"
+  },
+  {
+    "id": "scamsniffer-db",
+    "name": "ScamSniffer Drainer Database",
+    "url": "https://github.com/scamsniffer/scam-database",
+    "github": "scamsniffer/scam-database",
+    "category": "crypto-blockchain-web3",
+    "subcategory": "Web3 Drainer & Scam Threat Intel",
+    "description": "Community threat intelligence feed mapping malicious EVM drainer addresses and phishing domains tied to Pink/Angel/Inferno Drainer kits.",
+    "type": "Dataset / Registry",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "crypto_address",
+      "domain"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "sanctions_hits"
+    ],
+    "platforms": [
+      "Web",
+      "CLI"
+    ],
+    "tags": [
+      "drainer-wallets",
+      "scamsniffer",
+      "crypto-scams",
+      "cti"
+    ],
+    "tier": "A",
+    "quick_start": "Cross-check suspect 0x address against blacklist/address.json"
+  },
+  {
+    "id": "nominatim-osm",
+    "name": "Nominatim (OpenStreetMap Geocoder)",
+    "url": "https://github.com/osm-search/Nominatim",
+    "github": "osm-search/Nominatim",
+    "category": "geoint-maps-satellites",
+    "subcategory": "Geocoding & OSM Infrastructure",
+    "description": "Official OpenStreetMap geocoding and reverse-geocoding engine resolving GPS coordinates to building footprints, street hierarchy, and OSM ways.",
+    "type": "API / Service",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "coordinates",
+      "keyword"
+    ],
+    "outputs": [
+      "geolocation",
+      "metadata"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "reverse-geocoding",
+      "openstreetmap",
+      "coordinates",
+      "geoint"
+    ],
+    "tier": "S",
+    "quick_start": "curl -s 'https://nominatim.openstreetmap.org/reverse?lat=24.7136&lon=46.6753&format=json'"
+  },
+  {
+    "id": "protomaps-pmtiles",
+    "name": "Protomaps PMTiles",
+    "url": "https://github.com/protomaps/PMTiles",
+    "github": "protomaps/PMTiles",
+    "category": "geoint-maps-satellites",
+    "subcategory": "Offline & Air-Gapped Mapping",
+    "description": "Single-file serverless vector/raster map archive enabling 100% air-gapped global street and terrain mapping with zero external tile leaks.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "coordinates"
+    ],
+    "outputs": [
+      "geolocation",
+      "opsec_protection"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "airgapped-maps",
+      "pmtiles",
+      "opsec-geoint",
+      "vector-tiles"
+    ],
+    "tier": "A",
+    "quick_start": "pmtiles extract planet.pmtiles region.pmtiles --bbox=..."
+  },
+  {
+    "id": "cesiumjs",
+    "name": "CesiumJS 3D Geospatial Engine",
+    "url": "https://github.com/CesiumGS/cesium",
+    "github": "CesiumGS/cesium",
+    "category": "geoint-maps-satellites",
+    "subcategory": "3D Terrain & Line-of-Sight",
+    "description": "Open-source WebGL 3D globe engine reconstructing camera field-of-view frustums, elevation line-of-sight, sun shadows, and flight trajectories.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "coordinates",
+      "aircraft_hex"
+    ],
+    "outputs": [
+      "geolocation",
+      "flight_tracks"
+    ],
+    "platforms": [
+      "Web",
+      "Node.js"
+    ],
+    "tags": [
+      "3d-terrain",
+      "line-of-sight",
+      "chronolocation",
+      "flight-3d"
+    ],
+    "tier": "A",
+    "quick_start": "Render CZML flight/vessel tracks over 3D terrain"
+  },
+  {
+    "id": "tar1090",
+    "name": "tar1090 (ADS-B Historical Track UI)",
+    "url": "https://github.com/wiedehopf/tar1090",
+    "github": "wiedehopf/tar1090",
+    "category": "aviation-maritime-transport",
+    "subcategory": "ADS-B & Military Flight Tracking",
+    "description": "Enhanced ADS-B/Mode-S web interface powering ADS-B Exchange and airplanes.live with replayable altitude/speed trails and military hex filters.",
+    "type": "Web Platform",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "aircraft_hex",
+      "coordinates"
+    ],
+    "outputs": [
+      "flight_tracks",
+      "geolocation",
+      "signal_telemetry"
+    ],
+    "platforms": [
+      "Web",
+      "Linux"
+    ],
+    "tags": [
+      "adsb",
+      "icao-hex",
+      "military-aircraft",
+      "flight-replay"
+    ],
+    "tier": "S",
+    "quick_start": "Filter ?icao=<hex>&showTrace=2026-10-23 on any tar1090 instance"
+  },
+  {
+    "id": "hackrf-tools",
+    "name": "HackRF Suite (Great Scott Gadgets)",
+    "url": "https://github.com/greatscottgadgets/hackrf",
+    "github": "greatscottgadgets/hackrf",
+    "category": "sigint-wireless-space-rf",
+    "subcategory": "SDR & RF Spectrum Analysis",
+    "description": "Wideband 1 MHz–6 GHz Software-Defined Radio utilities (`hackrf_sweep`, `hackrf_transfer`) for wideband RF spectrum survey and signal capture.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "rf_frequency"
+    ],
+    "outputs": [
+      "signal_telemetry"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "sdr",
+      "hackrf",
+      "spectrum-sweep",
+      "sigint"
+    ],
+    "tier": "A",
+    "quick_start": "hackrf_sweep -f 400:470 -w 100000 -r sweep.csv"
+  },
+  {
+    "id": "soapysdr",
+    "name": "SoapySDR",
+    "url": "https://github.com/pothosware/SoapySDR",
+    "github": "pothosware/SoapySDR",
+    "category": "sigint-wireless-space-rf",
+    "subcategory": "SDR & RF Spectrum Analysis",
+    "description": "Vendor-neutral SDR hardware abstraction toolkit unifying RTL-SDR, HackRF, Airspy, PlutoSDR, and LimeSDR receivers for SIGINT pipelines.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "rf_frequency"
+    ],
+    "outputs": [
+      "signal_telemetry"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "sdr",
+      "rtl-sdr",
+      "rf-capture",
+      "sigint"
+    ],
+    "tier": "B",
+    "quick_start": "SoapySDRUtil --find"
+  },
+  {
+    "id": "flipperzero-rf",
+    "name": "Flipper Zero Official Firmware",
+    "url": "https://github.com/flipperdevices/flipperzero-firmware",
+    "github": "flipperdevices/flipperzero-firmware",
+    "category": "sigint-wireless-space-rf",
+    "subcategory": "Sub-GHz, NFC & BLE Field Recon",
+    "description": "Open-source portable multi-band Sub-GHz, 125kHz RFID, NFC, BLE, and IR signal analysis platform for physical-perimeter RF inspection.",
+    "type": "OS / Distro",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "rf_frequency",
+      "mac_bssid"
+    ],
+    "outputs": [
+      "signal_telemetry",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "sub-ghz",
+      "nfc",
+      "ble-recon",
+      "field-sigint"
+    ],
+    "tier": "A",
+    "quick_start": "./fbt # Inspect .sub Sub-GHz captures"
+  },
+  {
+    "id": "tor-stem",
+    "name": "Stem (Tor Controller Python Library)",
+    "url": "https://github.com/torproject/stem",
+    "github": "torproject/stem",
+    "category": "darkweb-tor-underground",
+    "subcategory": "Tor Circuit & Relay Intelligence",
+    "description": "Official Tor Project Python library inspecting Tor consensus relays, exit-node descriptors, hidden-service v3 descriptors, and circuit rotation.",
+    "type": "Library",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "ip",
+      "onion_url"
+    ],
+    "outputs": [
+      "ip_addresses",
+      "darkweb_mentions",
+      "opsec_protection"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "tor-project",
+      "relay-descriptors",
+      "circuit-rotation",
+      "onion-v3"
+    ],
+    "tier": "S",
+    "quick_start": "python3 -c 'from stem.descriptor import remote; print(len(list(remote.get_server_descriptors())))'"
+  },
+  {
+    "id": "onionshare",
+    "name": "OnionShare",
+    "url": "https://github.com/onionshare/onionshare",
+    "github": "onionshare/onionshare",
+    "category": "darkweb-tor-underground",
+    "subcategory": "Whistleblower & Anonymous Dropboxes",
+    "description": "Open-source ephemeral Tor `.onion` file-drop, whistleblowing intake, and anonymous publishing tool protecting source OPSEC.",
+    "type": "Desktop App",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "onion_url"
+    ],
+    "outputs": [
+      "opsec_protection",
+      "documents"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "tor",
+      "whistleblowing",
+      "source-protection",
+      "opsec"
+    ],
+    "tier": "A",
+    "quick_start": "onionshare-cli --receive"
+  },
+  {
+    "id": "mcp-official-servers",
+    "name": "Model Context Protocol Reference Servers",
+    "url": "https://github.com/modelcontextprotocol/servers",
+    "github": "modelcontextprotocol/servers",
+    "category": "ai-agents-mcp-opsec",
+    "subcategory": "MCP Intelligence Servers",
+    "description": "Official Anthropic MCP server collection (`fetch`, `git`, `filesystem`, `puppeteer`, `brave-search`, `sqlite`) composable with OSINT agents.",
+    "type": "AI / MCP",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": false,
+    "inputs": [
+      "url",
+      "keyword",
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "urls",
+      "documents",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python",
+      "Node.js"
+    ],
+    "tags": [
+      "mcp",
+      "brave-search",
+      "fetch-mcp",
+      "sqlite-mcp"
+    ],
+    "tier": "S",
+    "quick_start": "npx -y @modelcontextprotocol/server-fetch"
+  },
+  {
+    "id": "fabric-ai",
+    "name": "Fabric (Daniel Miessler AI Patterns)",
+    "url": "https://github.com/danielmiessler/fabric",
+    "github": "danielmiessler/fabric",
+    "category": "ai-agents-mcp-opsec",
+    "subcategory": "AI Recon & Threat Synthesis",
+    "description": "Open-source modular prompt and CLI pipeline (`fabric -p analyze_threat_report`, `extract_ioc`) distilling raw OSINT dumps and transcripts into structured intel.",
+    "type": "AI / MCP",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": true,
+    "inputs": [
+      "document",
+      "url",
+      "video"
+    ],
+    "outputs": [
+      "malware_iocs",
+      "entity_graph",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "daniel-miessler",
+      "ioc-extraction",
+      "threat-synthesis",
+      "cli-ai"
+    ],
+    "tier": "S",
+    "quick_start": "cat raw_report.txt | fabric --pattern analyze_threat_report"
+  },
+  {
+    "id": "openhands-agent",
+    "name": "OpenHands Autonomous Agent",
+    "url": "https://github.com/All-Hands-AI/OpenHands",
+    "github": "All-Hands-AI/OpenHands",
+    "category": "ai-agents-mcp-opsec",
+    "subcategory": "Autonomous Agent Runtimes",
+    "description": "Sandboxed autonomous coding and terminal agent platform capable of mounting OSINT skills, running recon pipelines, and compiling dossiers.",
+    "type": "AI / MCP",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": true,
+    "inputs": [
+      "keyword",
+      "domain",
+      "repo_code"
+    ],
+    "outputs": [
+      "documents",
+      "entity_graph"
+    ],
+    "platforms": [
+      "Web",
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "autonomous-agent",
+      "sandboxed-runtime",
+      "mcp-host"
+    ],
+    "tier": "A",
+    "quick_start": "docker run -p 3000:3000 docker.all-hands.dev/all-hands-ai/openhands"
+  },
+  {
+    "id": "crewai",
+    "name": "CrewAI Multi-Agent Orchestrator",
+    "url": "https://github.com/crewAIInc/crewAI",
+    "github": "crewAIInc/crewAI",
+    "category": "ai-agents-mcp-opsec",
+    "subcategory": "Autonomous Agent Runtimes",
+    "description": "Python multi-agent orchestration framework for building specialized Collector, Pivoting Analyst, Verifier, and STIX Report Writer OSINT crews.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Hybrid",
+    "auth_required": true,
+    "inputs": [
+      "keyword",
+      "domain",
+      "company",
+      "person_name"
+    ],
+    "outputs": [
+      "documents",
+      "entity_graph"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Python"
+    ],
+    "tags": [
+      "multi-agent",
+      "osint-crew",
+      "python-agents"
+    ],
+    "tier": "A",
+    "quick_start": "pip install crewai && crewai create crew osint-team"
+  },
+  {
+    "id": "litellm-proxy",
+    "name": "LiteLLM Unified Model Gateway",
+    "url": "https://github.com/BerriAI/litellm",
+    "github": "BerriAI/litellm",
+    "category": "ai-agents-mcp-opsec",
+    "subcategory": "Local & Private LLM Gateways",
+    "description": "Unified OpenAI-compatible gateway routing OSINT agent tool calls across local Ollama/vLLM air-gapped models or 100+ cloud providers with OPSEC logging.",
+    "type": "AI / MCP",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "document",
+      "keyword"
+    ],
+    "outputs": [
+      "opsec_protection",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "local-llm",
+      "airgapped-ai",
+      "ollama-gateway",
+      "opsec"
+    ],
+    "tier": "A",
+    "quick_start": "litellm --model ollama/llama3.3"
+  },
+  {
+    "id": "bladerf-sdr",
+    "name": "bladeRF SDR Suite (Nuand)",
+    "url": "https://github.com/Nuand/bladeRF",
+    "github": "Nuand/bladeRF",
+    "category": "sigint-wireless-space-rf",
+    "subcategory": "SDR & RF Spectrum Analysis",
+    "description": "Full-duplex 47 MHz–6 GHz Software-Defined Radio CLI and library for cellular base-station survey, ADS-B, and wideband RF spectrum capture.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "rf_frequency"
+    ],
+    "outputs": [
+      "signal_telemetry"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "tags": [
+      "bladerf",
+      "sdr",
+      "cellular-sigint",
+      "rf"
+    ],
+    "tier": "B",
+    "quick_start": "bladeRF-cli -i # probe connected bladeRF transceiver"
+  },
+  {
+    "id": "terrascan-iac",
+    "name": "Terrascan",
+    "url": "https://github.com/tenable/terrascan",
+    "github": "tenable/terrascan",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "IaC & Cloud Config Recon",
+    "description": "Static code analyzer auditing Terraform, Kubernetes, Helm, and Kustomize repositories for exposed cloud storage, public security groups, and secrets.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "tech_stack",
+      "secrets",
+      "open_ports"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Docker",
+      "Go"
+    ],
+    "tags": [
+      "iac",
+      "terraform",
+      "kubernetes",
+      "cloud-exposure"
+    ],
+    "tier": "B",
+    "quick_start": "terrascan scan -d ./iac-repo"
+  },
+  {
+    "id": "tfsec-scanner",
+    "name": "tfsec",
+    "url": "https://github.com/aquasecurity/tfsec",
+    "github": "tfsec/tfsec",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "IaC & Cloud Config Recon",
+    "description": "Fast Go Terraform static analyzer pinpointing public S3 ACLs, unencrypted RDS snapshots, wildcard IAM roles, and hardcoded cloud keys.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "document"
+    ],
+    "outputs": [
+      "secrets",
+      "tech_stack"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "terraform",
+      "s3-exposure",
+      "aws-iam",
+      "go"
+    ],
+    "tier": "A",
+    "quick_start": "tfsec ./terraform"
+  },
+  {
+    "id": "skyark-cloud",
+    "name": "SkyArk (Shadow Admin Recon)",
+    "url": "https://github.com/cyberark/SkyArk",
+    "github": "cyberark/SkyArk",
+    "category": "code-cloud-dev-osint",
+    "subcategory": "Cloud & Storage Enumeration",
+    "description": "AWSStealth and AzureStealth cloud reconnaissance modules enumerating shadow administrative principals across AWS IAM and Microsoft Entra.",
+    "type": "Framework",
+    "pricing": "Free / Open Source",
+    "opsec": "Active",
+    "auth_required": true,
+    "inputs": [
+      "company",
+      "domain"
+    ],
+    "outputs": [
+      "usernames",
+      "entity_graph",
+      "metadata"
+    ],
+    "platforms": [
+      "CLI",
+      "Windows",
+      "Linux",
+      "macOS"
+    ],
+    "tags": [
+      "shadow-admins",
+      "aws-iam",
+      "entra",
+      "cyberark"
+    ],
+    "tier": "B",
+    "quick_start": "Import-Module ./SkyArk.ps1; Start-AWStealth"
+  },
+  {
+    "id": "fir-incident",
+    "name": "FIR (Fast Incident Response)",
+    "url": "https://github.com/certsocietegenerale/FIR",
+    "github": "certsocietegenerale/FIR",
+    "category": "threat-intel-malware-cti",
+    "subcategory": "Case & Evidence Management",
+    "description": "CERT Société Générale collaborative cybersecurity case tracking and IOC artifact repository organizing timelines, actors, and campaign evidence.",
+    "type": "Web Platform",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": true,
+    "inputs": [
+      "domain",
+      "ip",
+      "file_hash",
+      "email"
+    ],
+    "outputs": [
+      "documents",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "Web",
+      "Linux",
+      "Docker",
+      "Python"
+    ],
+    "tags": [
+      "cert",
+      "case-management",
+      "ioc-tracking",
+      "cti"
+    ],
+    "tier": "B",
+    "quick_start": "docker compose up -d # CERT case management"
+  },
+  {
+    "id": "echidna-evm",
+    "name": "Echidna (Trail of Bits EVM Analyzer)",
+    "url": "https://github.com/crytic/echidna",
+    "github": "crytic/echidna",
+    "category": "crypto-blockchain-web3",
+    "subcategory": "Smart Contract & DeFi Recon",
+    "description": "Trail of Bits Ethereum smart-contract property analyzer inspecting suspicious DeFi/token contracts for hidden backdoors and rug-pull invariants.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "repo_code",
+      "crypto_address"
+    ],
+    "outputs": [
+      "metadata",
+      "malware_iocs"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Docker"
+    ],
+    "tags": [
+      "trailofbits",
+      "smart-contracts",
+      "rugpull-detection",
+      "evm"
+    ],
+    "tier": "A",
+    "quick_start": "echidna contract.sol --contract Token"
+  },
+  {
+    "id": "tomnomnom-qsreplace",
+    "name": "qsreplace",
+    "url": "https://github.com/tomnomnom/qsreplace",
+    "github": "tomnomnom/qsreplace",
+    "category": "domain-dns-asm",
+    "subcategory": "Active Parameter & JS Recon",
+    "description": "Pipeline URL query-string normalizer deduplicating parameter combinations across large historical Wayback and spider endpoint lists.",
+    "type": "CLI",
+    "pricing": "Free / Open Source",
+    "opsec": "Passive",
+    "auth_required": false,
+    "inputs": [
+      "url"
+    ],
+    "outputs": [
+      "urls"
+    ],
+    "platforms": [
+      "CLI",
+      "Linux",
+      "macOS",
+      "Windows",
+      "Go"
+    ],
+    "tags": [
+      "url-dedup",
+      "query-params",
+      "tomnomnom",
+      "pipeline"
+    ],
+    "tier": "B",
+    "quick_start": "cat urls.txt | qsreplace -a"
   }
 ]

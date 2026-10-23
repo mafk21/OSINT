@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Automated frameworks like SpiderFoot, BBOT, and Recon-ng bundle both passive API queries and active HTTP/DNS probes. Always enforce passive-only presets when target alerting is unacceptable.
 
-**Discipline Telemetry**: `46` Verified Tools · `18` S-Tier Flagships · `23` Passive · `41` Free/Open-Source
+**Discipline Telemetry**: `48` Verified Tools · `18` S-Tier Flagships · `25` Passive · `43` Free/Open-Source
 
 ## Subcategories
 - [Recursive Recon Scanners](#recursive-recon-scanners) (1)
@@ -28,6 +28,8 @@
 - [Attack Surface Management](#attack-surface-management) (2)
 - [Recon Toolchains](#recon-toolchains) (2)
 - [Out-of-Band Callback Recon](#out-of-band-callback-recon) (1)
+- [Recon Pipeline Utilities](#recon-pipeline-utilities) (1)
+- [Graph & Data Schemas](#graph-data-schemas) (1)
 
 ---
 
@@ -529,6 +531,36 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Docker, Go · **Tags**: `oob`, `dns-callback`, `active-probing`, `projectdiscovery`
 - **Overview**: Open-source Out-of-Band (OOB) interaction gathering client and server capturing live DNS, HTTP, SMTP, and LDAP callbacks during active reconnaissance.
 - **Quick-Start / Tradecraft**: `interactsh-client -v`
+
+---
+
+## Recon Pipeline Utilities
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**anew**](https://github.com/tomnomnom/anew) ([GitHub](https://github.com/tomnomnom/anew)) | CLI | OSS / Free | 🟢 Passive | ✅ | `domain, url, ip` → `subdomains, urls` |
+
+### [anew](https://github.com/tomnomnom/anew) `[A-Tier]`
+- **ID**: `tomnomnom-anew` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`tomnomnom/anew`](https://github.com/tomnomnom/anew)
+- **Inputs**: `domain`, `url`, `ip` → **Outputs**: `subdomains`, `urls`
+- **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `asm-diffing`, `continuous-recon`, `tomnomnom`
+- **Overview**: Continuous attack-surface monitoring helper appending only brand-new subdomains, IPs, or URLs to tracking files while emitting diffs to stdout.
+- **Quick-Start / Tradecraft**: `subfinder -d example.com | anew known_subs.txt`
+
+---
+
+## Graph & Data Schemas
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **B** | [**OWASP Open Asset Model (OAM)**](https://github.com/owasp-amass/open-asset-model) ([GitHub](https://github.com/owasp-amass/open-asset-model)) | Library | OSS / Free | 🟢 Passive | ✅ | `domain, ip, asn` → `entity_graph` |
+
+### [OWASP Open Asset Model (OAM)](https://github.com/owasp-amass/open-asset-model) `[B-Tier]`
+- **ID**: `open-asset-model` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`owasp-amass/open-asset-model`](https://github.com/owasp-amass/open-asset-model)
+- **Inputs**: `domain`, `ip`, `asn`, `company` → **Outputs**: `entity_graph`
+- **Platforms**: Linux, macOS, Windows, Go · **Tags**: `owasp-amass`, `graph-schema`, `asset-modeling`
+- **Overview**: Standardized OWASP Amass entity-relationship specification modeling domains, ASNs, netblocks, TLS certificates, WHOIS contacts, and orgs.
+- **Quick-Start / Tradecraft**: `go get github.com/owasp-amass/open-asset-model`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [🕵️ Username & Handle Recon ▶](./02-username-enumeration.md)

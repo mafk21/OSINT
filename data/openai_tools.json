@@ -3,7 +3,7 @@
     "type": "function",
     "function": {
       "name": "osint_auto_hunt",
-      "description": "PASSIVE MODE (RUN IMMEDIATELY WITH ZERO QUESTIONS). Executes a multi-wave passive OSINT hunt on any selector, file path, URL, or natural-language prompt with zero direct packets to target servers.",
+      "description": "PASSIVE MODE (RUN IMMEDIATELY WITH ZERO QUESTIONS). Executes an exhaustive multi-stage passive OSINT hunt on any selector, file path, URL, or natural-language prompt with zero direct packets to target servers.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -52,16 +52,19 @@
     "type": "function",
     "function": {
       "name": "osint_prepare_active_hunt",
-      "description": "STEP 1 OF ACTIVE MODE (SENDS ZERO PACKETS). Generates a single-use `request_id` and OPSEC disclosure plan for Active OSINT. You MUST stop and ask the user for explicit approval after calling this function before calling `osint_execute_active_hunt`.",
+      "description": "STEP 1 OF ACTIVE MODE (SENDS ZERO PACKETS). Generates a single-use `request_id` and OPSEC disclosure plan for Active OSINT across target or `from_case`. You MUST stop and ask the user for explicit approval after calling this function before calling `osint_execute_active_hunt`.",
       "parameters": {
         "type": "object",
         "properties": {
           "target": {
             "type": "string",
             "description": "Target domain, URL, IP, or selector."
+          },
+          "from_case": {
+            "type": "string",
+            "description": "Optional CASE_ID to auto-extract ALL domains/IPs discovered across passive stages."
           }
-        },
-        "required": ["target"]
+        }
       }
     }
   },
@@ -98,8 +101,40 @@
   {
     "type": "function",
     "function": {
+      "name": "osint_forensic_decode",
+      "description": "ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER. Decodes TikTok video/post IDs & URLs (upload UTC), Discord/X Snowflakes, UUIDv1 (MAC + 100ns time), UUIDv6/v7, ULIDs, MongoDB ObjectIds, ISO 13616 IBANs (SAMA), E.164 phones (US/UK/GCC/MENA), VINs, ICAO24, IMO/MMSI, MAC/BSSIDs, JWTs, and local files.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string",
+            "description": "Token, ID, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local file path."
+          }
+        },
+        "required": ["payload"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_compare_cases",
+      "description": "CROSS-CASE LINK ANALYSIS. Compares two saved CASE-... investigations to uncover shared entities, shared root domains, shared /24 IPv4 subnets, and shared analytics/tracking tags.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "case_a": { "type": "string" },
+          "case_b": { "type": "string" }
+        },
+        "required": ["case_a", "case_b"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "osint_query_arsenal",
-      "description": "Search the 680-tool OSINT Monster Database (502 Passive + 178 Active/Hybrid) by input selector, discipline, keyword, or passive/free filters.",
+      "description": "Search the 760-tool OSINT Monster Database (559 Passive + 201 Active/Hybrid) by input selector, discipline, keyword, or passive/free filters.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -121,7 +156,7 @@
     "type": "function",
     "function": {
       "name": "osint_forge_dorks",
-      "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, GitHub, and URLScan search dorks.",
+      "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, URLScan, and GitHub dorks (105 templates).",
       "parameters": {
         "type": "object",
         "properties": {

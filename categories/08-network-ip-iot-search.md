@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Searching Shodan, Censys, FOFA, ZoomEye, Netlas, or GreyNoise queries pre-indexed scan databases and is completely passive with zero packets sent to the target IP.
 
-**Discipline Telemetry**: `53` Verified Tools · `19` S-Tier Flagships · `31` Passive · `39` Free/Open-Source
+**Discipline Telemetry**: `61` Verified Tools · `23` S-Tier Flagships · `36` Passive · `47` Free/Open-Source
 
 ## Subcategories
 - [Cyberspace Banner Search Engines](#cyberspace-banner-search-engines) (12)
@@ -20,9 +20,10 @@
 - [Internet-Wide Active Research](#internet-wide-active-research) (3)
 - [Service & Protocol Fingerprinting](#service-protocol-fingerprinting) (3)
 - [TLS & Crypto Active Auditors](#tls-crypto-active-auditors) (2)
-- [LAN & Enterprise Service Enum](#lan-enterprise-service-enum) (7)
+- [LAN & Enterprise Service Enum](#lan-enterprise-service-enum) (10)
 - [Traffic Inspection & Replay](#traffic-inspection-replay) (1)
 - [Vulnerability & CPE Intelligence](#vulnerability-cpe-intelligence) (1)
+- [Packet & Traffic Forensics](#packet-traffic-forensics) (5)
 
 ---
 
@@ -466,6 +467,9 @@
 | **A** | [**onesixtyone**](https://github.com/trailofbits/onesixtyone) ([GitHub](https://github.com/trailofbits/onesixtyone)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, asn` → `tech_stack, open_ports, metadata` |
 | **A** | [**windapsearch**](https://github.com/ropnop/windapsearch) ([GitHub](https://github.com/ropnop/windapsearch)) | CLI | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `usernames, emails, person_records` |
 | **S** | [**Impacket Network Protocol Scripts**](https://github.com/fortra/impacket) ([GitHub](https://github.com/fortra/impacket)) | Framework | OSS / Free | 🔴 Active | ✅ | `ip, domain` → `tech_stack, usernames, metadata` |
+| **S** | [**BloodHound Community Edition**](https://github.com/SpecterOps/BloodHound) ([GitHub](https://github.com/SpecterOps/BloodHound)) | Desktop App | OSS / Free | 🔴 Active | ✅ | `domain, company` → `entity_graph, usernames, person_records` |
+| **A** | [**Certipy**](https://github.com/ly4k/Certipy) ([GitHub](https://github.com/ly4k/Certipy)) | CLI | OSS / Free | 🔴 Active | 🔑 | `domain, ip` → `certificates, tech_stack, entity_graph` |
+| **A** | [**Responder**](https://github.com/lgandx/Responder) ([GitHub](https://github.com/lgandx/Responder)) | CLI | OSS / Free | 🟡 Hybrid | ✅ | `ip` → `usernames, tech_stack, ip_addresses` |
 
 ### [arp-scan](https://github.com/royhills/arp-scan) `[A-Tier]`
 - **ID**: `arp-scan` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`royhills/arp-scan`](https://github.com/royhills/arp-scan)
@@ -516,6 +520,27 @@
 - **Overview**: Canonical Python network protocol suite featuring `rpcdump.py`, `samrdump.py`, `DumpNTLMInfo.py`, and `lookupsid.py` for active Windows/SMB/RPC OS/domain fingerprinting.
 - **Quick-Start / Tradecraft**: `DumpNTLMInfo.py 198.51.100.10`
 
+### [BloodHound Community Edition](https://github.com/SpecterOps/BloodHound) `[S-Tier]`
+- **ID**: `bloodhound-ce` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`SpecterOps/BloodHound`](https://github.com/SpecterOps/BloodHound)
+- **Inputs**: `domain`, `company` → **Outputs**: `entity_graph`, `usernames`, `person_records`
+- **Platforms**: Web, Linux, macOS, Windows, Docker, Go · **Tags**: `active-directory`, `graph-analysis`, `entra-id`, `specterops`
+- **Overview**: Graph-theory Active Directory and Entra ID relationship analyzer visualizing domain trusts, group memberships, and identity attack paths.
+- **Quick-Start / Tradecraft**: `bloodhound-cli containers up`
+
+### [Certipy](https://github.com/ly4k/Certipy) `[A-Tier]`
+- **ID**: `certipy-ad` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: Required (Account / API Key) · **GitHub**: [`ly4k/Certipy`](https://github.com/ly4k/Certipy)
+- **Inputs**: `domain`, `ip` → **Outputs**: `certificates`, `tech_stack`, `entity_graph`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `adcs`, `enterprise-pki`, `certificates`, `active`
+- **Overview**: Active Directory Certificate Services (AD CS) enumerator mapping enterprise PKI CAs, certificate templates, and enrollment endpoints.
+- **Quick-Start / Tradecraft**: `certipy find -u user@corp.local -dc-ip 10.0.0.1`
+
+### [Responder](https://github.com/lgandx/Responder) `[A-Tier]`
+- **ID**: `responder-llmnr` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟡 Hybrid · **Auth**: None (Keyless / Direct) · **GitHub**: [`lgandx/Responder`](https://github.com/lgandx/Responder)
+- **Inputs**: `ip` → **Outputs**: `usernames`, `tech_stack`, `ip_addresses`
+- **Platforms**: CLI, Linux, Python · **Tags**: `llmnr`, `mdns`, `netbios`, `lan-osint`
+- **Overview**: Local network LLMNR, NBT-NS, and mDNS analyzer (`--analyze` passive mode) inventorying broadcast hostnames, OS builds, and SMB signing posture.
+- **Quick-Start / Tradecraft**: `sudo python3 Responder.py -I eth0 --analyze`
+
 ---
 
 ## Traffic Inspection & Replay
@@ -545,6 +570,53 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Go · **Tags**: `cve`, `kev`, `epss`, `projectdiscovery`
 - **Overview**: Fast CLI querying CVE, EPSS, KEV, CPE, and Nuclei template coverage across fingerprinted server versions discovered during active recon.
 - **Quick-Start / Tradecraft**: `vulnx search 'openssh' --json`
+
+---
+
+## Packet & Traffic Forensics
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Wireshark / tshark**](https://github.com/wireshark/wireshark) ([GitHub](https://github.com/wireshark/wireshark)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `document, ip, mac_bssid` → `ip_addresses, dns_records, certificates` |
+| **S** | [**Zeek Network Security Monitor**](https://github.com/zeek/zeek) ([GitHub](https://github.com/zeek/zeek)) | Framework | OSS / Free | 🟢 Passive | ✅ | `document, ip` → `dns_records, certificates, urls` |
+| **S** | [**Suricata**](https://github.com/OISF/suricata) ([GitHub](https://github.com/OISF/suricata)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, ip` → `malware_iocs, dns_records, certificates` |
+| **A** | [**Malcolm (CISA Network Traffic Suite)**](https://github.com/cisagov/Malcolm) ([GitHub](https://github.com/cisagov/Malcolm)) | Framework | OSS / Free | 🟢 Passive | ✅ | `document, ip, domain` → `entity_graph, dns_records, ip_addresses` |
+| **B** | [**nDPI (Deep Packet Inspection)**](https://github.com/ntop/nDPI) ([GitHub](https://github.com/ntop/nDPI)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document, ip` → `tech_stack, metadata, ip_addresses` |
+
+### [Wireshark / tshark](https://github.com/wireshark/wireshark) `[S-Tier]`
+- **ID**: `wireshark` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`wireshark/wireshark`](https://github.com/wireshark/wireshark)
+- **Inputs**: `document`, `ip`, `mac_bssid` → **Outputs**: `ip_addresses`, `dns_records`, `certificates`, `metadata`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `pcap`, `tshark`, `protocol-dissection`, `tls-sni`
+- **Overview**: Industry-standard network protocol analyzer and `tshark` CLI dissecting 3,000+ protocols, TLS SNIs, DNS queries, and JA3/JA4 fingerprints from PCAPs.
+- **Quick-Start / Tradecraft**: `tshark -r capture.pcap -Y 'tls.handshake.extensions_server_name' -T fields -e tls.handshake.extensions_server_name`
+
+### [Zeek Network Security Monitor](https://github.com/zeek/zeek) `[S-Tier]`
+- **ID**: `zeek-nsm` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`zeek/zeek`](https://github.com/zeek/zeek)
+- **Inputs**: `document`, `ip` → **Outputs**: `dns_records`, `certificates`, `urls`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Docker · **Tags**: `zeek`, `pcap-osint`, `passive-dns`, `x509`
+- **Overview**: Passive network traffic analysis framework converting PCAPs into structured `dns.log`, `ssl.log`, `http.log`, `x509.log`, and file-hash telemetry.
+- **Quick-Start / Tradecraft**: `zeek -r capture.pcap`
+
+### [Suricata](https://github.com/OISF/suricata) `[S-Tier]`
+- **ID**: `suricata-ids` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`OISF/suricata`](https://github.com/OISF/suricata)
+- **Inputs**: `document`, `ip` → **Outputs**: `malware_iocs`, `dns_records`, `certificates`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `eve-json`, `ja4`, `pcap-analysis`, `ids`
+- **Overview**: High-performance network threat engine extracting `eve.json` HTTP, TLS JA3/JA4, DNS, SSH, and malware IOC alerts from packet captures.
+- **Quick-Start / Tradecraft**: `suricata -r capture.pcap -l ./logs`
+
+### [Malcolm (CISA Network Traffic Suite)](https://github.com/cisagov/Malcolm) `[A-Tier]`
+- **ID**: `cisa-malcolm` · **Type**: `Framework` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`cisagov/Malcolm`](https://github.com/cisagov/Malcolm)
+- **Inputs**: `document`, `ip`, `domain` → **Outputs**: `entity_graph`, `dns_records`, `ip_addresses`, `malware_iocs`
+- **Platforms**: Web, Linux, macOS, Docker · **Tags**: `cisa`, `arkime`, `zeek`, `pcap-graph`
+- **Overview**: CISA's turnkey PCAP and Zeek/Arkime/Suricata visual analytics stack for deep network forensics, ASN mapping, and protocol graphing.
+- **Quick-Start / Tradecraft**: `./scripts/start # Upload PCAP in Arkime/Dashboards`
+
+### [nDPI (Deep Packet Inspection)](https://github.com/ntop/nDPI) `[B-Tier]`
+- **ID**: `ntop-ndpi` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`ntop/nDPI`](https://github.com/ntop/nDPI)
+- **Inputs**: `document`, `ip` → **Outputs**: `tech_stack`, `metadata`, `ip_addresses`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `dpi`, `encrypted-traffic`, `ja3`, `pcap`
+- **Overview**: Open-source deep packet inspection toolkit (`ndpiReader`) identifying encrypted application protocols, VPNs, Tor, and TLS fingerprints.
+- **Quick-Start / Tradecraft**: `ndpiReader -i capture.pcap -v 2`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🌐 Domains, DNS & ASM](./07-domain-dns-asm.md) · [💬 Social Media (SOCMINT) ▶](./09-social-media-socmint.md)

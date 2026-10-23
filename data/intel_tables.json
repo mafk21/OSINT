@@ -985,5 +985,77 @@
         "cmd": "python3 torcrawl.py -u {target} -c -d 2"
       }
     ]
+  },
+  "regional_mobile_prefixes": {
+    "971": {
+      "50": "e& (Etisalat UAE) Mobile",
+      "54": "e& (Etisalat UAE) Mobile",
+      "56": "e& (Etisalat UAE) Mobile",
+      "52": "du (Emirates Integrated Telecom) Mobile",
+      "55": "du (Emirates Integrated Telecom) Mobile",
+      "58": "du / Virgin Mobile UAE"
+    },
+    "965": {
+      "5": "stc Kuwait Mobile",
+      "6": "Ooredoo Kuwait Mobile",
+      "9": "Zain Kuwait Mobile",
+      "4": "Virgin Mobile Kuwait (MVNO)"
+    },
+    "974": {
+      "3": "Ooredoo Qatar Mobile",
+      "5": "Ooredoo Qatar Mobile",
+      "6": "Ooredoo Qatar Mobile",
+      "7": "Vodafone Qatar Mobile"
+    },
+    "973": {
+      "32": "Batelco Bahrain",
+      "33": "stc Bahrain",
+      "34": "stc Bahrain",
+      "35": "stc Bahrain",
+      "36": "Zain Bahrain",
+      "37": "Zain Bahrain",
+      "38": "Batelco Bahrain",
+      "39": "Batelco Bahrain"
+    },
+    "968": {
+      "91": "Omantel Mobile",
+      "92": "Omantel Mobile",
+      "93": "Omantel Mobile",
+      "98": "Omantel Mobile",
+      "99": "Omantel Mobile",
+      "94": "Ooredoo Oman Mobile",
+      "95": "Ooredoo Oman Mobile",
+      "96": "Ooredoo Oman Mobile",
+      "97": "Ooredoo Oman Mobile",
+      "77": "Vodafone Oman Mobile"
+    },
+    "20": {
+      "10": "Vodafone Egypt Mobile",
+      "11": "e& (Etisalat) Egypt Mobile",
+      "12": "Orange Egypt Mobile",
+      "15": "WE (Telecom Egypt) Mobile"
+    },
+    "44": {
+      "7": "UK Mobile Network (EE / O2 / Vodafone / Three)",
+      "20": "London Geographic Landline",
+      "161": "Manchester Geographic Landline",
+      "121": "Birmingham Geographic Landline",
+      "131": "Edinburgh Geographic Landline"
+    }
+  },
+  "sama_bank_codes_sa": {
+    "05": "Alinma Bank (مصرف الإنماء)",
+    "10": "Saudi National Bank — SNB / AlAhli (البنك الأهلي السعودي)",
+    "15": "Bank Albilad (بنك البلاد)",
+    "20": "Riyad Bank (بنك الرياض)",
+    "30": "Arab National Bank — ANB (البنك العربي الوطني)",
+    "45": "Saudi Awwal Bank — SAB / SABB (البنك السعودي الأول)",
+    "55": "Banque Saudi Fransi — BSF (البنك السعودي الفرنسي)",
+    "60": "Bank AlJazira (بنك الجزيرة)",
+    "65": "Saudi Investment Bank — SAIB (البنك السعودي للاستثمار)",
+    "76": "Bank Muscat (Saudi Branch)",
+    "80": "Al Rajhi Bank (مصرف الراجحي)",
+    "85": "BNP Paribas Saudi Arabia",
+    "95": "Emirates NBD Saudi Arabia"
   }
 }

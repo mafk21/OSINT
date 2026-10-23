@@ -11,7 +11,7 @@ You do **not** need to clone or work inside this repository to use **OSINT Monst
 | Skill | Folder & Zip | What It Gives Your Agent |
 | :--- | :--- | :--- |
 | **`osint-hunter`** | [`skills/osint-hunter/`](../skills/osint-hunter/) · [`osint-hunter-skill.zip`](../releases/osint-hunter-skill.zip) | **Autonomous Recon Engine**: Runs 35+ passive collectors & offline decoders immediately on Turn 1 (zero questions), writes STIX 2.1 + SHA-256 dossiers, and enforces a mandatory human permission gate (`ACT-XXXXXXXX`) before Active OSINT probing. |
-| **`osint-arsenal`** | [`skills/osint-arsenal/`](../skills/osint-arsenal/) · [`osint-arsenal-skill.zip`](../releases/osint-arsenal-skill.zip) | **680-Tool Tradecraft & Dork Forge**: Searches all 680 verified tools, maps 24 `Input → Output` selector pivots, runs 12 playbooks, forges 56 Google/Shodan/Censys/FOFA/GitHub dorks, and flags 2026 hijacked/dead tools. |
+| **`osint-arsenal`** | [`skills/osint-arsenal/`](../skills/osint-arsenal/) · [`osint-arsenal-skill.zip`](../releases/osint-arsenal-skill.zip) | **760-Tool Tradecraft & Dork Forge**: Searches all 760 verified tools, maps 24 `Input → Output` selector pivots, runs 20 playbooks, forges 105 Google/Shodan/Censys/FOFA/GitHub dorks, and flags 2026 hijacked/dead tools. |
 
 ---
 

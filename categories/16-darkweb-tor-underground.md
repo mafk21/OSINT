@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Never browse live `.onion` hidden services from a host browser or Tor2Web proxy. Use Tor Browser inside Whonix/Tails or an isolated disposable VM with JavaScript set to Safest.
 
-**Discipline Telemetry**: `25` Verified Tools · `6` S-Tier Flagships · `18` Passive · `21` Free/Open-Source
+**Discipline Telemetry**: `27` Verified Tools · `7` S-Tier Flagships · `20` Passive · `23` Free/Open-Source
 
 ## Subcategories
 - [Tor (.onion) Search Engines](#tor-onion-search-engines) (3)
@@ -17,6 +17,8 @@
 - [Hidden Service OPSEC Auditing](#hidden-service-opsec-auditing) (3)
 - [Alternative Darknets](#alternative-darknets) (2)
 - [Onion Active Crawlers](#onion-active-crawlers) (3)
+- [Tor Circuit & Relay Intelligence](#tor-circuit-relay-intelligence) (1)
+- [Whistleblower & Anonymous Dropboxes](#whistleblower-anonymous-dropboxes) (1)
 
 ---
 
@@ -273,6 +275,36 @@
 - **Platforms**: CLI, Linux, Docker, Python · **Tags**: `ahmia`, `scrapy`, `tor-indexing`, `active`
 - **Overview**: Official Scrapy-based Tor network hidden-service spider powering Ahmia.fi for large-scale `.onion` discovery and content indexing.
 - **Quick-Start / Tradecraft**: `scrapy crawl ahmia-tor`
+
+---
+
+## Tor Circuit & Relay Intelligence
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Stem (Tor Controller Python Library)**](https://github.com/torproject/stem) ([GitHub](https://github.com/torproject/stem)) | Library | OSS / Free | 🟢 Passive | ✅ | `ip, onion_url` → `ip_addresses, darkweb_mentions, opsec_protection` |
+
+### [Stem (Tor Controller Python Library)](https://github.com/torproject/stem) `[S-Tier]`
+- **ID**: `tor-stem` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`torproject/stem`](https://github.com/torproject/stem)
+- **Inputs**: `ip`, `onion_url` → **Outputs**: `ip_addresses`, `darkweb_mentions`, `opsec_protection`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `tor-project`, `relay-descriptors`, `circuit-rotation`, `onion-v3`
+- **Overview**: Official Tor Project Python library inspecting Tor consensus relays, exit-node descriptors, hidden-service v3 descriptors, and circuit rotation.
+- **Quick-Start / Tradecraft**: `python3 -c 'from stem.descriptor import remote; print(len(list(remote.get_server_descriptors())))'`
+
+---
+
+## Whistleblower & Anonymous Dropboxes
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**OnionShare**](https://github.com/onionshare/onionshare) ([GitHub](https://github.com/onionshare/onionshare)) | Desktop App | OSS / Free | 🟢 Passive | ✅ | `document, onion_url` → `opsec_protection, documents` |
+
+### [OnionShare](https://github.com/onionshare/onionshare) `[A-Tier]`
+- **ID**: `onionshare` · **Type**: `Desktop App` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`onionshare/onionshare`](https://github.com/onionshare/onionshare)
+- **Inputs**: `document`, `onion_url` → **Outputs**: `opsec_protection`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `tor`, `whistleblowing`, `source-protection`, `opsec`
+- **Overview**: Open-source ephemeral Tor `.onion` file-drop, whistleblowing intake, and anonymous publishing tool protecting source OPSEC.
+- **Quick-Start / Tradecraft**: `onionshare-cli --receive`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ ⛓️ Crypto & Blockchain OSINT](./15-crypto-blockchain-web3.md) · [🛡️ Threat Intel, Malware & IOCs ▶](./17-threat-intel-malware-cti.md)

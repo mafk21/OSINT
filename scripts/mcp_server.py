@@ -26,15 +26,17 @@ from osint_hunter.engine import (  # noqa: E402
     ALL_DORKS,
     ALL_TOOLS,
     ALL_WORKFLOWS,
+    compare_saved_cases,
     expand_existing_case,
     forge_dorks_for_targets,
     get_case_active_target_string,
     run_autonomous_hunt,
 )
+from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
 
 SERVER_INFO = {
     "name": "osint-monster-hunter",
-    "version": "2026.10.1",
+    "version": "2026.10.3",
 }
 
 MCP_TOOLS = [
@@ -133,14 +135,14 @@ MCP_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "target": {"type": "string", "description": "Target domain, URL, IP, or selector."},
+                "target": {"type": "string", "description": "Target domain, URL, IP, or selector (optional if from_case is provided)."},
+                "from_case": {"type": "string", "description": "Optional CASE_ID to auto-extract ALL domains/IPs discovered across passive stages."},
                 "modules": {
                     "type": "array",
                     "items": {"type": "string", "enum": list(ACTIVE_MODULES_CATALOG.keys())},
                     "description": "Optional subset of active modules to plan.",
                 },
             },
-            "required": ["target"],
         },
     },
     {
@@ -198,7 +200,7 @@ MCP_TOOLS = [
     },
     {
         "name": "osint_query_arsenal",
-        "description": "Query the 680-tool OSINT Monster Database (502 Passive + 178 Active/Hybrid) by keyword, input selector, category, or OPSEC posture.",
+        "description": "Query the 760-tool OSINT Monster Database (559 Passive + 201 Active/Hybrid) by keyword, input selector, category, or OPSEC posture.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -213,7 +215,7 @@ MCP_TOOLS = [
     },
     {
         "name": "osint_forge_dorks",
-        "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, GitHub, and URLScan search dorks.",
+        "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, GitHub, and URLScan search dorks (105 templates).",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -225,12 +227,59 @@ MCP_TOOLS = [
     },
     {
         "name": "osint_get_playbook",
-        "description": "Retrieve one or all of the 12 multi-phase OSINT investigation workflows.",
+        "description": "Retrieve one or all of the 20 multi-phase OSINT investigation workflows.",
         "inputSchema": {
             "type": "object",
             "properties": {
-                "workflow_id": {"type": "string", "description": "Optional workflow ID; omit to list all 12 playbooks."}
+                "workflow_id": {"type": "string", "description": "Optional workflow ID; omit to list all 20 playbooks."}
             },
+        },
+    },
+    {
+        "name": "osint_forensic_decode",
+        "description": (
+            "ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER. Decodes TikTok video/post IDs & URLs (exact upload UTC), "
+            "Discord & X/Twitter Snowflake IDs, UUIDv1 (embedded MAC + 100ns timestamp), UUIDv6/v7, ULIDs, MongoDB "
+            "ObjectIds, ISO 13616 IBAN bank accounts (MOD-97-10 + SAMA bank codes), E.164 phone numbers (US NANPA + "
+            "GCC/Saudi/UAE/Kuwait/Qatar/Bahrain/Oman/Egypt/UK), VINs, ICAO24 aircraft hex, MMSI/IMO vessels, IEEE MAC/BSSIDs, "
+            "JWT tokens, and local JPEG EXIF / DOCX / PDF files with ZERO network packets."
+        ),
+        "annotations": {
+            "title": "Zero-Network Forensic & Chronolocation Decoder",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "payload": {
+                    "type": "string",
+                    "description": "Any ID, token, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local file path.",
+                }
+            },
+            "required": ["payload"],
+        },
+    },
+    {
+        "name": "osint_compare_cases",
+        "description": (
+            "CROSS-CASE LINK ANALYSIS. Compares two saved CASE-... investigations to uncover shared entities, "
+            "shared root domains, shared /24 IPv4 subnets, and shared analytics/tracking tags (UA-/G-/AW-/GTM-/pub-)."
+        ),
+        "annotations": {
+            "title": "Cross-Case Link Analysis",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "case_a": {"type": "string", "description": "First CASE_ID or case directory path."},
+                "case_b": {"type": "string", "description": "Second CASE_ID or case directory path."},
+            },
+            "required": ["case_a", "case_b"],
         },
     },
 ]
@@ -320,7 +369,7 @@ def handle_tool_call(name: str, args: dict) -> str:
     if name == "osint_forge_dorks":
         target = str(args["target"]).strip()
         eng = str(args.get("engine", "")).lower().strip()
-        dorks = forge_dorks_for_targets([target], limit=56)
+        dorks = forge_dorks_for_targets([target], limit=105)
         if eng:
             dorks = [d for d in dorks if eng in d["engine"].lower()]
         return json.dumps(dorks, indent=2, ensure_ascii=False)
@@ -334,6 +383,12 @@ def handle_tool_call(name: str, args: dict) -> str:
             )
         wf = next((w for w in ALL_WORKFLOWS if w["id"] == wid), None)
         return json.dumps(wf or {"error": f"Unknown workflow_id '{wid}'"}, indent=2, ensure_ascii=False)
+
+    if name == "osint_forensic_decode":
+        return json.dumps(universal_forensic_decode(str(args["payload"])), indent=2, ensure_ascii=False)
+
+    if name == "osint_compare_cases":
+        return json.dumps(compare_saved_cases(str(args["case_a"]), str(args["case_b"])), indent=2, ensure_ascii=False)
 
     raise ValueError(f"Unknown MCP tool: {name}")
 
@@ -358,11 +413,12 @@ def process_rpc(msg: dict) -> dict | None:
                 },
                 "serverInfo": SERVER_INFO,
                 "instructions": (
-                    "TWO-LAW OSINT DOCTRINE: "
+                    "THREE-LAW OSINT DOCTRINE: "
                     "(1) PASSIVE MODE: When given ANY target, immediately call `osint_auto_hunt` with ZERO clarifying questions. "
-                    "(2) ACTIVE MODE GATE: NEVER run Active OSINT without asking the user first! Even if the user asks for "
-                    "active/deep probing, you MUST first call `osint_prepare_active_hunt`, show the target packet scope & OPSEC "
-                    "warning to the user, and wait for their explicit confirmation before calling `osint_execute_active_hunt`."
+                    "(2) EXHAUSTIVE MULTI-STAGE SURFACE EXPANSION: Every stage must collect EVERY clue, analyze ALL findings, "
+                    "and feed external snippets/bios back into `osint_ingest_and_expand_case` to hunt EVERY new handle/phone/email/domain until 0 new leads remain. "
+                    "(3) ACTIVE MODE GATE: NEVER run Active OSINT without asking the user first! Always call `osint_prepare_active_hunt`, "
+                    "present the OPSEC scope to the user, and wait for their explicit confirmation before calling `osint_execute_active_hunt`."
                 ),
             }
         elif method == "ping":

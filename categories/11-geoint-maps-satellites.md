@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: GEOINT platforms are purely passive against real-world targets, though commercial tasking orders on high-resolution constellations may appear in archive catalogs unless private tasking is purchased.
 
-**Discipline Telemetry**: `38` Verified Tools · `16` S-Tier Flagships · `38` Passive · `32` Free/Open-Source
+**Discipline Telemetry**: `42` Verified Tools · `17` S-Tier Flagships · `42` Passive · `36` Free/Open-Source
 
 ## Subcategories
 - [Conflict & Infrastructure Maps](#conflict-infrastructure-maps) (5)
@@ -21,6 +21,10 @@
 - [Visual Clue Encyclopedias](#visual-clue-encyclopedias) (2)
 - [3D Globe & Spatial Fusion](#3d-globe-spatial-fusion) (1)
 - [Terrain & Skyline Matching](#terrain-skyline-matching) (1)
+- [Conflict & Crisis Mapping](#conflict-crisis-mapping) (1)
+- [Geocoding & OSM Infrastructure](#geocoding-osm-infrastructure) (1)
+- [Offline & Air-Gapped Mapping](#offline-air-gapped-mapping) (1)
+- [3D Terrain & Line-of-Sight](#3d-terrain-line-of-sight) (1)
 
 ---
 
@@ -409,6 +413,66 @@
 - **Platforms**: Web · **Tags**: `horizon-matching`, `mountain-skylines`, `dem-terrain`, `rural-geolocation`
 - **Overview**: Generates synthetic 360-degree mountain horizon skylines from global digital elevation models (DEMs) at any coordinate and elevation—allowing investigators to triangulate rural photos from distant ridgelines.
 - **Quick-Start / Tradecraft**: `Match distant mountain silhouettes on https://www.peakfinder.com/ to lock down exact camera azimuth and valley position.`
+
+---
+
+## Conflict & Crisis Mapping
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Civilian Harm TimeMap (Bellingcat)**](https://github.com/bellingcat/ukraine-timemap) ([GitHub](https://github.com/bellingcat/ukraine-timemap)) | Web Platform | OSS / Free | 🟢 Passive | ✅ | `coordinates, keyword` → `geolocation, archived_pages, metadata` |
+
+### [Civilian Harm TimeMap (Bellingcat)](https://github.com/bellingcat/ukraine-timemap) `[A-Tier]`
+- **ID**: `bellingcat-ukraine-timemap` · **Type**: `Web Platform` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`bellingcat/ukraine-timemap`](https://github.com/bellingcat/ukraine-timemap)
+- **Inputs**: `coordinates`, `keyword` → **Outputs**: `geolocation`, `archived_pages`, `metadata`
+- **Platforms**: Web · **Tags**: `bellingcat`, `conflict-osint`, `geolocation`, `timemap`
+- **Overview**: Geolocated open-source incident verification platform mapping verified imagery, coordinates, timestamps, and weapon/event classifications.
+- **Quick-Start / Tradecraft**: `Filter verified incidents by date range and lat/lon bounding box`
+
+---
+
+## Geocoding & OSM Infrastructure
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Nominatim (OpenStreetMap Geocoder)**](https://github.com/osm-search/Nominatim) ([GitHub](https://github.com/osm-search/Nominatim)) | API / Service | OSS / Free | 🟢 Passive | ✅ | `coordinates, keyword` → `geolocation, metadata` |
+
+### [Nominatim (OpenStreetMap Geocoder)](https://github.com/osm-search/Nominatim) `[S-Tier]`
+- **ID**: `nominatim-osm` · **Type**: `API / Service` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`osm-search/Nominatim`](https://github.com/osm-search/Nominatim)
+- **Inputs**: `coordinates`, `keyword` → **Outputs**: `geolocation`, `metadata`
+- **Platforms**: Web, Linux, Docker, Python · **Tags**: `reverse-geocoding`, `openstreetmap`, `coordinates`, `geoint`
+- **Overview**: Official OpenStreetMap geocoding and reverse-geocoding engine resolving GPS coordinates to building footprints, street hierarchy, and OSM ways.
+- **Quick-Start / Tradecraft**: `curl -s 'https://nominatim.openstreetmap.org/reverse?lat=24.7136&lon=46.6753&format=json'`
+
+---
+
+## Offline & Air-Gapped Mapping
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**Protomaps PMTiles**](https://github.com/protomaps/PMTiles) ([GitHub](https://github.com/protomaps/PMTiles)) | Library | OSS / Free | 🟢 Passive | ✅ | `coordinates` → `geolocation, opsec_protection` |
+
+### [Protomaps PMTiles](https://github.com/protomaps/PMTiles) `[A-Tier]`
+- **ID**: `protomaps-pmtiles` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`protomaps/PMTiles`](https://github.com/protomaps/PMTiles)
+- **Inputs**: `coordinates` → **Outputs**: `geolocation`, `opsec_protection`
+- **Platforms**: Web, CLI, Linux, macOS, Windows, Go · **Tags**: `airgapped-maps`, `pmtiles`, `opsec-geoint`, `vector-tiles`
+- **Overview**: Single-file serverless vector/raster map archive enabling 100% air-gapped global street and terrain mapping with zero external tile leaks.
+- **Quick-Start / Tradecraft**: `pmtiles extract planet.pmtiles region.pmtiles --bbox=...`
+
+---
+
+## 3D Terrain & Line-of-Sight
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **A** | [**CesiumJS 3D Geospatial Engine**](https://github.com/CesiumGS/cesium) ([GitHub](https://github.com/CesiumGS/cesium)) | Library | OSS / Free | 🟢 Passive | ✅ | `coordinates, aircraft_hex` → `geolocation, flight_tracks` |
+
+### [CesiumJS 3D Geospatial Engine](https://github.com/CesiumGS/cesium) `[A-Tier]`
+- **ID**: `cesiumjs` · **Type**: `Library` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`CesiumGS/cesium`](https://github.com/CesiumGS/cesium)
+- **Inputs**: `coordinates`, `aircraft_hex` → **Outputs**: `geolocation`, `flight_tracks`
+- **Platforms**: Web, Node.js · **Tags**: `3d-terrain`, `line-of-sight`, `chronolocation`, `flight-3d`
+- **Overview**: Open-source WebGL 3D globe engine reconstructing camera field-of-view frustums, elevation line-of-sight, sun shadows, and flight trajectories.
+- **Quick-Start / Tradecraft**: `Render CZML flight/vessel tracks over 3D terrain`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 💻 Code, Secrets & Cloud OSINT](./10-code-cloud-dev-osint.md) · [🔬 Image, Video & Media Forensics ▶](./12-image-video-media-forensics.md)

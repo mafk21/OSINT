@@ -6,7 +6,7 @@
 >
 > **OPSEC Advisory**: Submitting a target's private/unindexed URL to `web.archive.org/save` or `archive.today` causes their crawler to fetch the URL immediately and makes the snapshot publicly discoverable!
 
-**Discipline Telemetry**: `27` Verified Tools · `9` S-Tier Flagships · `16` Passive · `23` Free/Open-Source
+**Discipline Telemetry**: `30` Verified Tools · `11` S-Tier Flagships · `18` Passive · `26` Free/Open-Source
 
 ## Subcategories
 - [Historical Web Archives](#historical-web-archives) (6)
@@ -18,6 +18,8 @@
 - [Document Metadata Extraction](#document-metadata-extraction) (2)
 - [Visual Recon & Screenshotting](#visual-recon-screenshotting) (3)
 - [Web Evidence Preservation](#web-evidence-preservation) (1)
+- [Forensic Web Preservation](#forensic-web-preservation) (1)
+- [Document & Metadata Forensics](#document-metadata-forensics) (2)
 
 ---
 
@@ -297,6 +299,44 @@
 - **Platforms**: CLI, Linux, macOS, Windows, Docker, Rust · **Tags**: `single-file-html`, `evidence-capture`, `rust`, `active`
 - **Overview**: Fast Rust CLI fetching a live target webpage and embedding all external CSS, images, frames, and fonts into a single self-contained forensic HTML file.
 - **Quick-Start / Tradecraft**: `monolith https://example.com -o evidence.html`
+
+---
+
+## Forensic Web Preservation
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**Bellingcat Auto Archiver**](https://github.com/bellingcat/auto-archiver) ([GitHub](https://github.com/bellingcat/auto-archiver)) | CLI | OSS / Free | 🔴 Active | ✅ | `url` → `archived_pages, metadata, documents` |
+
+### [Bellingcat Auto Archiver](https://github.com/bellingcat/auto-archiver) `[S-Tier]`
+- **ID**: `bellingcat-auto-archiver` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🔴 Active · **Auth**: None (Keyless / Direct) · **GitHub**: [`bellingcat/auto-archiver`](https://github.com/bellingcat/auto-archiver)
+- **Inputs**: `url` → **Outputs**: `archived_pages`, `metadata`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows, Docker, Python · **Tags**: `bellingcat`, `evidence-preservation`, `wacz`, `socmint`
+- **Overview**: Bellingcat's evidentiary social media and web preservation pipeline archiving videos, screenshots, WACZ bundles, and SHA-256 hashes before deletion.
+- **Quick-Start / Tradecraft**: `auto-archiver --config config.yaml`
+
+---
+
+## Document & Metadata Forensics
+
+| Tier | Tool | Type | Pricing | OPSEC | Auth | Inputs → Outputs |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| **S** | [**oletools (decalage2)**](https://github.com/decalage2/oletools) ([GitHub](https://github.com/decalage2/oletools)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document` → `metadata, urls, person_records` |
+| **A** | [**QPDF**](https://github.com/qpdf/qpdf) ([GitHub](https://github.com/qpdf/qpdf)) | CLI | OSS / Free | 🟢 Passive | ✅ | `document` → `metadata, documents` |
+
+### [oletools (decalage2)](https://github.com/decalage2/oletools) `[S-Tier]`
+- **ID**: `oletools` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`decalage2/oletools`](https://github.com/decalage2/oletools)
+- **Inputs**: `document` → **Outputs**: `metadata`, `urls`, `person_records`, `malware_iocs`
+- **Platforms**: CLI, Linux, macOS, Windows, Python · **Tags**: `office-forensics`, `olemeta`, `olevba`, `document-osint`
+- **Overview**: Python forensic suite (`olemeta`, `olevba`, `oleid`, `pyxswf`) extracting author metadata, revision timestamps, external URLs, and macros from MS Office files.
+- **Quick-Start / Tradecraft**: `olemeta report.doc && olevba report.doc`
+
+### [QPDF](https://github.com/qpdf/qpdf) `[A-Tier]`
+- **ID**: `qpdf-forensics` · **Type**: `CLI` · **Pricing**: `Free / Open Source` · **OPSEC**: 🟢 Passive · **Auth**: None (Keyless / Direct) · **GitHub**: [`qpdf/qpdf`](https://github.com/qpdf/qpdf)
+- **Inputs**: `document` → **Outputs**: `metadata`, `documents`
+- **Platforms**: CLI, Linux, macOS, Windows · **Tags**: `pdf-forensics`, `object-streams`, `xmp-metadata`
+- **Overview**: Structural PDF inspection utility decompressing object streams (`--qdf`) to reveal hidden XMP author strings, edit history, and redacted layer remnants.
+- **Quick-Start / Tradecraft**: `qpdf --qdf --object-streams=disable input.pdf unpacked.pdf`
 
 ---
 [⬅️ Back to Master Index](../README.md) · [◀ 🛡️ Threat Intel, Malware & IOCs](./17-threat-intel-malware-cti.md) · [📻 SIGINT, Wireless, SDR & Space ▶](./19-sigint-wireless-space-rf.md)
