@@ -12,14 +12,14 @@
       <div class="brand">
         <div class="brand-badge">🛰️</div>
         <div>
-          <h1>OSINT MONSTER DATABASE <span class="version-pill">v2026.10.4</span></h1>
-          <div class="brand-sub">Autonomous Multi-Stage Hunter · DFIR &amp; Chronolocation · Interactive Graph Studio · 760 Tools · 105 Dorks</div>
+          <h1>OSINT MONSTER <span class="version-pill">v2026.10.5 · LOCAL WEB APP</span></h1>
+          <div class="brand-sub">100% Local Zero-Terminal Workspace · Multi-Stage Hunter · Drag-and-Drop DFIR · Graph Studio · 760 Tools</div>
         </div>
       </div>
 
       <nav class="nav-tabs" id="mainNav">
         <button class="nav-tab active" data-view="hunter">⚡ Autonomous Hunter <span class="tab-count">LIVE</span></button>
-        <button class="nav-tab" data-view="cases">🗄️ Case Vault &amp; Diff <span class="tab-count" id="navCntCases">0</span></button>
+        <button class="nav-tab" data-view="cases">🗄️ Case Vault &amp; Watchlist <span class="tab-count" id="navCntCases">0</span></button>
         <button class="nav-tab" data-view="decoder">🧬 Forensic &amp; DFIR <span class="tab-count">0-NET</span></button>
         <button class="nav-tab" data-view="arsenal">🗂️ Tool Arsenal <span class="tab-count" id="navCntTools">0</span></button>
         <button class="nav-tab" data-view="pivots">🧭 Pivot Matrix <span class="tab-count" id="navCntPivots">24</span></button>
@@ -27,6 +27,7 @@
         <button class="nav-tab" data-view="dorks">🎯 Live Dork Forge <span class="tab-count" id="navCntDorks">0</span></button>
         <button class="nav-tab" data-view="graveyard">🪦 2026 Graveyard <span class="tab-count" id="navCntGraveyard">0</span></button>
         <button class="nav-tab" data-view="loadout">⭐ Case Loadout <span class="tab-count" id="navCntLoadout">0</span></button>
+        <button class="nav-tab" data-view="settings">⚙️ Settings &amp; Doctor</button>
       </nav>
     </div>
   </header>
@@ -61,7 +62,17 @@
             <option value="5">Depth 5 (Deep Convergence)</option>
             <option value="6">Depth 6 (Maximum Convergence)</option>
           </select>
+          <button type="button" class="chip-toggle" id="huntDiffLastToggle" title="Automatically compare against your last saved run of this target">📈 Diff vs Last Run</button>
           <button id="launchHuntBtn" class="btn-hunt">⚡ HUNT NOW</button>
+        </div>
+
+        <div class="file-dropzone" id="hunterDropzone">
+          <div>
+            <strong>📂 Or Drag &amp; Drop Evidence File to Carve &amp; Hunt:</strong>
+            <span style="color:var(--text-2); margin-left:6px;"><code>.eml</code>, <code>.pcap</code>, <code>.har</code>, <code>.mp4</code>/<code>.mov</code>, <code>.png</code>/<code>.webp</code> (C2PA/AI), <code>.jpg</code> EXIF, <code>.pdf</code>, <code>.docx</code></span>
+          </div>
+          <button type="button" class="btn-sm" style="border-color:var(--cyan); color:var(--cyan);">📎 Choose File &amp; Hunt Pivots</button>
+          <input type="file" id="hunterFileInput" style="display:none;" />
         </div>
 
         <div id="liveDetectedRow" style="margin-top:9px; font-size:12px; color:var(--text-2); min-height:22px;"></div>
@@ -78,19 +89,17 @@
       <div id="huntResultsArea">
         <div class="agent-connect-grid">
           <div class="collector-card">
-            <h3 style="margin:0 0 6px;">🤖 Plug Any AI Agent In — Zero Questions Asked</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;"><code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.cursorrules</code>, and <code>skills/</code> instruct Claude Code, Codex, Cursor, Windsurf, OpenClaw, and Arena Agents to start hunting on Turn 1 without asking anything:</p>
-            <div class="code-block">python3 scripts/hunt.py "ANY_TARGET_OR_PROMPT" --depth 4</div>
+            <h3 style="margin:0 0 6px;">🖥️ 100% Local Desktop Web App — Zero Terminal Needed</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Everything runs locally on your own machine with zero cloud accounts. Double-click to open directly in your browser:</p>
+            <div class="code-block">Windows: Start-Web-UI.bat   |   macOS: Start-Web-UI.command   |   Linux: ./start-web-ui.sh</div>
           </div>
           <div class="collector-card">
-            <h3 style="margin:0 0 6px;">🔌 Native MCP Server (10 Tools · stdio)</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Auto-discovered via <code>.mcp.json</code> for Claude Desktop / Cursor / Cline with multi-stage expansion &amp; forensic decoding:</p>
-            <div class="code-block">python3 scripts/mcp_server.py   # stdio JSON-RPC 2.0</div>
+            <h3 style="margin:0 0 6px;">📂 Drag-and-Drop DFIR + Multi-Stage Graph Studio</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Drop emails (<code>.eml</code>), packet captures (<code>.pcap</code>), videos (<code>.mp4</code>), or images (<code>.jpg</code>/<code>.png</code>) above—or paste any handle, domain, phone, or wallet—and export HTML, Gephi <code>.gexf</code>, Neo4j <code>.cypher</code>, Obsidian <code>.zip</code>, and STIX 2.1.</p>
           </div>
           <div class="collector-card">
-            <h3 style="margin:0 0 6px;">⚡ REST Hunt, Expand &amp; Decode API</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Trigger multi-stage hunts, HTML/CSV/STIX 2.1 bundles, and offline forensic decodes from LangGraph, CrewAI, or n8n:</p>
-            <div class="code-block">POST /api/hunt  {"target": "torvalds", "depth": 4}</div>
+            <h3 style="margin:0 0 6px;">🔑 Keyless by Default + Visual Settings Vault</h3>
+            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">45+ passive collectors &amp; all forensic decoders work with <strong>0 API keys</strong>. Have optional Shodan, VirusTotal, HIBP, or GitHub keys? Add them visually in the <strong>⚙️ Settings &amp; Doctor</strong> tab.</p>
           </div>
         </div>
       </div>
@@ -129,6 +138,16 @@
               <button class="btn-sm" id="runTyposquatBtn" style="border-color:#a78bfa; color:#c4b5fd; font-weight:700;">⚡ Generate Permutations</button>
             </div>
           </div>
+
+          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
+            <div style="font-size:12px; font-weight:700; color:#34d399; text-transform:uppercase; margin-bottom:8px;">📡 Target Watchlist &amp; Automated Drift Sweep</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+              <input type="text" id="watchlistTargetInput" class="hunter-input" style="flex:1; min-width:150px;" placeholder="Add domain, handle, email..." />
+              <button class="btn-sm" id="addWatchlistBtn" style="border-color:#34d399; color:#34d399;">＋ Add</button>
+              <button class="btn-sm" id="runWatchlistSweepBtn" style="border-color:#fbbf24; color:#fde68a;">📡 Sweep All</button>
+            </div>
+            <div id="watchlistItemsArea" style="font-size:12px; color:var(--text-2);"></div>
+          </div>
         </div>
       </div>
 
@@ -151,8 +170,17 @@
         </div>
 
         <div class="hunter-input-row">
-          <input type="text" id="forensicDecodeInput" class="hunter-input" placeholder="Paste TikTok URL/ID, Snowflake, UUIDv1/v7, ULID, ObjectId, IBAN (SA03...), Phone (+966...), VIN, ICAO24, IMO, MAC, or JWT..." />
+          <input type="text" id="forensicDecodeInput" class="hunter-input" placeholder="Paste TikTok URL/ID, Google ei= URL, SSH key, Snowflake, UUIDv1/v7, ULID, ObjectId, IBAN, Phone, VIN, ICAO24, MAC, or JWT..." />
           <button id="runDecodeBtn" class="btn-hunt">🧬 DECODE OFFLINE</button>
+        </div>
+
+        <div class="file-dropzone" id="decoderDropzone">
+          <div>
+            <strong>📂 Drag &amp; Drop Local File for 100% Offline DFIR Inspection (0 Packets Sent):</strong>
+            <span style="color:var(--text-2); margin-left:6px;"><code>.eml</code> spoofing/hops · <code>.pcap</code>/<code>.pcapng</code> DNS/TLS-SNI · <code>.har</code> · <code>.mp4</code>/<code>.mov</code> GPS · <code>.png</code>/<code>.webp</code> C2PA &amp; AI prompts · <code>.jpg</code> EXIF · <code>.pdf</code> · <code>.docx</code></span>
+          </div>
+          <button type="button" class="btn-sm" style="border-color:var(--green); color:#6ee7b7;">📎 Inspect File Offline</button>
+          <input type="file" id="decoderFileInput" style="display:none;" />
         </div>
 
         <div class="preset-row" style="margin-top:10px;">
@@ -296,6 +324,24 @@
         </div>
       </div>
       <div id="loadoutContainer"></div>
+    </section>
+
+    <!-- VIEW 7: LOCAL SETTINGS, BYOK API KEYS & SYSTEM DOCTOR -->
+    <section class="view-panel" id="view-settings">
+      <div class="hunter-hero">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <h2 style="margin:0; font-size:19px;">⚙️ Local App Settings, Optional API Keys &amp; System Doctor</h2>
+            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
+              Manage everything from your browser—zero terminal configuration required. Optional API keys are stored locally in your gitignored <code>.osint.env</code> file (<code>0600</code> permissions) and never leave your machine except to query their official passive APIs.
+            </div>
+          </div>
+          <button class="btn-sm" id="refreshDoctorBtn" style="border-color:var(--cyan); color:var(--cyan);">🔄 Refresh Diagnostics</button>
+        </div>
+      </div>
+
+      <div id="doctorStatusArea"></div>
+      <div id="byokSettingsArea" style="margin-top:14px;"></div>
     </section>
   </main>
 

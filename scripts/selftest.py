@@ -366,6 +366,25 @@ def main() -> int:
         with urllib.request.urlopen(req_path, timeout=5) as resp:
             p_res = json.loads(resp.read().decode("utf-8"))["path"]
             assert p_res["hops"] == 2 and p_res["joint_confidence"] > 0.85
+
+        # Verify Local Web App zero-terminal endpoints (/api/doctor, /api/decode/file, /api/watchlist)
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/doctor", timeout=5) as resp:
+            doc_api = json.loads(resp.read().decode("utf-8"))
+            assert doc_api["catalog_health"]["tools"] >= 760 and isinstance(doc_api["byok_providers"], list)
+
+        import base64 as _b64
+        sample_eml_b64 = _b64.b64encode(
+            b"From: Test <ceo@acme.io>\r\nReply-To: drop@evil.net\r\nDate: Fri, 23 Oct 2026 17:00:00 +0300\r\nSubject: Hi\r\n\r\nBody\r\n"
+        ).decode()
+        req_fdec = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/decode/file",
+            data=json.dumps({"filename": "dragdrop.eml", "content_base64": sample_eml_b64}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req_fdec, timeout=5) as resp:
+            fdec_res = json.loads(resp.read().decode("utf-8"))
+            assert fdec_res["decoded_count"] == 1 and "eml_forensics" in fdec_res["results"][0]["extracted_metadata"]
     finally:
         httpd.shutdown()
         httpd.server_close()

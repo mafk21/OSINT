@@ -899,11 +899,13 @@
     btn.textContent = "⏳ HUNTING WAVE 1 → WAVE " + depth + "...";
     outArea.innerHTML = `<div class="collector-card" style="text-align:center; padding:36px;"><h3>🛰️ Autonomous Passive Collectors Firing in Parallel...</h3><p style="color:var(--text-2);">Extracting selectors, querying registries/GitHub/npm/PyPI/DNS/forensic decoders, and pivoting across discovered entities without prompting.</p></div>`;
 
+    const diffLast = Boolean(document.getElementById("huntDiffLastToggle")?.classList.contains("active"));
+
     try {
       const resp = await fetch("./api/hunt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, depth, save_case: true }),
+        body: JSON.stringify({ target, depth, save_case: true, diff_last: diffLast }),
       });
       const report = await resp.json();
       if (!resp.ok || report.error) {
@@ -912,7 +914,7 @@
       lastHuntReport = report;
       renderHuntReport(report);
     } catch (err) {
-      outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Live Hunt Backend Unreachable (${esc(err.message)})</h3><p style="color:var(--text-1);">Run <code>python3 scripts/server.py --port 8000</code> or execute directly from terminal: <code>python3 scripts/hunt.py "${esc(target)}" --depth ${depth}</code></p></div>`;
+      outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Local Backend Unreachable (${esc(err.message)})</h3><p style="color:var(--text-1);">Double-click <code>Start-Web-UI.bat</code> (Windows), <code>Start-Web-UI.command</code> (macOS), or run <code>./start-web-ui.sh</code>.</p></div>`;
     } finally {
       btn.disabled = false;
       btn.textContent = "⚡ HUNT NOW";
@@ -1065,11 +1067,26 @@
           <button class="btn-sm" id="dlDossierMd">📄 .md</button>
           <button class="btn-sm" id="dlEntitiesCsv">📊 .csv</button>
           ${report.gexf_xml || m.case_id ? `<button class="btn-sm" id="dlGexfBtn" title="Gephi 1.3 Link Graph">🕸️ Gephi .gexf</button>` : ""}
+          ${report.graphml_xml || m.case_id ? `<button class="btn-sm" id="dlGraphmlBtn" title="yEd / Cytoscape GraphML">📐 .graphml</button>` : ""}
           ${report.neo4j_cypher || m.case_id ? `<button class="btn-sm" id="dlCypherBtn" title="Neo4j Cypher Script">🗄️ Neo4j .cypher</button>` : ""}
+          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/obsidian.zip" download="${esc(m.case_id)}-obsidian-vault.zip" style="text-decoration:none;" title="Obsidian [[WikiLink]] Markdown Vault">📓 Obsidian .zip</a>` : ""}
           <button class="btn-sm" id="dlStixJson">🛡️ STIX 2.1</button>
           <button class="btn-sm" id="dlFullJson">📦 JSON</button>
         </div>
       </div>
+
+      ${
+        report.surface_delta
+          ? `<div class="collector-card" style="border-color:#fbbf24;">
+              <strong>📈 Attack-Surface Drift vs Baseline <code>${esc(report.surface_delta.baseline_case_id)}</code>:</strong>
+              <span style="margin-left:8px; color:var(--text-1); font-size:12.5px;">
+                <code>+${esc(report.surface_delta.added_entity_count)}</code> new / <code>-${esc(report.surface_delta.removed_entity_count)}</code> retired entities ·
+                Exposure Score <strong>${esc(report.surface_delta.exposure_score_before)} → ${esc(report.surface_delta.exposure_score_after)}</strong>
+                ${(report.surface_delta.new_domains_and_subdomains || []).length ? ` · New Domains: <code>${esc(report.surface_delta.new_domains_and_subdomains.slice(0, 6).join(", "))}</code>` : ""}
+              </span>
+            </div>`
+          : ""
+      }
 
       ${synHtml}
       ${temporalAndConfidenceHtml}
@@ -1161,6 +1178,17 @@
         } else if (m.case_id) {
           const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/gexf`);
           if (r.ok) downloadBlob(`${m.case_id}.gexf`, await r.text(), "application/xml;charset=utf-8");
+        }
+      };
+    }
+    const graphmlBtn = document.getElementById("dlGraphmlBtn");
+    if (graphmlBtn) {
+      graphmlBtn.onclick = async () => {
+        if (report.graphml_xml) {
+          downloadBlob(`${m.case_id}.graphml`, report.graphml_xml, "application/xml;charset=utf-8");
+        } else if (m.case_id) {
+          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/graphml`);
+          if (r.ok) downloadBlob(`${m.case_id}.graphml`, await r.text(), "application/xml;charset=utf-8");
         }
       };
     }
@@ -1373,6 +1401,63 @@
 
     document.getElementById("launchHuntBtn").addEventListener("click", executeLiveHunt);
 
+    const diffToggle = document.getElementById("huntDiffLastToggle");
+    if (diffToggle) {
+      diffToggle.addEventListener("click", () => diffToggle.classList.toggle("active"));
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleHunterFileUpload(file) {
+      if (!file) return;
+      const outArea = document.getElementById("huntResultsArea");
+      const depth = parseInt(document.getElementById("huntDepthSelect")?.value || "4", 10);
+      const diffLast = Boolean(document.getElementById("huntDiffLastToggle")?.classList.contains("active"));
+      outArea.innerHTML = `<div class="collector-card" style="text-align:center; padding:34px;"><h3>📂 Carving DFIR Metadata &amp; Pivots from <code>${esc(file.name)}</code>...</h3><p style="color:var(--text-2);">Inspecting binary headers, EXIF/C2PA/AI tags, .eml hops, .pcap DNS/SNI, and recursively hunting every discovered clue.</p></div>`;
+      try {
+        const b64 = await fileToBase64(file);
+        const r = await fetch("./api/hunt/file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, content_base64: b64, depth, diff_last: diffLast }),
+        });
+        const rep = await r.json();
+        if (!r.ok || rep.error) throw new Error(rep.error || `HTTP ${r.status}`);
+        lastHuntReport = rep;
+        renderHuntReport(rep);
+      } catch (err) {
+        outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ File Hunt Failed (${esc(err.message)})</h3></div>`;
+      }
+    }
+
+    const hDrop = document.getElementById("hunterDropzone");
+    const hFileIn = document.getElementById("hunterFileInput");
+    if (hDrop && hFileIn) {
+      hDrop.addEventListener("click", (e) => {
+        if (e.target !== hFileIn) hFileIn.click();
+      });
+      hFileIn.addEventListener("change", () => {
+        if (hFileIn.files?.[0]) handleHunterFileUpload(hFileIn.files[0]);
+      });
+      hDrop.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        hDrop.classList.add("drag-over");
+      });
+      hDrop.addEventListener("dragleave", () => hDrop.classList.remove("drag-over"));
+      hDrop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        hDrop.classList.remove("drag-over");
+        if (e.dataTransfer?.files?.[0]) handleHunterFileUpload(e.dataTransfer.files[0]);
+      });
+    }
+
     const modeSel = document.getElementById("huntModeSelect");
     if (modeSel) {
       modeSel.addEventListener("change", () => {
@@ -1415,6 +1500,7 @@
     });
     if (viewName === "loadout") renderLoadout();
     if (viewName === "cases") renderCasesVault();
+    if (viewName === "settings") renderSettingsAndDoctor();
   }
 
   function bindGlobalControls() {
@@ -1621,6 +1707,63 @@
         runDecode();
       });
     });
+
+    const dDrop = document.getElementById("decoderDropzone");
+    const dFileIn = document.getElementById("decoderFileInput");
+    async function decodeLocalBrowserFile(file) {
+      if (!file) return;
+      out.innerHTML = `<div class="collector-card"><h3>📂 Inspecting <code>${esc(file.name)}</code> Offline (0 Outbound Packets)...</h3></div>`;
+      try {
+        const b64 = await new Promise((res, rej) => {
+          const rd = new FileReader();
+          rd.onload = () => res(String(rd.result || ""));
+          rd.onerror = () => rej(new Error("File read error"));
+          rd.readAsDataURL(file);
+        });
+        const r = await fetch("./api/decode/file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, content_base64: b64 }),
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
+        const arts = data.results || [];
+        out.innerHTML = arts
+          .map(
+            (a) => `
+            <div class="collector-card" style="border-color:rgba(16,185,129,0.45);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div>
+                  <span class="badge opsec-Passive">🟢 OFFLINE FILE DFIR</span>
+                  <strong style="margin-left:8px; font-size:15px;">${esc(file.name)} (${esc(a.detected_format || a.decoder)})</strong>
+                </div>
+              </div>
+              <div class="code-block">${esc(JSON.stringify(a, null, 2))}</div>
+            </div>`
+          )
+          .join("");
+      } catch (err) {
+        out.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ File Decode Error: ${esc(err.message)}</h3></div>`;
+      }
+    }
+    if (dDrop && dFileIn) {
+      dDrop.addEventListener("click", (e) => {
+        if (e.target !== dFileIn) dFileIn.click();
+      });
+      dFileIn.addEventListener("change", () => {
+        if (dFileIn.files?.[0]) decodeLocalBrowserFile(dFileIn.files[0]);
+      });
+      dDrop.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dDrop.classList.add("drag-over");
+      });
+      dDrop.addEventListener("dragleave", () => dDrop.classList.remove("drag-over"));
+      dDrop.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dDrop.classList.remove("drag-over");
+        if (e.dataTransfer?.files?.[0]) decodeLocalBrowserFile(e.dataTransfer.files[0]);
+      });
+    }
   }
 
   async function refreshCasesBadgeCount() {
@@ -1681,6 +1824,7 @@
               <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 HTML ↗</a>
               <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/gexf" download="${esc(c.case_id)}.gexf" style="text-decoration:none;">.gexf</a>
               <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/cypher" download="${esc(c.case_id)}.cypher" style="text-decoration:none;">.cypher</a>
+              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/obsidian.zip" download="${esc(c.case_id)}-obsidian-vault.zip" style="text-decoration:none;">📓 Obsidian</a>
             </div>
           </div>`
         )
@@ -1754,8 +1898,175 @@
       </div>`;
     });
 
+    async function refreshWatchlistUi() {
+      const wlArea = document.getElementById("watchlistItemsArea");
+      if (!wlArea) return;
+      try {
+        const r = await fetch("./api/watchlist");
+        const d = await r.json();
+        const items = d.watchlist || [];
+        if (!items.length) {
+          wlArea.innerHTML = `<span>No monitored targets yet.</span>`;
+          return;
+        }
+        wlArea.innerHTML = items
+          .map(
+            (i) =>
+              `<span class="badge opsec-Passive" style="margin:2px 4px 2px 0; display:inline-flex; align-items:center; gap:5px;">
+                ${esc(i.target)}
+                <button type="button" data-rm-wl="${esc(i.target)}" style="background:none; border:none; color:#fca5a5; cursor:pointer; padding:0; font-weight:700;">✕</button>
+              </span>`
+          )
+          .join("");
+        wlArea.querySelectorAll("[data-rm-wl]").forEach((b) => {
+          b.onclick = async () => {
+            await fetch("./api/watchlist/remove", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ target: b.dataset.rmWl }),
+            });
+            refreshWatchlistUi();
+          };
+        });
+      } catch (_) {}
+    }
+
+    document.getElementById("addWatchlistBtn")?.addEventListener("click", async () => {
+      const inp = document.getElementById("watchlistTargetInput");
+      const tgt = inp?.value.trim();
+      if (!tgt) return;
+      await fetch("./api/watchlist/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: tgt, depth: 3 }),
+      });
+      inp.value = "";
+      refreshWatchlistUi();
+    });
+
+    document.getElementById("runWatchlistSweepBtn")?.addEventListener("click", async (ev) => {
+      const btn = ev.currentTarget;
+      if (!outBox) return;
+      btn.disabled = true;
+      btn.textContent = "⏳ Sweeping...";
+      try {
+        const r = await fetch("./api/watchlist/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const d = await r.json();
+        outBox.innerHTML = `<div class="collector-card" style="border-color:#34d399; margin-top:12px;">
+          <h3 style="margin:0 0 6px;">📡 Watchlist Sweep Complete (${esc(d.swept_count || 0)} Target(s) Hunted &amp; Diffed)</h3>
+          <div class="code-block">${esc(JSON.stringify(d.results || d, null, 2))}</div>
+        </div>`;
+        renderCasesVault();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "📡 Sweep All";
+      }
+    });
+
+    refreshWatchlistUi();
     refreshCasesBadgeCount();
   }
+
+  async function renderSettingsAndDoctor() {
+    const docEl = document.getElementById("doctorStatusArea");
+    const byokEl = document.getElementById("byokSettingsArea");
+    if (!docEl || !byokEl) return;
+    docEl.innerHTML = `<div class="collector-card">Running local environment &amp; catalog health check...</div>`;
+    try {
+      const r = await fetch("./api/doctor");
+      const d = await r.json();
+      const ch = d.catalog_health || {};
+      const byok = d.byok_providers || [];
+      const activeKeys = byok.filter((p) => p.configured).length;
+
+      docEl.innerHTML = `
+        <div class="collector-card" style="border-color:rgba(56,189,248,0.4);">
+          <h3 style="margin:0 0 8px;">🩺 Local Engine &amp; System Health</h3>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; font-size:12.5px;">
+            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
+              <div style="color:var(--cyan); font-weight:700;">🐍 Local Runtime</div>
+              <div>Python: <code>${esc(d.python_version)}</code> (${esc(d.platform)})</div>
+              <div>Zero External Deps: <strong>✅ Verified</strong></div>
+            </div>
+            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
+              <div style="color:var(--cyan); font-weight:700;">📚 Intelligence Catalog</div>
+              <div><strong>${esc(ch.tools)}</strong> Tools · <strong>${esc(ch.dorks)}</strong> Dorks · <strong>${esc(ch.workflows)}</strong> Playbooks</div>
+              <div>SQLite FTS5 Index: <strong>${ch.sqlite_fts5_present ? "✅ Ready" : "⚪ Missing"}</strong></div>
+            </div>
+            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
+              <div style="color:var(--cyan); font-weight:700;">📁 Local Storage &amp; Optional Keys</div>
+              <div>Cases Vault: <code>${esc(d.cases_dir)}</code></div>
+              <div>Optional BYOK Keys Active: <strong>${activeKeys} / ${byok.length}</strong></div>
+            </div>
+          </div>
+        </div>`;
+
+      byokEl.innerHTML = `
+        <div class="collector-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h3 style="margin:0;">🔑 Optional Bring-Your-Own-Key (BYOK) Turbo Connectors</h3>
+              <div style="font-size:12px; color:var(--text-2); margin-top:2px;">100% optional—leave blank to run completely keyless. Saved locally to gitignored <code>.osint.env</code>.</div>
+            </div>
+            <span id="byokSaveMsg" style="font-size:12px; color:#34d399; font-weight:700;"></span>
+          </div>
+          <div class="byok-grid">
+            ${byok
+              .map((p) => {
+                const primaryVar = p.env_vars[0];
+                return `
+                <div style="background:var(--bg-0); border:1px solid ${p.configured ? "rgba(16,185,129,0.5)" : "var(--border)"}; border-radius:8px; padding:11px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
+                    <strong style="font-size:13px;">${esc(p.title)}</strong>
+                    <span class="badge ${p.configured ? "opsec-Passive" : ""}">${p.configured ? `✅ ${esc(p.masked_preview)}` : "⚪ Keyless"}</span>
+                  </div>
+                  <div style="font-size:11.5px; color:var(--text-2); margin-bottom:8px;"><code>${esc(primaryVar)}</code> — ${esc(p.benefit)}</div>
+                  <div style="display:flex; gap:6px;">
+                    <input type="password" class="hunter-input" data-byok-input="${esc(primaryVar)}" placeholder="${p.configured ? "Enter new key to replace..." : `Paste ${primaryVar}...`}" style="flex:1; padding:6px 9px; font-size:12px;" autocomplete="off" />
+                    <button type="button" class="btn-sm" data-byok-save="${esc(primaryVar)}" style="border-color:var(--cyan); color:var(--cyan);">Save</button>
+                    ${p.configured ? `<button type="button" class="btn-sm" data-byok-clear="${esc(primaryVar)}" style="color:#fca5a5;">Clear</button>` : ""}
+                  </div>
+                </div>`;
+              })
+              .join("")}
+          </div>
+        </div>`;
+
+      byokEl.querySelectorAll("[data-byok-save]").forEach((btn) => {
+        btn.onclick = async () => {
+          const evName = btn.dataset.byokSave;
+          const inp = byokEl.querySelector(`[data-byok-input="${evName}"]`);
+          const val = inp?.value.trim();
+          if (!val) return;
+          await fetch("./api/settings/byok", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updates: { [evName]: val } }),
+          });
+          renderSettingsAndDoctor();
+        };
+      });
+      byokEl.querySelectorAll("[data-byok-clear]").forEach((btn) => {
+        btn.onclick = async () => {
+          const evName = btn.dataset.byokClear;
+          await fetch("./api/settings/byok", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updates: { [evName]: "" } }),
+          });
+          renderSettingsAndDoctor();
+        };
+      });
+    } catch (err) {
+      docEl.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Local Server Unreachable (${esc(err.message)})</h3></div>`;
+    }
+  }
+
+  document.getElementById("refreshDoctorBtn")?.addEventListener("click", renderSettingsAndDoctor);
 
   initHeaderTelemetry();
   initSelectDropdowns();

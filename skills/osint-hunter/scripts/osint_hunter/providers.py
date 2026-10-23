@@ -137,6 +137,46 @@ def get_byok_status() -> list[dict[str, Any]]:
     return rows
 
 
+ALLOWED_BYOK_ENV_VARS: set[str] = {ev for p in SUPPORTED_BYOK_PROVIDERS for ev in p["env_vars"]}
+
+
+def update_byok_dotenv(updates: dict[str, str], dotenv_path: Path | None = None) -> list[dict[str, Any]]:
+    """Safely save or clear optional BYOK API keys in local gitignored `.osint.env` (mode 0600)."""
+    target_path = dotenv_path or (PKG_PARENT / ".osint.env")
+    existing: dict[str, str] = {}
+    if target_path.is_file():
+        for raw_line in target_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            if line.startswith("export "):
+                line = line[7:].strip()
+            k, v = line.split("=", 1)
+            existing[k.strip()] = v.strip().strip("\"'")
+
+    for k, v in updates.items():
+        key_name = str(k).strip()
+        if key_name not in ALLOWED_BYOK_ENV_VARS:
+            continue
+        clean_val = str(v or "").strip()
+        if clean_val:
+            existing[key_name] = clean_val
+        else:
+            existing.pop(key_name, None)
+            os.environ.pop(key_name, None)
+
+    lines = ["# Local gitignored OSINT Monster optional BYOK API keys (managed via Web UI / .osint.env)"]
+    for k in sorted(existing.keys()):
+        safe_v = existing[k].replace("\n", "").replace("\r", "").replace('"', "")
+        lines.append(f'{k}="{safe_v}"')
+    target_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        target_path.chmod(0o600)
+    except OSError:
+        pass
+    return get_byok_status()
+
+
 def _json_req(url: str, headers: dict[str, str], timeout: float = DEFAULT_TIMEOUT) -> tuple[int, Any, str | None]:
     merged = {"User-Agent": USER_AGENT, "Accept": "application/json", **headers}
     req = urllib.request.Request(url, headers=merged)

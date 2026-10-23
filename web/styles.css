@@ -902,3 +902,35 @@ a:hover {
   margin-top: 16px;
 }
 
+.file-dropzone {
+  margin-top: 11px;
+  border: 1.5px dashed rgba(56, 189, 248, 0.42);
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 9px;
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-1);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.file-dropzone:hover,
+.file-dropzone.drag-over {
+  border-color: var(--cyan);
+  background: rgba(34, 211, 238, 0.08);
+  color: #fff;
+}
+
+.byok-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+
