@@ -492,22 +492,75 @@ def analyze_local_file(file_path: str) -> dict:
     md5 = hashlib.md5(data).hexdigest()
 
     magic = "Binary / Text"
+    ext_low = p.suffix.lower()
     if data.startswith(b"\xff\xd8\xff"):
         magic = "JPEG Image"
     elif data.startswith(b"\x89PNG\r\n\x1a\n"):
         magic = "PNG Image"
+    elif len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        magic = "WebP Image"
     elif data.startswith(b"%PDF-"):
         magic = "PDF Document"
     elif data.startswith(b"PK\x03\x04"):
         magic = "ZIP / Office OpenXML (DOCX/XLSX/PPTX/APK/JAR)"
+    elif len(data) >= 4 and data[:4] in (b"\xa1\xb2\xc3\xd4", b"\xd4\xc3\xb2\xa1", b"\xa1\xb2\x3c\x4d", b"\x4d\x3c\xb2\xa1", b"\x0a\x0d\x0d\x0a"):
+        magic = "PCAP / PCAPNG Packet Capture"
+    elif len(data) >= 12 and data[4:8] in (b"ftyp", b"moov", b"mdat", b"wide"):
+        magic = "MP4 / MOV QuickTime Video"
+    elif ext_low in (".eml", ".msg") or (b"Received:" in data[:4096] and b"From:" in data[:4096]):
+        magic = "RFC 5322 Email (.eml)"
+    elif ext_low == ".har":
+        magic = "W3C Browser HTTP Archive (.har)"
 
     metadata: dict = {}
     pivots: list[dict] = [{"type": "file_hash", "value": sha256}]
 
+    from .dfir_forensics import (
+        analyze_eml_bytes,
+        analyze_har_bytes,
+        analyze_mp4_mov_bytes,
+        analyze_pcap_bytes,
+        analyze_png_webp_c2pa_bytes,
+        decode_ssh_pubkey_or_pem,
+    )
+
     if magic == "JPEG Image":
         metadata["exif"] = _parse_jpeg_exif(data)
+        c2pa_info = analyze_png_webp_c2pa_bytes(data)
+        if c2pa_info.get("c2pa_content_credentials_detected") or c2pa_info.get("ai_or_camera_signatures"):
+            metadata["c2pa_and_ai_provenance"] = c2pa_info
         if "gps_coordinates" in metadata["exif"]:
             pivots.append({"type": "coordinates", "value": metadata["exif"]["gps_coordinates"]})
+
+    elif magic in ("PNG Image", "WebP Image"):
+        metadata["image_forensics_and_c2pa"] = analyze_png_webp_c2pa_bytes(data)
+
+    elif magic == "MP4 / MOV QuickTime Video":
+        mp4_res = analyze_mp4_mov_bytes(data)
+        metadata["video_container_forensics"] = mp4_res
+        for pv in mp4_res.get("discovered_pivots", []):
+            pivots.append({"type": pv["type"], "value": pv["value"]})
+
+    elif magic == "RFC 5322 Email (.eml)":
+        eml_res = analyze_eml_bytes(data)
+        metadata["eml_forensics"] = eml_res
+        for pv in eml_res.get("discovered_pivots", []):
+            pivots.append({"type": pv["type"], "value": pv["value"]})
+
+    elif magic == "PCAP / PCAPNG Packet Capture":
+        pcap_res = analyze_pcap_bytes(data)
+        metadata["pcap_forensics"] = pcap_res
+        for pv in pcap_res.get("discovered_pivots", []):
+            pivots.append({"type": pv["type"], "value": pv["value"]})
+
+    elif magic == "W3C Browser HTTP Archive (.har)":
+        try:
+            har_res = analyze_har_bytes(data)
+            metadata["har_forensics"] = har_res
+            for pv in har_res.get("discovered_pivots", []):
+                pivots.append({"type": pv["type"], "value": pv["value"]})
+        except Exception as exc:
+            metadata["har_parse_error"] = str(exc)
 
     elif magic.startswith("ZIP") and zipfile.is_zipfile(p):
         with zipfile.ZipFile(p, "r") as zf:
@@ -536,6 +589,9 @@ def analyze_local_file(file_path: str) -> dict:
 
     # Carve embedded emails, URLs, IPv4s, and EVM wallets from readable strings
     sample_str = data[:524288].decode("utf-8", errors="ignore")
+    ssh_pem_info = decode_ssh_pubkey_or_pem(sample_str)
+    if ssh_pem_info:
+        metadata["key_or_cert_forensics"] = ssh_pem_info
     carved_emails = sorted(set(e.lower() for e in EMAIL_RE.findall(sample_str)))[:15]
     carved_urls = sorted(set(URL_RE.findall(sample_str)))[:15]
     carved_wallets = sorted(set(EVM_RE.findall(sample_str)))[:10]
@@ -775,10 +831,20 @@ def universal_forensic_decode(raw_input: str) -> dict:
     text = (raw_input or "").strip()
     decoded_items: list[dict] = []
 
-    # 1. TikTok URL / Post ID timestamp
+    # 1. TikTok URL / Post ID timestamp & Google Search `ei=` chronolocation & SSH/PEM keys
+    from .dfir_forensics import decode_google_ei_parameter, decode_ssh_pubkey_or_pem
+
     tt = decode_tiktok_id_or_url(text)
     if tt:
         decoded_items.append(tt)
+
+    gei = decode_google_ei_parameter(text)
+    if gei:
+        decoded_items.append(gei)
+
+    ssh_or_pem = decode_ssh_pubkey_or_pem(text)
+    if ssh_or_pem:
+        decoded_items.append(ssh_or_pem)
 
     # 2. UUIDv1/v6/v7, ULID, MongoDB ObjectId
     for tok in re.split(r"[\s,;()\"'<>]+", text):

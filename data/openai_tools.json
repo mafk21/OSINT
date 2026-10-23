@@ -155,6 +155,36 @@
   {
     "type": "function",
     "function": {
+      "name": "osint_diff_cases",
+      "description": "TEMPORAL ATTACK-SURFACE DRIFT / DELTA. Compares a baseline CASE-... and a newer CASE-... to report newly added domains, IPs, identities, OPSEC exposures, and Exposure Score delta.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "baseline_case": { "type": "string" },
+          "current_case": { "type": "string" }
+        },
+        "required": ["baseline_case", "current_case"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_typosquat_permutations",
+      "description": "OFFLINE TYPOSQUAT & IDN HOMOGLYPH GENERATOR. Generates brand-impersonation, bitsquat, TLD-swap, and valid xn-- Punycode homoglyph permutations with zero network packets.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string" },
+          "limit": { "type": "integer", "default": 45 }
+        },
+        "required": ["domain"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "osint_forge_dorks",
       "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, URLScan, and GitHub dorks (105 templates).",
       "parameters": {

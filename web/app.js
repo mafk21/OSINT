@@ -650,10 +650,29 @@
     });
   }
 
-  function renderEntityGraphSvg(graph) {
-    const nodes = graph.nodes || [];
-    const edges = graph.edges || [];
-    if (!nodes.length) return "";
+  function renderEntityGraphSvg(graph, opts = {}) {
+    const allNodes = graph.nodes || [];
+    const allEdges = graph.edges || [];
+    if (!allNodes.length) return "";
+
+    const stageFilter = opts.stage || "";
+    const typeFilter = opts.type || "";
+    const minConf = parseFloat(opts.minConf || "0");
+    const highlightPathSet = opts.highlightPathSet || new Set();
+    const highlightNodeSet = opts.highlightNodeSet || new Set();
+
+    const nodes = allNodes.filter((n) => {
+      if (stageFilter && String(n.wave || 1) !== stageFilter) return false;
+      if (typeFilter && n.type !== typeFilter) return false;
+      return true;
+    });
+    const allowedIds = new Set(nodes.map((n) => n.id));
+    const edges = allEdges.filter(
+      (e) => allowedIds.has(e.source) && allowedIds.has(e.target) && (e.confidence ?? 0.8) >= minConf
+    );
+    if (!nodes.length) {
+      return `<div style="padding:24px; text-align:center; color:var(--text-2);">No entities match the current graph filter.</div>`;
+    }
 
     const byWave = new Map();
     nodes.forEach((n) => {
@@ -663,9 +682,9 @@
     });
 
     const waves = [...byWave.keys()].sort((a, b) => a - b);
-    const width = 960;
+    const width = 980;
     const maxPerCol = Math.max(...waves.map((w) => byWave.get(w).length), 1);
-    const height = Math.max(230, maxPerCol * 56 + 44);
+    const height = Math.max(250, maxPerCol * 58 + 54);
     const pos = new Map();
 
     waves.forEach((w, colIdx) => {
@@ -681,6 +700,8 @@
       if (tp === "email") return "#f59e0b";
       if (tp === "domain" || tp === "ip") return "#22d3ee";
       if (tp === "username") return "#8b5cf6";
+      if (tp === "person_name" || tp === "company") return "#f472b6";
+      if (tp === "phone") return "#34d399";
       if (tp === "crypto_address") return "#10b981";
       return "#60a5fa";
     };
@@ -692,26 +713,32 @@
         if (!s || !t) return "";
         const mx = (s.x + t.x) / 2;
         const my = (s.y + t.y) / 2 - 6;
+        const confPct = Math.round((e.confidence ?? 0.8) * 100);
+        const isHi = highlightPathSet.has(`${e.source}|${e.target}`) || highlightPathSet.has(`${e.target}|${e.source}`);
+        const stroke = isHi ? "#fbbf24" : confPct >= 90 ? "#38bdf8" : "#35507f";
+        const sw = isHi ? "3.2" : confPct >= 90 ? "2.1" : "1.5";
+        const dash = isHi ? "" : confPct < 70 ? 'stroke-dasharray="4 3"' : "";
         return `
-          <line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="#35507f" stroke-width="1.6" stroke-dasharray="4 3" />
-          <text x="${mx}" y="${my}" fill="#7b90b6" font-size="9.5" text-anchor="middle">${esc(e.via)}</text>`;
+          <line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="${stroke}" stroke-width="${sw}" ${dash} />
+          <text x="${mx}" y="${my}" fill="${isHi ? "#fde68a" : "#7b90b6"}" font-size="9.5" font-weight="${isHi ? "700" : "400"}" text-anchor="middle">${esc(e.via)} (${confPct}%)</text>`;
       })
       .join("");
 
     const nodeCircles = [...pos.values()]
       .map(({ x, y, node }) => {
-        const col = colorFor(node.type);
+        const isHiNode = highlightNodeSet.has(node.id);
+        const col = isHiNode ? "#fbbf24" : colorFor(node.type);
         const label = node.value.length > 28 ? node.value.slice(0, 26) + "…" : node.value;
         return `
           <g class="svg-node" data-rehunt="${esc(node.value)}" style="cursor:pointer;">
-            <rect x="${x - 115}" y="${y - 18}" width="230" height="36" rx="8" fill="#131c2e" stroke="${col}" stroke-width="1.6" />
-            <text x="${x}" y="${y - 3}" fill="${col}" font-size="9.5" font-weight="700" text-anchor="middle">[W${node.wave}] ${esc(node.type.toUpperCase())}</text>
+            <rect x="${x - 116}" y="${y - 19}" width="232" height="38" rx="8" fill="${isHiNode ? "#292107" : "#131c2e"}" stroke="${col}" stroke-width="${isHiNode ? "2.8" : "1.6"}" />
+            <text x="${x}" y="${y - 4}" fill="${col}" font-size="9.5" font-weight="700" text-anchor="middle">[S${node.wave}] ${esc(node.type.toUpperCase())}</text>
             <text x="${x}" y="${y + 11}" fill="#eef4ff" font-size="11" font-family="monospace" text-anchor="middle">${esc(label)}</text>
           </g>`;
       })
       .join("");
 
-    return `<svg viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:460px; display:block;">${edgeLines}${nodeCircles}</svg>`;
+    return `<svg id="interactiveGraphSvg" viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:500px; display:block; cursor:grab; user-select:none;"><g id="graphViewportGroup">${edgeLines}${nodeCircles}</g></svg>`;
   }
 
   let lastHuntReport = null;
@@ -977,6 +1004,53 @@
         </div>
       </div>`;
 
+    const tprof = report.temporal_profile || {};
+    const pconf = report.persona_and_confidence || {};
+    const hist24 = tprof.hourly_utc_histogram || {};
+    const maxHr = Math.max(1, ...Object.values(hist24).map((v) => Number(v) || 0));
+    const bars24 = Array.from({ length: 24 }, (_, h) => {
+      const k = String(h).padStart(2, "0");
+      const v = Number(hist24[k] || 0);
+      const pct = Math.max(8, Math.round((v / maxHr) * 44));
+      return `<div title="${k}:00 UTC — ${v} event(s)" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;">
+        <div style="width:100%; height:46px; display:flex; align-items:flex-end;"><div style="width:100%; height:${v ? pct : 3}px; background:${v ? "var(--cyan)" : "#1e293b"}; border-radius:2px;"></div></div>
+        <span style="font-size:8.5px; color:var(--text-2);">${h % 4 === 0 ? k : ""}</span>
+      </div>`;
+    }).join("");
+
+    const temporalAndConfidenceHtml = `
+      <div class="collector-card" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+        <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
+          <div style="font-size:12px; font-weight:700; color:var(--cyan); margin-bottom:5px;">🕒 Pattern-of-Life &amp; 24h UTC Circadian Activity</div>
+          <div style="font-size:12px; color:var(--text-1); margin-bottom:6px;">
+            <strong>UTC Offsets:</strong> <code>${esc(Object.keys(tprof.inferred_timezone_offsets || {}).join(", ") || "None leaked")}</code> ·
+            <strong>Regions:</strong> ${esc((tprof.likely_geographic_regions || []).slice(0, 2).join("; ") || "Insufficient timestamps")}
+            ${tprof.estimated_sleep_window_utc ? `<br/><strong>Est. Sleep Trough:</strong> <code>${esc(tprof.estimated_sleep_window_utc.sleep_window_utc)}</code> (<code>${esc(tprof.estimated_sleep_window_utc.inferred_utc_offset)}</code>)` : ""}
+          </div>
+          <div style="display:flex; gap:2px; align-items:flex-end; padding-top:4px;">${bars24}</div>
+        </div>
+        <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
+          <div style="font-size:12px; font-weight:700; color:#fbbf24; margin-bottom:5px;">🎯 Weighted Attribution Confidence &amp; Persona Flags</div>
+          <div style="font-size:11.8px; color:var(--text-1);">
+            ${
+              (pconf.attribution_chains || []).length
+                ? (pconf.attribution_chains || [])
+                    .slice(0, 4)
+                    .map((c) => `<div style="margin-bottom:4px;"><code>${esc(c.formatted_chain)}</code> <strong>(${Math.round(c.joint_confidence * 100)}%)</strong></div>`)
+                    .join("")
+                : "<div>Seed-stage entities collected — expand stages or click two nodes below to trace shortest path.</div>"
+            }
+            ${(pconf.sockpuppet_and_burner_indicators || []).map((f) => `<div style="color:#fca5a5; margin-top:4px;">🎭 ${esc(f)}</div>`).join("")}
+          </div>
+        </div>
+      </div>`;
+
+    const uniqueStages = [...new Set((report.graph.nodes || []).map((n) => n.wave || 1))].sort((a, b) => a - b);
+    const uniqueTypes = [...new Set((report.graph.nodes || []).map((n) => n.type))].sort();
+    const nodeOptions = (report.graph.nodes || [])
+      .map((n) => `<option value="${esc(n.id)}">[S${n.wave}] ${esc(n.type)}: ${esc(n.value.slice(0, 36))}</option>`)
+      .join("");
+
     outArea.innerHTML = `
       <div class="collector-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; border-color:${isAct ? "var(--red)" : "var(--border-hi)"};">
         <div>
@@ -985,23 +1059,58 @@
             ${report.graph.nodes.length} Entity Node(s) · ${report.graph.edges.length} Pivot Edge(s) · Converged: <code>${esc(Boolean(m.converged))}</code> · ${isAct ? `Authorized via <code>${esc(m.approval_request_id)}</code> · ` : ""}Saved to <code>${esc(m.case_dir || "memory")}/</code>
           </div>
         </div>
-        <div style="display:flex; gap:7px; flex-wrap:wrap;">
-          ${!isAct ? `<button class="btn-sm" id="escalateActiveBtn" style="border-color:var(--red); color:#fca5a5;">🔴 Escalate All Discovered Infra to Active OSINT...</button>` : ""}
-          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 Executive HTML Report ↗</a>` : ""}
-          <button class="btn-sm" id="dlDossierMd">📄 Dossier (.md)</button>
-          <button class="btn-sm" id="dlEntitiesCsv">📊 Entities (.csv)</button>
-          <button class="btn-sm" id="dlStixJson">🛡️ STIX 2.1 (.json)</button>
-          <button class="btn-sm" id="dlFullJson">📦 Full JSON</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${!isAct ? `<button class="btn-sm" id="escalateActiveBtn" style="border-color:var(--red); color:#fca5a5;">🔴 Escalate Infra to Active OSINT...</button>` : ""}
+          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 HTML Report ↗</a>` : ""}
+          <button class="btn-sm" id="dlDossierMd">📄 .md</button>
+          <button class="btn-sm" id="dlEntitiesCsv">📊 .csv</button>
+          ${report.gexf_xml || m.case_id ? `<button class="btn-sm" id="dlGexfBtn" title="Gephi 1.3 Link Graph">🕸️ Gephi .gexf</button>` : ""}
+          ${report.neo4j_cypher || m.case_id ? `<button class="btn-sm" id="dlCypherBtn" title="Neo4j Cypher Script">🗄️ Neo4j .cypher</button>` : ""}
+          <button class="btn-sm" id="dlStixJson">🛡️ STIX 2.1</button>
+          <button class="btn-sm" id="dlFullJson">📦 JSON</button>
         </div>
       </div>
 
       ${synHtml}
+      ${temporalAndConfidenceHtml}
 
       <div class="graph-box">
-        <div style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase; margin-bottom:6px;">
-          🕸️ Autonomous Multi-Stage Entity &amp; Pivot Graph (Click Any Node to Focus-Hunt)
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+          <div style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">
+            🕸️ Interactive Graph Studio (Drag to Pan · Scroll to Zoom · Click Node to Focus-Hunt)
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <select id="graphStageFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
+              <option value="">All Stages</option>
+              ${uniqueStages.map((s) => `<option value="${s}">Stage ${s}</option>`).join("")}
+            </select>
+            <select id="graphTypeFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
+              <option value="">All Entity Types</option>
+              ${uniqueTypes.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}
+            </select>
+            <select id="graphConfFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
+              <option value="0">All Confidence</option>
+              <option value="0.75">≥ 75% Correlated</option>
+              <option value="0.88">≥ 88% High Proof</option>
+            </select>
+            <button class="btn-sm" id="graphZoomInBtn" title="Zoom In">＋</button>
+            <button class="btn-sm" id="graphZoomOutBtn" title="Zoom Out">－</button>
+            <button class="btn-sm" id="graphResetViewBtn" title="Reset Pan/Zoom">⟲ Reset</button>
+          </div>
         </div>
-        ${svg}
+        ${
+          report.graph.nodes.length > 1
+            ? `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:8px; font-size:12px;">
+                <span style="color:#fbbf24; font-weight:700;">🧭 Shortest Attribution Path:</span>
+                <select id="pathSrcSelect" class="select-ctrl" style="padding:4px 8px; font-size:11.5px; max-width:220px;">${nodeOptions}</select>
+                <span>→</span>
+                <select id="pathDstSelect" class="select-ctrl" style="padding:4px 8px; font-size:11.5px; max-width:220px;">${nodeOptions}</select>
+                <button class="btn-sm" id="tracePathBtn" style="border-color:#fbbf24; color:#fde68a;">✨ Trace Chain</button>
+                <span id="tracePathResult" style="font-size:11.5px; color:#fde68a;"></span>
+              </div>`
+            : ""
+        }
+        <div id="graphSvgViewport" style="overflow:hidden; border-radius:8px; background:#070b14; border:1px solid var(--border);">${svg}</div>
       </div>
 
       ${
@@ -1043,6 +1152,144 @@
       downloadBlob(`${m.case_id}-stix2.json`, JSON.stringify(report.stix2_bundle, null, 2), "application/json");
     document.getElementById("dlFullJson").onclick = () =>
       downloadBlob(`${m.case_id}-report.json`, JSON.stringify(report, null, 2), "application/json");
+
+    const gexfBtn = document.getElementById("dlGexfBtn");
+    if (gexfBtn) {
+      gexfBtn.onclick = async () => {
+        if (report.gexf_xml) {
+          downloadBlob(`${m.case_id}.gexf`, report.gexf_xml, "application/xml;charset=utf-8");
+        } else if (m.case_id) {
+          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/gexf`);
+          if (r.ok) downloadBlob(`${m.case_id}.gexf`, await r.text(), "application/xml;charset=utf-8");
+        }
+      };
+    }
+    const cypherBtn = document.getElementById("dlCypherBtn");
+    if (cypherBtn) {
+      cypherBtn.onclick = async () => {
+        if (report.neo4j_cypher) {
+          downloadBlob(`${m.case_id}.cypher`, report.neo4j_cypher, "text/plain;charset=utf-8");
+        } else if (m.case_id) {
+          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/cypher`);
+          if (r.ok) downloadBlob(`${m.case_id}.cypher`, await r.text(), "text/plain;charset=utf-8");
+        }
+      };
+    }
+
+    // Interactive Graph Studio pan/zoom/filter/shortest-path controls
+    let gScale = 1;
+    let gPanX = 0;
+    let gPanY = 0;
+    let hiEdgeSet = new Set();
+    let hiNodeSet = new Set();
+
+    function applyGraphTransform() {
+      const grp = document.getElementById("graphViewportGroup");
+      if (grp) grp.setAttribute("transform", `translate(${gPanX}, ${gPanY}) scale(${gScale})`);
+    }
+
+    function bindGraphInteractions() {
+      const svgEl = document.getElementById("interactiveGraphSvg");
+      if (!svgEl) return;
+      svgEl.querySelectorAll("[data-rehunt]").forEach((g) => {
+        g.addEventListener("click", () => {
+          document.getElementById("huntTargetInput").value = g.dataset.rehunt;
+          executeLiveHunt();
+        });
+      });
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      svgEl.addEventListener("mousedown", (ev) => {
+        if (ev.target.closest(".svg-node")) return;
+        dragging = true;
+        startX = ev.clientX - gPanX;
+        startY = ev.clientY - gPanY;
+      });
+      window.addEventListener("mousemove", (ev) => {
+        if (!dragging) return;
+        gPanX = ev.clientX - startX;
+        gPanY = ev.clientY - startY;
+        applyGraphTransform();
+      });
+      window.addEventListener("mouseup", () => {
+        dragging = false;
+      });
+      svgEl.addEventListener("wheel", (ev) => {
+        ev.preventDefault();
+        gScale = Math.min(3.2, Math.max(0.45, gScale * (ev.deltaY < 0 ? 1.12 : 0.9)));
+        applyGraphTransform();
+      }, { passive: false });
+      applyGraphTransform();
+    }
+
+    function refreshGraphSvg() {
+      const vp = document.getElementById("graphSvgViewport");
+      if (!vp) return;
+      vp.innerHTML = renderEntityGraphSvg(report.graph, {
+        stage: document.getElementById("graphStageFilter")?.value || "",
+        type: document.getElementById("graphTypeFilter")?.value || "",
+        minConf: document.getElementById("graphConfFilter")?.value || "0",
+        highlightPathSet: hiEdgeSet,
+        highlightNodeSet: hiNodeSet,
+      });
+      bindGraphInteractions();
+    }
+
+    ["graphStageFilter", "graphTypeFilter", "graphConfFilter"].forEach((fid) => {
+      document.getElementById(fid)?.addEventListener("change", refreshGraphSvg);
+    });
+    document.getElementById("graphZoomInBtn")?.addEventListener("click", () => {
+      gScale = Math.min(3.2, gScale * 1.2);
+      applyGraphTransform();
+    });
+    document.getElementById("graphZoomOutBtn")?.addEventListener("click", () => {
+      gScale = Math.max(0.45, gScale / 1.2);
+      applyGraphTransform();
+    });
+    document.getElementById("graphResetViewBtn")?.addEventListener("click", () => {
+      gScale = 1;
+      gPanX = 0;
+      gPanY = 0;
+      hiEdgeSet = new Set();
+      hiNodeSet = new Set();
+      const tr = document.getElementById("tracePathResult");
+      if (tr) tr.textContent = "";
+      refreshGraphSvg();
+    });
+
+    const dstSel = document.getElementById("pathDstSelect");
+    if (dstSel && dstSel.options.length > 1) dstSel.selectedIndex = dstSel.options.length - 1;
+    document.getElementById("tracePathBtn")?.addEventListener("click", async () => {
+      const sId = document.getElementById("pathSrcSelect")?.value;
+      const tId = document.getElementById("pathDstSelect")?.value;
+      const resSpan = document.getElementById("tracePathResult");
+      if (!sId || !tId) return;
+      try {
+        const r = await fetch("./api/graph/path", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodes: report.graph.nodes, edges: report.graph.edges, source: sId, target: tId }),
+        });
+        const d = await r.json();
+        hiEdgeSet = new Set();
+        hiNodeSet = new Set();
+        if (d.path && d.path.steps) {
+          hiNodeSet.add(sId);
+          d.path.steps.forEach((st) => {
+            hiEdgeSet.add(`${st.from}|${st.to}`);
+            hiNodeSet.add(st.to);
+          });
+          if (resSpan) resSpan.textContent = `${d.path.hops} hop(s) · Joint Confidence: ${Math.round(d.path.joint_confidence * 100)}%`;
+        } else if (resSpan) {
+          resSpan.textContent = "No connected path between selected entities.";
+        }
+        refreshGraphSvg();
+      } catch (_) {}
+    });
+
+    bindGraphInteractions();
+    refreshCasesBadgeCount();
 
     const expCaseBtn = document.getElementById("expandCaseBtn");
     if (expCaseBtn) {
@@ -1167,6 +1414,7 @@
       p.classList.toggle("active", p.id === `view-${viewName}`);
     });
     if (viewName === "loadout") renderLoadout();
+    if (viewName === "cases") renderCasesVault();
   }
 
   function bindGlobalControls() {
@@ -1375,10 +1623,145 @@
     });
   }
 
+  async function refreshCasesBadgeCount() {
+    try {
+      const r = await fetch("./api/cases");
+      if (!r.ok) return;
+      const d = await r.json();
+      const cntEl = document.getElementById("navCntCases");
+      if (cntEl && Array.isArray(d.cases)) cntEl.textContent = String(d.cases.length);
+    } catch (_) {}
+  }
+
+  async function renderCasesVault() {
+    const listEl = document.getElementById("savedCasesList");
+    const selA = document.getElementById("caseSelectA");
+    const selB = document.getElementById("caseSelectB");
+    if (!listEl) return;
+    listEl.innerHTML = `<div class="collector-card">Loading saved forensic cases from <code>cases/</code>...</div>`;
+    try {
+      const r = await fetch("./api/cases");
+      const d = await r.json();
+      const cases = d.cases || [];
+      const cntEl = document.getElementById("navCntCases");
+      if (cntEl) cntEl.textContent = String(cases.length);
+
+      const opts = cases
+        .map((c) => `<option value="${esc(c.case_id)}">${esc(c.case_id)} — ${esc(c.raw_input.slice(0, 38))} (${c.nodes} nodes)</option>`)
+        .join("");
+      if (selA) selA.innerHTML = `<option value="">Select Case A (Baseline)...</option>${opts}`;
+      if (selB) {
+        selB.innerHTML = `<option value="">Select Case B (Current)...</option>${opts}`;
+        if (cases.length >= 2) {
+          selA.selectedIndex = 2;
+          selB.selectedIndex = 1;
+        }
+      }
+
+      if (!cases.length) {
+        listEl.innerHTML = `<div class="collector-card" style="text-align:center; padding:32px;"><h3>No Saved Cases Yet</h3><p style="color:var(--text-2);">Run any investigation in <strong>⚡ Autonomous Hunter</strong> to populate <code>cases/CASE-...</code> with STIX 2.1, Gephi <code>.gexf</code>, Neo4j <code>.cypher</code>, and Obsidian notes.</p></div>`;
+        return;
+      }
+
+      listEl.innerHTML = `<div class="tools-grid">${cases
+        .map(
+          (c) => `
+          <div class="collector-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span class="badge ${c.opsec_mode === "Active+Passive" ? "opsec-Active" : "opsec-Passive"}">${esc(c.opsec_mode)}</span>
+              <span style="font-size:11.5px; color:var(--text-2);">${esc(c.timestamp_utc)}</span>
+            </div>
+            <h3 style="margin:7px 0 4px; font-size:14.5px;"><code>${esc(c.case_id)}</code></h3>
+            <div style="font-size:12.5px; color:var(--text-1); margin-bottom:8px;">Target: <strong>${esc(c.raw_input)}</strong></div>
+            <div style="font-size:12px; color:var(--text-2); margin-bottom:10px;">
+              Stages: <code>${esc(c.stages_executed)}</code> · Entities: <code>${esc(c.nodes)}</code> · Edges: <code>${esc(c.edges)}</code> · Exposure: <strong>${esc(c.exposure_score ?? 0)}/100</strong>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn-sm" data-open-case="${esc(c.case_id)}" style="border-color:var(--cyan); color:var(--cyan);">🕸️ Load in Graph Studio</button>
+              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 HTML ↗</a>
+              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/gexf" download="${esc(c.case_id)}.gexf" style="text-decoration:none;">.gexf</a>
+              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/cypher" download="${esc(c.case_id)}.cypher" style="text-decoration:none;">.cypher</a>
+            </div>
+          </div>`
+        )
+        .join("")}</div>`;
+
+      listEl.querySelectorAll("[data-open-case]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const cid = btn.dataset.openCase;
+          const cr = await fetch(`./api/cases/${encodeURIComponent(cid)}`);
+          const rep = await cr.json();
+          if (cr.ok && !rep.error) {
+            lastHuntReport = rep;
+            switchView("hunter");
+            renderHuntReport(rep);
+          }
+        });
+      });
+    } catch (err) {
+      listEl.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Case Vault API Unreachable (${esc(err.message)})</h3><p style="color:var(--text-2);">Start <code>python3 scripts/server.py --port 8000</code> to browse live saved cases.</p></div>`;
+    }
+  }
+
+  function initCaseVaultControls() {
+    document.getElementById("refreshCasesBtn")?.addEventListener("click", renderCasesVault);
+    const outBox = document.getElementById("caseComparisonOutput");
+
+    document.getElementById("runCaseCompareBtn")?.addEventListener("click", async () => {
+      const ca = document.getElementById("caseSelectA")?.value;
+      const cb = document.getElementById("caseSelectB")?.value;
+      if (!ca || !cb || !outBox) return;
+      const r = await fetch("./api/cases/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ case_a: ca, case_b: cb }),
+      });
+      const d = await r.json();
+      outBox.innerHTML = `<div class="collector-card" style="border-color:var(--cyan); margin-top:12px;">
+        <h3 style="margin:0 0 6px;">🔗 Cross-Case Attribution Result: ${d.cases_linked ? "✅ SHARED INFRASTRUCTURE / IDENTITY LINKED" : "⚪ Zero Shared Selectors"}</h3>
+        <div class="code-block">${esc(JSON.stringify(d, null, 2))}</div>
+      </div>`;
+    });
+
+    document.getElementById("runCaseDiffBtn")?.addEventListener("click", async () => {
+      const ca = document.getElementById("caseSelectA")?.value;
+      const cb = document.getElementById("caseSelectB")?.value;
+      if (!ca || !cb || !outBox) return;
+      const r = await fetch("./api/cases/diff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseline_case: ca, current_case: cb }),
+      });
+      const d = await r.json();
+      outBox.innerHTML = `<div class="collector-card" style="border-color:#fbbf24; margin-top:12px;">
+        <h3 style="margin:0 0 6px;">📈 Temporal Attack-Surface Drift: +${esc(d.added_entity_count ?? 0)} New / -${esc(d.removed_entity_count ?? 0)} Retired · Score ${esc(d.exposure_score_before)} → ${esc(d.exposure_score_after)}</h3>
+        <div class="code-block">${esc(JSON.stringify(d, null, 2))}</div>
+      </div>`;
+    });
+
+    document.getElementById("runTyposquatBtn")?.addEventListener("click", async () => {
+      const dom = document.getElementById("typosquatDomainInput")?.value.trim();
+      if (!dom || !outBox) return;
+      const r = await fetch("./api/typosquats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: dom, limit: 45 }),
+      });
+      const d = await r.json();
+      outBox.innerHTML = `<div class="collector-card" style="border-color:#a78bfa; margin-top:12px;">
+        <h3 style="margin:0 0 6px;">🎭 ${esc(d.count || 0)} Offline Typosquat &amp; IDN Homoglyph Permutations for <code>${esc(d.seed_domain || dom)}</code></h3>
+        <div class="code-block">${esc(JSON.stringify(d.permutations || d, null, 2))}</div>
+      </div>`;
+    });
+
+    refreshCasesBadgeCount();
+  }
+
   initHeaderTelemetry();
   initSelectDropdowns();
   bindGlobalControls();
   initHunterControls();
+  initCaseVaultControls();
   initDecoderControls();
   renderArsenal();
   renderPivotMatrix();

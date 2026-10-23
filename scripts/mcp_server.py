@@ -26,6 +26,7 @@ from osint_hunter.engine import (  # noqa: E402
     ALL_DORKS,
     ALL_TOOLS,
     ALL_WORKFLOWS,
+    _resolve_case_dir,
     compare_saved_cases,
     expand_existing_case,
     forge_dorks_for_targets,
@@ -33,10 +34,12 @@ from osint_hunter.engine import (  # noqa: E402
     run_autonomous_hunt,
 )
 from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
+from osint_hunter.persona import generate_domain_typosquats  # noqa: E402
+from osint_hunter.watchlist import compute_case_delta  # noqa: E402
 
 SERVER_INFO = {
     "name": "osint-monster-hunter",
-    "version": "2026.10.3",
+    "version": "2026.10.4",
 }
 
 MCP_TOOLS = [
@@ -238,11 +241,11 @@ MCP_TOOLS = [
     {
         "name": "osint_forensic_decode",
         "description": (
-            "ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER. Decodes TikTok video/post IDs & URLs (exact upload UTC), "
-            "Discord & X/Twitter Snowflake IDs, UUIDv1 (embedded MAC + 100ns timestamp), UUIDv6/v7, ULIDs, MongoDB "
-            "ObjectIds, ISO 13616 IBAN bank accounts (MOD-97-10 + SAMA bank codes), E.164 phone numbers (US NANPA + "
-            "GCC/Saudi/UAE/Kuwait/Qatar/Bahrain/Oman/Egypt/UK), VINs, ICAO24 aircraft hex, MMSI/IMO vessels, IEEE MAC/BSSIDs, "
-            "JWT tokens, and local JPEG EXIF / DOCX / PDF files with ZERO network packets."
+            "ZERO-NETWORK FORENSIC & DFIR DECODER. Decodes TikTok video/post IDs & URLs (exact upload UTC), "
+            "Google Search `ei=` URLs (microsecond timestamp), Discord & X/Twitter Snowflake IDs, UUIDv1/v6/v7, ULIDs, "
+            "MongoDB ObjectIds, OpenSSH public keys & X.509 PEM certificates, ISO 13616 IBAN bank accounts (SAMA), "
+            "E.164 phone numbers (US NANPA + GCC/Saudi/UAE/Kuwait/Qatar/Bahrain/Oman/Egypt/UK), VINs, ICAO24, MMSI/IMO, "
+            "IEEE MAC/BSSIDs, JWTs, and local `.eml`, `.pcap`/`.pcapng`, `.har`, `.mp4`/`.mov`, PNG/WebP/C2PA/ComfyUI, JPEG EXIF, DOCX, and PDF files."
         ),
         "annotations": {
             "title": "Zero-Network Forensic & Chronolocation Decoder",
@@ -255,7 +258,7 @@ MCP_TOOLS = [
             "properties": {
                 "payload": {
                     "type": "string",
-                    "description": "Any ID, token, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local file path.",
+                    "description": "Any ID, token, SSH key, Google ei= URL, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local DFIR file path (.eml, .pcap, .har, .mp4, .png, .jpg, .pdf, .docx).",
                 }
             },
             "required": ["payload"],
@@ -282,6 +285,48 @@ MCP_TOOLS = [
             "required": ["case_a", "case_b"],
         },
     },
+    {
+        "name": "osint_diff_cases",
+        "description": (
+            "TEMPORAL ATTACK-SURFACE DRIFT / DELTA. Compares a baseline CASE-... and a newer CASE-... of a target "
+            "to surface newly added domains/subdomains, new IPs, new identities, resolved/new OPSEC exposures, and Exposure Score delta."
+        ),
+        "annotations": {
+            "title": "Temporal Case Delta & Surface Drift",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "baseline_case": {"type": "string", "description": "Older baseline CASE_ID or directory."},
+                "current_case": {"type": "string", "description": "Newer CASE_ID or directory."},
+            },
+            "required": ["baseline_case", "current_case"],
+        },
+    },
+    {
+        "name": "osint_typosquat_permutations",
+        "description": (
+            "OFFLINE TYPOSQUAT & IDN HOMOGLYPH GENERATOR. Generates brand-impersonation, bitsquat, TLD-swap, "
+            "QWERTY-adjacent, and valid `xn--` Punycode Cyrillic/Latin homoglyph permutations with ZERO network packets."
+        ),
+        "annotations": {
+            "title": "Offline Domain Typosquat & Homoglyph Generator",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "domain": {"type": "string", "description": "Root domain (e.g. example.com)."},
+                "limit": {"type": "integer", "default": 45, "minimum": 5, "maximum": 120},
+            },
+            "required": ["domain"],
+        },
+    },
 ]
 
 
@@ -293,6 +338,7 @@ def handle_tool_call(name: str, args: dict) -> str:
             ingested_evidence_text=args.get("ingested_evidence_text"),
             save_case=bool(args.get("save_case", True)),
             mode="passive",
+            diff_last=bool(args.get("diff_last", False)),
         )
         return report["dossier_markdown"] + "\n\n<!-- CASE_DIR: " + str(report["meta"].get("case_dir")) + " -->"
 
@@ -389,6 +435,20 @@ def handle_tool_call(name: str, args: dict) -> str:
 
     if name == "osint_compare_cases":
         return json.dumps(compare_saved_cases(str(args["case_a"]), str(args["case_b"])), indent=2, ensure_ascii=False)
+
+    if name == "osint_diff_cases":
+        d_base = _resolve_case_dir(str(args["baseline_case"]))
+        d_curr = _resolve_case_dir(str(args["current_case"]))
+        r_base = json.loads((d_base / "report.json").read_text(encoding="utf-8"))
+        r_curr = json.loads((d_curr / "report.json").read_text(encoding="utf-8"))
+        return json.dumps(compute_case_delta(r_base, r_curr), indent=2, ensure_ascii=False)
+
+    if name == "osint_typosquat_permutations":
+        return json.dumps(
+            generate_domain_typosquats(str(args["domain"]), limit=int(args.get("limit", 45))),
+            indent=2,
+            ensure_ascii=False,
+        )
 
     raise ValueError(f"Unknown MCP tool: {name}")
 

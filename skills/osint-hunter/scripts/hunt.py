@@ -32,6 +32,7 @@ from osint_hunter.approval import (  # noqa: E402
     prepare_active_request,
 )
 from osint_hunter.engine import (  # noqa: E402
+    _resolve_case_dir,
     compare_saved_cases,
     expand_existing_case,
     get_case_active_target_string,
@@ -39,6 +40,13 @@ from osint_hunter.engine import (  # noqa: E402
 )
 from osint_hunter.offline_intel import universal_forensic_decode  # noqa: E402
 from osint_hunter.paths import get_cases_dir  # noqa: E402
+from osint_hunter.persona import generate_domain_typosquats  # noqa: E402
+from osint_hunter.watchlist import (  # noqa: E402
+    add_to_watchlist,
+    compute_case_delta,
+    load_watchlist,
+    remove_from_watchlist,
+)
 
 
 def _print_approval_prompt_sheet(plan: dict) -> None:
@@ -72,7 +80,14 @@ def main() -> int:
     parser.add_argument("--from-case", help="Build --prepare-active target scope from ALL entities discovered in an existing CASE_ID")
     parser.add_argument("--ingest-text", help="Unstructured findings (e.g. web_search snippets, bios, Linktree text) to carve & hunt")
     parser.add_argument("--ingest-file", help="Path to text/markdown/json file of external stage findings to carve & hunt")
-    parser.add_argument("--decode", action="store_true", help="Run zero-network offline forensic decoder on input (Phone, IBAN, VIN, ICAO24, IMO, MAC, JWT, UUID, TikTok/Snowflake)")
+    parser.add_argument("--decode", action="store_true", help="Run zero-network offline forensic decoder on input (.eml, .pcap, .har, .mp4, PNG/C2PA, SSH, Google ei=, Phone, IBAN, VIN, UUID, TikTok/Snowflake)")
+    parser.add_argument("--typosquats", action="store_true", help="Generate offline typosquat, bitsquat & IDN punycode homoglyph permutations for a domain")
+    parser.add_argument("--diff-last", action="store_true", help="Compute attack-surface & Exposure Score drift against the most recent saved case for this target")
+    parser.add_argument("--diff-cases", nargs=2, metavar=("BASELINE_CASE", "CURRENT_CASE"), help="Compute temporal surface delta (added/removed entities & exposures) between two saved cases")
+    parser.add_argument("--watchlist-add", metavar="TARGET", help="Add a target to persistent cases/watchlist.json monitoring")
+    parser.add_argument("--watchlist-remove", metavar="TARGET", help="Remove a target from cases/watchlist.json")
+    parser.add_argument("--watchlist-list", action="store_true", help="List monitored targets in cases/watchlist.json")
+    parser.add_argument("--watchlist-run", action="store_true", help="Sweep all targets in cases/watchlist.json with automatic --diff-last surface drift detection")
     parser.add_argument("--list-cases", action="store_true", help="List saved forensic investigation cases")
     parser.add_argument("--compare-cases", nargs=2, metavar=("CASE_A", "CASE_B"), help="Cross-case link analysis finding shared entities, domains, /24 IPs & analytics IDs")
     parser.add_argument("--cases-dir", help="Custom output directory for forensic case bundles")
@@ -105,6 +120,57 @@ def main() -> int:
         if not raw_target:
             parser.error("--decode requires an input token, URL, or file path")
         print(json.dumps(universal_forensic_decode(raw_target), indent=2, ensure_ascii=False))
+        return 0
+
+    if args.typosquats:
+        if not raw_target:
+            parser.error("--typosquats requires a domain name")
+        print(json.dumps(generate_domain_typosquats(raw_target, limit=50), indent=2, ensure_ascii=False))
+        return 0
+
+    if args.watchlist_add:
+        items = add_to_watchlist(args.watchlist_add, depth=args.depth, cases_dir=args.cases_dir)
+        print(json.dumps({"watchlist": items}, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.watchlist_remove:
+        items = remove_from_watchlist(args.watchlist_remove, cases_dir=args.cases_dir)
+        print(json.dumps({"watchlist": items}, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.watchlist_list:
+        print(json.dumps({"watchlist": load_watchlist(args.cases_dir)}, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.watchlist_run:
+        items = load_watchlist(args.cases_dir)
+        sweep_results = []
+        for entry in items:
+            rep = run_autonomous_hunt(
+                entry["target"],
+                depth=int(entry.get("depth", 3)),
+                save_case=not args.no_save,
+                cases_dir=args.cases_dir,
+                mode="passive",
+                diff_last=True,
+            )
+            sweep_results.append(
+                {
+                    "target": entry["target"],
+                    "case_id": rep["meta"]["case_id"],
+                    "exposure_score": rep["intelligence_synthesis"]["exposure_score"],
+                    "surface_delta": rep.get("surface_delta"),
+                }
+            )
+        print(json.dumps({"swept_count": len(sweep_results), "results": sweep_results}, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.diff_cases:
+        d_base = _resolve_case_dir(args.diff_cases[0], cases_dir=args.cases_dir)
+        d_curr = _resolve_case_dir(args.diff_cases[1], cases_dir=args.cases_dir)
+        r_base = json.loads((d_base / "report.json").read_text(encoding="utf-8"))
+        r_curr = json.loads((d_curr / "report.json").read_text(encoding="utf-8"))
+        print(json.dumps(compute_case_delta(r_base, r_curr), indent=2, ensure_ascii=False))
         return 0
 
     if args.list_cases:
@@ -225,6 +291,7 @@ def main() -> int:
                 user_confirmation=user_conf,
                 active_modules=mod_list,
                 enforce_turn_delay=enforce_delay,
+                diff_last=args.diff_last,
             )
         except ActiveAuthorizationError as exc:
             print(f"[ACTIVE GATE ERROR] {exc}", file=sys.stderr)
@@ -239,6 +306,7 @@ def main() -> int:
             save_case=not args.no_save,
             cases_dir=args.cases_dir,
             mode="passive",
+            diff_last=args.diff_last,
         )
 
     if args.json:
@@ -256,7 +324,10 @@ def main() -> int:
         print(f"    - {cdir}/report.html       (Standalone Dark-Mode Executive HTML + SVG Map)")
         print(f"    - {cdir}/report.json       (Machine-Readable Full Telemetry + Synthesis)")
         print(f"    - {cdir}/entities.csv      (Excel / Maltego / Gephi Spreadsheet Export)")
-        print(f"    - {cdir}/graph.json        (Entity Nodes & Pivot Edges)")
+        print(f"    - {cdir}/graph.gexf        (Gephi 1.3 Link-Analysis Graph + RGB Colors)")
+        print(f"    - {cdir}/graph.graphml     (yEd / Cytoscape / NetworkX GraphML)")
+        print(f"    - {cdir}/neo4j.cypher      (Neo4j Graph DB MERGE Import Script)")
+        print(f"    - {cdir}/obsidian/         (Obsidian [[WikiLink]] Knowledge Vault)")
         print(f"    - {cdir}/stix2_bundle.json (OASIS STIX 2.1 CTI Bundle)")
         print(f"    - {cdir}/manifest.sha256   (SHA-256 Chain-of-Custody Hashes)")
         print("=" * 78)

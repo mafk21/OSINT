@@ -68,6 +68,8 @@ SOCIAL_PATH_PATTERNS = [
     (re.compile(r"^https?://(?:www\.)?linkedin\.com/in/([a-zA-Z0-9_-]{2,60})(?:/.*)?$"), "linkedin"),
     (re.compile(r"^https?://(?:www\.)?npmjs\.com/~([a-zA-Z0-9._-]+)$"), "npm"),
     (re.compile(r"^https?://pypi\.org/user/([a-zA-Z0-9._-]+)/?$"), "pypi"),
+    (re.compile(r"^https?://(?:www\.)?bsky\.app/profile/([a-zA-Z0-9_.-]{3,60})(?:/.*)?$"), "bluesky"),
+    (re.compile(r"^https?://(?:www\.)?huggingface\.co/([a-zA-Z0-9_.-]{2,42})/?$"), "huggingface"),
 ]
 
 SOCIAL_URL_RESERVED = {
