@@ -940,7 +940,7 @@ def build_skills_and_packages(
 
     hunter_skill_md = """---
 name: osint-hunter
-description: Autonomous OSINT recon and investigation engine. Use whenever the user provides a username, handle, email, phone number, domain, IP, ASN, URL, crypto wallet, 17-char VIN, aircraft ICAO hex, vessel IMO or MMSI, Wi-Fi BSSID, file hash, JWT, or local file to investigate. Executes 35+ passive collectors and offline decoders immediately on Turn 1 with zero clarifying questions, and enforces a mandatory human permission gate before running Active OSINT probes.
+description: Autonomous multi-stage OSINT recon and investigation engine. Use whenever the user provides a username, handle, email, phone number, domain, IP, ASN, URL, crypto wallet, 17-char VIN, aircraft ICAO hex, vessel IMO or MMSI, Wi-Fi BSSID, file hash, JWT, or local file to investigate. Executes 35+ passive collectors immediately on Turn 1 with zero clarifying questions, analyzes every stage to recursively hunt all newly discovered clues until surface convergence, and enforces a mandatory human permission gate before running 22 Active OSINT probes.
 license: MIT
 compatibility: Python 3.9+ standard library only (zero pip dependencies). Works standalone from any working directory in Claude Code, Codex, Cursor, Claude.ai, and 75+ agents.
 ---
@@ -964,38 +964,45 @@ fi
 
 ---
 
-## Law 1: Passive OSINT — Immediate Turn-1 Execution (Zero Questions)
+## Law 1 & Law 2: Immediate Passive Start + Exhaustive Multi-Stage Surface Expansion
 
 When the user supplies **any target** (handle, email, phone, domain, IP, ASN, URL, wallet, VIN, aircraft hex, vessel IMO/MMSI, BSSID, SHA-256, JWT, or local file):
 
-1. **DO NOT ask clarifying questions.** Do not ask "Would you like me to investigate?" or "Which tools should I use?".
-2. **Immediately run Passive OSINT** on Turn 1:
+1. **DO NOT ask clarifying questions.** Never stop after finding just 1 profile or 1 clue in a stage.
+2. **Stage 1 — Exhaustive Seed Hunt** (runs up to 4 stages automatically across all collectors & handle variants, 0 packets sent to target servers):
    ```bash
-   python3 "$HUNT_PY" "<target_or_prompt>" --depth 2
+   python3 "$HUNT_PY" "<target_or_prompt>" --depth 4
    ```
-3. **Zero packets are sent to target-owned infrastructure** in Passive Mode. All 35+ collectors query passive public APIs (GitHub commit/SSH/PGP packet carving, npm/PyPI, DoH, `crt.sh`, RDAP, Wayback CDX, Shodan InternetDB, RIPEstat, Nominatim, Bitcoin/EVM RPC) and deterministic offline decoders (ITU E.164, ICAO 24-bit military/country hex, ITU MID/IMO checksum, ISO 3779 VIN, IEEE OUI/BSSID, JWT, EXIF GPS, PDF/DOCX/ZIP metadata).
-4. Present a structured **Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, `manifest.sha256`), entity pivots discovered, and target-forged search dorks.
+3. **Stage 2..N — Ingest Web/Search Findings & Hunt EVERY Newly Carved Clue Until Convergence**:
+   - Run **all** forged search dorks (`report["forged_dorks"]`) via `web_search` / `fetch_page` to gather every bio, Linktree, WhatsApp `wa.me` phone, email, real name, company/clinic, and domain in Stage 1.
+   - Feed **all** gathered text/snippets back into the case analyzer so it carves **every** new clue and hunts **all** of them across subsequent stages:
+     ```bash
+     python3 "$HUNT_PY" --resume-case <CASE_ID> --ingest-file <stage_findings.txt>
+     ```
+   - Repeat for any newly forged Stage-2/3 dorks until a stage yields **0 new unvisited target leads (`converged: true`)**.
+4. Present the unified **Multi-Stage Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.json`, `graph.json`, `stix2_bundle.json`, `manifest.sha256`).
 
 ---
 
-## Law 2: Active OSINT — ALWAYS Ask User Permission Before Every Run (Hard Gate)
+## Law 3: Active OSINT — ALWAYS Ask User Permission Before Every Run (Hard Gate)
 
-Active OSINT sends **direct TCP/TLS/HTTP/DNS packets** to target infrastructure (`:443` X.509 SANs, live HTTP/CSP/analytics headers, `/robots.txt`, `/.well-known/security.txt`, OpenID tenant config, Shodan `mmh3` `/favicon.ico` hash, OpenGraph/JSON-LD `sameAs`, TCP service banners).
+Active OSINT sends **direct TCP/TLS/HTTP/DNS/SMTP/SSH packets** across **22 built-in live probes** to target infrastructure.
 
-**Even if the user explicitly asks for "active recon", "deep scan", or "live probe", you MUST ask for confirmation before EVERY single active run:**
+**Even if the user explicitly asks for "full OSINT", "active recon", or "deep scan", you MUST ask for confirmation before EVERY single active run:**
 
-1. **Step 1 — Prepare Single-Use Authorization Token (Sends ZERO Packets)**:
+1. **Step 1 — Prepare Single-Use Authorization Token Across the Full Discovered Surface (Sends ZERO Packets)**:
    ```bash
-   python3 "$HUNT_PY" "<target>" --prepare-active
+   python3 "$HUNT_PY" --prepare-active --from-case <CASE_ID>
    ```
+   *(Or `python3 "$HUNT_PY" "<target>" --prepare-active`.)*
 2. **Step 2 — Stop & Ask the User for Explicit Permission**:
    Use your platform's question/confirmation UI (e.g. `ask_user`) or ask clearly in chat, disclosing:
-   - Exact target host(s) / IP(s) to be contacted directly
+   - Single-use Request ID (`ACT-XXXXXXXX`) & all discovered target hosts/IPs/handles in scope
    - Planned active probing modules (from `--prepare-active` output)
    - OPSEC warning (target servers/WAF/IDS will log this machine's egress IP and TLS fingerprint)
 3. **Step 3 — Execute ONLY After Explicit User Approval**:
    ```bash
-   python3 "$HUNT_PY" "<target>" --active --request-id ACT-XXXXXXXX --user-approved "<verbatim_user_reply>"
+   python3 "$HUNT_PY" "<target_from_plan>" --active --request-id ACT-XXXXXXXX --user-approved "<verbatim_user_reply>"
    ```
    Each `ACT-XXXXXXXX` token is **single-use**, **target-bound**, and expires in 15 minutes. A new active run always requires a fresh `--prepare-active` + fresh user approval.
 

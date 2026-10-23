@@ -24,7 +24,7 @@ from osint_hunter.approval import (  # noqa: E402
     prepare_active_request,
     verify_and_consume_approval,
 )
-from osint_hunter.classify import extract_selectors  # noqa: E402
+from osint_hunter.classify import extract_selectors, generate_handle_variants  # noqa: E402
 from osint_hunter.engine import run_autonomous_hunt  # noqa: E402
 from osint_hunter.offline_intel import (  # noqa: E402
     decode_aircraft_hex,
@@ -49,13 +49,18 @@ def main() -> int:
     assert len(ACTIVE_MODULES_CATALOG) == 22, f"Expected 22 active modules, got {len(ACTIVE_MODULES_CATALOG)}"
     assert set(ACTIVE_MODULES_CATALOG.keys()) == set(MODULE_DISPATCH.keys()), "Active catalog/dispatch mismatch!"
 
-    # 2. Multi-selector extraction test
+    # 2. Multi-selector & labeled social-handle extraction test
     sels = extract_selectors(
         "Investigate @torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000, BSSID 60:60:1F:AA:BB:CC"
     )
     found_types = {s["type"] for s in sels}
     expected = {"username", "phone", "aircraft_hex", "vessel_imo", "vin", "mac_bssid"}
     assert expected.issubset(found_types), f"Missing selector types: {expected - found_types}"
+
+    insta_sels = extract_selectors("do a full OSINT on insta username: dr.sample_handle")
+    assert len(insta_sels) == 1 and insta_sels[0]["type"] == "username" and insta_sels[0]["value"] == "dr.sample_handle"
+    h_vars = generate_handle_variants("dr.sample_handle")
+    assert "dr_sample_handle" in h_vars and "sample_handle" in h_vars
 
     # 3. Offline intelligence decoders
     assert decode_phone("+966501234567")["country"] == "Saudi Arabia"
@@ -109,7 +114,12 @@ def main() -> int:
     assert init_res and "result" in init_res
     tools_res = process_rpc({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     mcp_names = {t["name"] for t in tools_res["result"]["tools"]}
-    assert {"osint_auto_hunt", "osint_prepare_active_hunt", "osint_execute_active_hunt"}.issubset(mcp_names)
+    assert {
+        "osint_auto_hunt",
+        "osint_ingest_and_expand_case",
+        "osint_prepare_active_hunt",
+        "osint_execute_active_hunt",
+    }.issubset(mcp_names)
 
     # 6. Agent Skills, Claude/Codex Plugin Marketplaces & Standalone Out-of-Repo Zip Isolation Test
     assert not (ROOT / "SKILL.md").exists(), "Root SKILL.md must not exist (blocks npx skills subdir discovery)"
@@ -171,6 +181,48 @@ def main() -> int:
         assert p_passive.returncode == 0, f"Standalone passive skill failed: {p_passive.stderr}"
         created_cases = list((work_cwd / "cases").glob("*"))
         assert len(created_cases) == 1 and (created_cases[0] / "stix2_bundle.json").is_file()
+
+        # Verify standalone multi-stage resume + exhaustive carving hunts EVERY discovered clue!
+        case_dir_created = created_cases[0]
+        p_expand = subprocess.run(
+            [
+                sys.executable,
+                str(hunt_script),
+                "--resume-case",
+                str(case_dir_created),
+                "--depth",
+                "2",
+                "--ingest-text",
+                "Full Name: Dr Sample Investigator | Clinic: Horizon Diagnostics Group | https://wa.me/966559876543 | https://linktr.ee/dr.sample_bio | contact [at] horizondiagnostics-example [dot] org",
+            ],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert p_expand.returncode == 0, f"Multi-stage --resume-case failed: {p_expand.stderr}"
+        exp_rep = json.loads((case_dir_created / "report.json").read_text(encoding="utf-8"))
+        exp_types = {n["type"] for n in exp_rep["graph"]["nodes"]}
+        for req_t in ("person_name", "company", "phone", "username", "email", "domain", "url"):
+            assert req_t in exp_types, f"Multi-stage analyzer missed clue type '{req_t}' (got {exp_types})"
+        hunted_waves = {(w["type"], w["value"]) for w in exp_rep["wave_results"]}
+        assert ("phone", "+966559876543") in hunted_waves, "Phone lead was carved but not hunted in Stage 2!"
+        assert ("email", "contact@horizondiagnostics-example.org") in hunted_waves, "Email lead was carved but not hunted!"
+        assert ("domain", "horizondiagnostics-example.org") in hunted_waves, "Domain lead was carved but not hunted!"
+
+        # Verify --prepare-active --from-case covers the full multi-stage discovered surface!
+        p_prep_full = subprocess.run(
+            [sys.executable, str(hunt_script), "--prepare-active", "--from-case", str(case_dir_created), "--json"],
+            cwd=str(work_cwd),
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert p_prep_full.returncode == 0
+        prep_plan = json.loads(p_prep_full.stdout)
+        assert "horizondiagnostics-example.org" in prep_plan["target"]
 
         # Verify standalone osint-hunter blocks unapproved --active with exit code 2
         p_active_block = subprocess.run(

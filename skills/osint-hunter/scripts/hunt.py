@@ -31,7 +31,11 @@ from osint_hunter.approval import (  # noqa: E402
     ActiveAuthorizationError,
     prepare_active_request,
 )
-from osint_hunter.engine import run_autonomous_hunt  # noqa: E402
+from osint_hunter.engine import (  # noqa: E402
+    expand_existing_case,
+    get_case_active_target_string,
+    run_autonomous_hunt,
+)
 
 
 def _print_approval_prompt_sheet(plan: dict) -> None:
@@ -58,9 +62,13 @@ def main() -> int:
         prog="hunt.py",
         description="OSINT Hunter — Instant Passive Mode + User-Gated Active Recon Mode",
     )
-    parser.add_argument("target", nargs="+", help="Any selector, URL, file path, or natural-language prompt")
-    parser.add_argument("-d", "--depth", type=int, default=2, choices=[1, 2, 3], help="Recursive pivot depth (default: 2)")
-    parser.add_argument("-m", "--max-pivots", type=int, default=6, help="Max new selectors pivoted per wave (default: 6)")
+    parser.add_argument("target", nargs="*", help="Any selector, URL, file path, or natural-language prompt")
+    parser.add_argument("-d", "--depth", type=int, default=4, choices=[1, 2, 3, 4, 5, 6], help="Max exhaustive stages before stopping if not yet converged (default: 4)")
+    parser.add_argument("-m", "--max-pivots", type=int, default=50, help="Max new leads hunted per stage (default: 50 — hunts every lead)")
+    parser.add_argument("--resume-case", help="Existing CASE_ID or case directory to expand with newly ingested stage findings")
+    parser.add_argument("--from-case", help="Build --prepare-active target scope from ALL entities discovered in an existing CASE_ID")
+    parser.add_argument("--ingest-text", help="Unstructured findings (e.g. web_search snippets, bios, Linktree text) to carve & hunt")
+    parser.add_argument("--ingest-file", help="Path to text/markdown/json file of external stage findings to carve & hunt")
     parser.add_argument("--cases-dir", help="Custom output directory for forensic case bundles")
     parser.add_argument("--no-save", action="store_true", help="Do not write dossier/STIX artifacts to cases/")
     parser.add_argument("--json", action="store_true", help="Print structured JSON output")
@@ -86,6 +94,39 @@ def main() -> int:
 
     raw_target = " ".join(args.target).strip()
     mod_list = [m.strip() for m in args.active_modules.split(",") if m.strip()] if args.active_modules else None
+
+    ingested_parts: list[str] = []
+    if args.ingest_text:
+        ingested_parts.append(args.ingest_text)
+    if args.ingest_file:
+        ingested_parts.append(Path(args.ingest_file).read_text(encoding="utf-8", errors="replace"))
+    combined_ingested = "\n\n".join(ingested_parts).strip() or None
+
+    # Resume & expand an existing multi-stage case with external findings (e.g. web_search / fetch_page)
+    if args.resume_case:
+        if not combined_ingested and raw_target:
+            combined_ingested = raw_target
+        if not combined_ingested:
+            parser.error("--resume-case requires --ingest-text, --ingest-file, or trailing text findings")
+        report = expand_existing_case(
+            args.resume_case,
+            ingested_text=combined_ingested,
+            additional_stages=args.depth,
+            max_pivots_per_wave=args.max_pivots,
+            cases_dir=args.cases_dir,
+        )
+        if args.json:
+            out = {k: v for k, v in report.items() if k != "dossier_markdown"}
+            print(json.dumps(out, indent=2, ensure_ascii=False))
+            return 0
+        print(report["dossier_markdown"])
+        return 0
+
+    if args.from_case and not raw_target:
+        raw_target = get_case_active_target_string(args.from_case, cases_dir=args.cases_dir)
+
+    if not raw_target:
+        parser.error("Provide a target selector/prompt, --resume-case, or --from-case")
 
     # Step 1: Explicit --prepare-active
     if args.prepare_active:
@@ -150,11 +191,12 @@ def main() -> int:
             print(f"[ACTIVE GATE ERROR] {exc}", file=sys.stderr)
             return 2
     else:
-        # Default Passive Mode — Instant, Zero Questions!
+        # Default Passive Mode — Instant, Zero Questions, Exhaustive Multi-Stage Convergence!
         report = run_autonomous_hunt(
             raw_target,
             depth=args.depth,
             max_pivots_per_wave=args.max_pivots,
+            ingested_evidence_text=combined_ingested,
             save_case=not args.no_save,
             cases_dir=args.cases_dir,
             mode="passive",

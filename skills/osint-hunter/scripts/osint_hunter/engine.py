@@ -17,6 +17,10 @@ from .classify import extract_selectors
 from .collectors import collect_for_selector
 from .offline_intel import INTEL_TABLES
 from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
+from .stage_analyzer import (
+    analyze_stage_and_extract_leads,
+    forge_exhaustive_dorks_for_entities,
+)
 
 with (DATA_DIR / "tools.json").open("r", encoding="utf-8") as _f:
     ALL_TOOLS = json.load(_f)
@@ -275,7 +279,7 @@ def render_markdown_dossier(report: dict) -> str:
         f"- **Generated (UTC)**: `{meta['timestamp_utc']}`",
         f"- **Raw Target Input**: `{meta['raw_input']}`",
         f"- **OPSEC Posture**: {opsec_line}",
-        f"- **Execution Depth**: `{meta['depth']}` wave(s) · `{meta['duration_seconds']}s` elapsed · `{len(report['graph']['nodes'])}` entity node(s) · `{len(report['graph']['edges'])}` pivot edge(s)",
+        f"- **Multi-Stage Surface Expansion**: `{meta.get('stages_executed', meta['depth'])}` stage(s) executed (max `{meta['depth']}`) · Converged: `{meta.get('converged', False)}` · `{meta['duration_seconds']}s` elapsed · `{len(report['graph']['nodes'])}` entity node(s) · `{len(report['graph']['edges'])}` pivot edge(s)",
     ]
     if is_active:
         lines.append(f"- **User Authorization Audit**: Request `{meta.get('approval_request_id')}` · Confirmation: `\"{meta.get('user_confirmation', '')}\"`")
@@ -285,15 +289,29 @@ def render_markdown_dossier(report: dict) -> str:
         "",
         "## 1. Confirmed & Discovered Entity Graph",
         "",
-        "| Wave | Selector Type | Value | Discovered Via |",
+        "| Stage | Selector Type | Value | Discovered Via |",
         "| :---: | :--- | :--- | :--- |",
     ])
     edge_lookup = {e["target"]: f"`{e['source']}` via `{e['via']}`" for e in report["graph"]["edges"]}
     for n in report["graph"]["nodes"]:
-        origin = "Initial Seed" if n["wave"] == 1 else edge_lookup.get(n["id"], "Autonomous Pivot")
-        lines.append(f"| `{n['wave']}` | **`{n['type']}`** | `{n['value']}` | {origin} |")
+        origin = "Initial Seed" if n["wave"] == 1 else edge_lookup.get(n["id"], n.get("note") or "Stage Analyzer Pivot")
+        lines.append(f"| `Stage {n['wave']}` | **`{n['type']}`** | `{n['value']}` | {origin} |")
 
-    lines.extend(["", "---", "", "## 2. Collector Findings by Entity", ""])
+    stage_logs = report.get("stage_analyses") or []
+    if stage_logs:
+        lines.extend(["", "---", "", "## 1B. Multi-Stage Analyzer & Surface-Expansion Log", ""])
+        for st_log in stage_logs:
+            s_no = st_log["stage_analyzed"]
+            n_new = st_log["new_leads_count"]
+            by_t = ", ".join(f"`{k}`×{v}" for k, v in st_log["new_leads_by_type"].items()) or "none"
+            variants = st_log.get("handle_variants_generated") or []
+            var_note = f" · Handle variants: `{', '.join(variants)}`" if variants else ""
+            status_badge = "✅ **CONVERGED (0 new unvisited leads)**" if n_new == 0 else f"🔄 **Carved {n_new} new lead(s)** ({by_t}) → hunted in Stage {s_no + 1}"
+            lines.append(
+                f"- **Stage {s_no}** (`{st_log['entities_analyzed_in_stage']}` entities hunted, `{st_log.get('filtered_infra_noise_count', 0)}` CDN/CA noise filtered{var_note}): {status_badge}"
+            )
+
+    lines.extend(["", "---", "", "## 2. Collector Findings by Stage & Entity", ""])
     for item in report["wave_results"]:
         lines.append(f"### 🔹 `[{item['type']}]` `{item['value']}` *(Wave {item['wave']})*")
         for mod in item["collector_outputs"]:
@@ -319,9 +337,10 @@ def render_markdown_dossier(report: dict) -> str:
         lines.extend(["```", ""])
 
     if report["forged_dorks"]:
-        lines.extend(["---", "", "## 4. Target-Forged Search Engine Dorks", ""])
-        for d in report["forged_dorks"][:10]:
-            lines.append(f"- **[{d['engine']}] {d['title']}**: `{d['query']}`")
+        lines.extend(["---", "", "## 4. Target-Forged Multi-Stage Search Engine Dorks", ""])
+        for d in report["forged_dorks"][:28]:
+            tgt_tag = f" (`{d['target']}`)" if d.get("target") else ""
+            lines.append(f"- **[{d['engine']}] {d['title']}**{tgt_tag}: `{d['query']}`")
         lines.append("")
 
     lines.extend(["---", "", f"## 5. Recommended Passive S-Tier Tools from {len(ALL_TOOLS)}-Tool Arsenal", ""])
@@ -355,11 +374,141 @@ def render_markdown_dossier(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _write_case_artifacts(case_dir: Path, report: dict, dossier_md: str, stix_bundle: dict) -> None:
+    case_dir.mkdir(parents=True, exist_ok=True)
+    ref_root = PKG_PARENT if IS_REPO_MODE else Path.cwd()
+    try:
+        report["meta"]["case_dir"] = str(case_dir.relative_to(ref_root))
+    except ValueError:
+        report["meta"]["case_dir"] = str(case_dir)
+
+    (case_dir / "dossier.md").write_text(dossier_md, encoding="utf-8")
+    (case_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (case_dir / "graph.json").write_text(json.dumps(report["graph"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (case_dir / "stix2_bundle.json").write_text(json.dumps(stix_bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    manifest_lines = []
+    for artifact in ("dossier.md", "report.json", "graph.json", "stix2_bundle.json"):
+        digest = hashlib.sha256((case_dir / artifact).read_bytes()).hexdigest()
+        manifest_lines.append(f"{digest}  {artifact}")
+    (case_dir / "manifest.sha256").write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
+
+
+def _execute_stage_loop(
+    *,
+    current_queue: list[tuple[str, str]],
+    start_stage: int,
+    max_stage: int,
+    max_pivots_per_wave: int,
+    max_total_entities: int,
+    visited: set[str],
+    nodes: list[dict],
+    edges: list[dict],
+    wave_results: list[dict],
+    stage_analyses: list[dict],
+    values_by_type: dict[str, list[str]],
+    is_active: bool,
+    enabled_active_mods: list[str],
+    initial_ingested_evidence: list[dict] | None = None,
+    expand_handle_variants: bool = True,
+) -> tuple[int, bool]:
+    """Run exhaustive breadth-first OSINT stage after stage until 0 new leads remain or max_stage is reached."""
+    stages_executed = 0
+    converged = False
+    seen_edges = {(e["source"], e["target"], e["via"]) for e in edges}
+
+    for wave_num in range(start_stage, max_stage + 1):
+        if not current_queue:
+            converged = True
+            break
+
+        stages_executed += 1
+
+        def _exec_one(item: tuple[str, str]):
+            st, sv = item
+            outs = collect_for_selector(st, sv)
+            if is_active:
+                outs = outs + collect_active_for_selector(st, sv, enabled_active_mods)
+            return st, sv, outs
+
+        stage_items: list[dict] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(current_queue))) as pool:
+            for stype, sval, collector_outs in pool.map(_exec_one, current_queue):
+                rec = {
+                    "wave": wave_num,
+                    "type": stype,
+                    "value": sval,
+                    "collector_outputs": collector_outs,
+                }
+                wave_results.append(rec)
+                stage_items.append(rec)
+
+        stage_ev = initial_ingested_evidence if wave_num == start_stage else None
+        analysis = analyze_stage_and_extract_leads(
+            stage_num=wave_num,
+            stage_items=stage_items,
+            visited=visited,
+            ingested_evidence=stage_ev,
+            expand_handle_variants=expand_handle_variants,
+        )
+
+        for e in analysis["edges"]:
+            ekey = (e["source"], e["target"], e["via"])
+            if ekey not in seen_edges:
+                seen_edges.add(ekey)
+                edges.append({"source": e["source"], "target": e["target"], "via": e["via"]})
+
+        leads = analysis["leads"]
+        queued_next: list[tuple[str, str]] = []
+        if not leads:
+            converged = True
+        elif wave_num < max_stage:
+            for ld in leads:
+                if len(nodes) >= max_total_entities or len(queued_next) >= max_pivots_per_wave:
+                    break
+                dst_id = ld["id"]
+                if dst_id in visited:
+                    continue
+                visited.add(dst_id)
+                nodes.append(
+                    {
+                        "id": dst_id,
+                        "type": ld["type"],
+                        "value": ld["value"],
+                        "wave": wave_num + 1,
+                        "note": f"Stage {wave_num} -> {ld['via']}",
+                    }
+                )
+                values_by_type.setdefault(ld["type"], []).append(ld["value"])
+                queued_next.append((ld["type"], ld["value"]))
+
+        stage_analyses.append(
+            {
+                "stage_analyzed": wave_num,
+                "entities_analyzed_in_stage": analysis["entities_analyzed_in_stage"],
+                "ingested_evidence_blocks": analysis["ingested_evidence_blocks"],
+                "new_leads_count": analysis["new_leads_count"],
+                "new_leads_by_type": analysis["new_leads_by_type"],
+                "handle_variants_generated": analysis["handle_variants_generated"],
+                "filtered_infra_noise_count": analysis["filtered_infra_noise_count"],
+                "queued_for_next_stage": len(queued_next),
+            }
+        )
+        current_queue = queued_next
+        if converged:
+            break
+
+    return stages_executed, converged
+
+
 def run_autonomous_hunt(
     raw_input: str,
     *,
-    depth: int = 2,
-    max_pivots_per_wave: int = 6,
+    depth: int = 4,
+    max_pivots_per_wave: int = 50,
+    max_total_entities: int = 100,
+    expand_handle_variants: bool = True,
+    ingested_evidence_text: str | None = None,
     save_case: bool = True,
     cases_dir: str | Path | None = None,
     cwd: str | None = None,
@@ -369,9 +518,11 @@ def run_autonomous_hunt(
     active_modules: list[str] | None = None,
     enforce_turn_delay: bool = True,
 ) -> dict:
-    """Execute an OSINT hunt.
+    """Execute an exhaustive multi-stage OSINT hunt until surface convergence.
 
     - `mode="passive"` (default): Zero questions, immediate execution, zero direct target packets.
+      Exhaustively hunts Stage 1, analyzes ALL findings to carve EVERY new clue, hunts ALL new clues
+      in Stage 2 -> Stage 3 -> Stage N until 0 new leads appear (or `depth` / `max_total_entities`).
     - `mode="active"`: HARD GATED — requires single-use `approval_request_id` + explicit `user_confirmation`.
     """
     is_active = mode.lower() == "active"
@@ -392,7 +543,8 @@ def run_autonomous_hunt(
         )
 
     t0 = time.monotonic()
-    depth = max(1, min(int(depth), 3))
+    depth = max(1, min(int(depth), 6))
+    max_pivots_per_wave = max(1, min(int(max_pivots_per_wave), 200))
     seeds = extract_selectors(raw_input, cwd=cwd)
     if not seeds:
         seeds = [{"type": "keyword", "value": raw_input.strip()[:100], "confidence": 0.5, "note": "Fallback keyword"}]
@@ -406,6 +558,7 @@ def run_autonomous_hunt(
     nodes: list[dict] = []
     edges: list[dict] = []
     wave_results: list[dict] = []
+    stage_analyses: list[dict] = []
     values_by_type: dict[str, list[str]] = {}
 
     current_queue: list[tuple[str, str]] = []
@@ -417,65 +570,32 @@ def run_autonomous_hunt(
             values_by_type.setdefault(s["type"], []).append(s["value"])
             current_queue.append((s["type"], s["value"]))
 
-    PIVOT_PRIORITY = {"email": 0, "domain": 1, "username": 2, "ip": 3, "crypto_address": 4, "coordinates": 5, "repo_code": 6, "asn": 7, "mac_bssid": 8, "url": 9}
-
-    for wave_num in range(1, depth + 1):
-        if not current_queue:
-            break
-
-        def _exec_one(item: tuple[str, str]):
-            st, sv = item
-            outs = collect_for_selector(st, sv)
-            if is_active:
-                outs = outs + collect_active_for_selector(st, sv, enabled_active_mods)
-            return st, sv, outs
-
-        next_candidates: list[tuple[int, str, str, str, str]] = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(6, len(current_queue))) as pool:
-            for stype, sval, collector_outs in pool.map(_exec_one, current_queue):
-                src_id = f"{stype}:{sval.lower()}"
-                wave_results.append(
-                    {
-                        "wave": wave_num,
-                        "type": stype,
-                        "value": sval,
-                        "collector_outputs": collector_outs,
-                    }
-                )
-                for mod_res in collector_outs:
-                    for piv in mod_res.get("pivots") or []:
-                        pt, pv = piv["type"], str(piv["value"]).strip()
-                        if not pv:
-                            continue
-                        dst_id = f"{pt}:{pv.lower()}"
-                        edges.append({"source": src_id, "target": dst_id, "via": mod_res["module"]})
-                        if dst_id not in visited:
-                            prio = PIVOT_PRIORITY.get(pt, 99)
-                            next_candidates.append((prio, pt, pv, dst_id, mod_res["module"]))
-
-        # Deduplicate & cap pivots for next wave
-        next_candidates.sort(key=lambda x: x[0])
-        current_queue = []
-        if wave_num < depth:
-            for _, pt, pv, dst_id, via_mod in next_candidates:
-                if dst_id in visited:
-                    continue
-                visited.add(dst_id)
-                nodes.append({"id": dst_id, "type": pt, "value": pv, "wave": wave_num + 1, "note": f"Pivoted via {via_mod}"})
-                values_by_type.setdefault(pt, []).append(pv)
-                if pt in PIVOT_PRIORITY:
-                    current_queue.append((pt, pv))
-                if len(current_queue) >= max_pivots_per_wave:
-                    break
-
-    dork_seeds = (
-        values_by_type.get("domain", [])
-        + values_by_type.get("company", [])
-        + values_by_type.get("username", [])
-        + values_by_type.get("email", [])
-        + values_by_type.get("person_name", [])
+    ev_blocks = (
+        [{"source_id": f"{seeds[0]['type']}:{seeds[0]['value'].lower()}", "label": "ingested_evidence", "text": ingested_evidence_text}]
+        if ingested_evidence_text and ingested_evidence_text.strip()
+        else None
     )
-    forged_dorks = forge_dorks_for_targets(dork_seeds, limit=14)
+
+    stages_executed, converged = _execute_stage_loop(
+        current_queue=current_queue,
+        start_stage=1,
+        max_stage=depth,
+        max_pivots_per_wave=max_pivots_per_wave,
+        max_total_entities=max_total_entities,
+        visited=visited,
+        nodes=nodes,
+        edges=edges,
+        wave_results=wave_results,
+        stage_analyses=stage_analyses,
+        values_by_type=values_by_type,
+        is_active=is_active,
+        enabled_active_mods=enabled_active_mods,
+        initial_ingested_evidence=ev_blocks,
+        expand_handle_variants=expand_handle_variants,
+    )
+
+    all_entities = [(n["type"], n["value"]) for n in nodes]
+    forged_dorks = forge_exhaustive_dorks_for_entities(all_entities, ALL_DORKS, max_total=60)
     arsenal = recommend_arsenal_for_selectors(list(values_by_type.keys()), values_by_type, include_active=is_active)
     elapsed = round(time.monotonic() - t0, 2)
 
@@ -485,6 +605,8 @@ def run_autonomous_hunt(
             "timestamp_utc": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "raw_input": raw_input,
             "depth": depth,
+            "stages_executed": stages_executed,
+            "converged": converged,
             "duration_seconds": elapsed,
             "opsec_mode": "Active+Passive" if is_active else "Passive",
             "approval_request_id": approved_record["request_id"] if approved_record else None,
@@ -494,6 +616,7 @@ def run_autonomous_hunt(
         },
         "initial_selectors": seeds,
         "graph": {"nodes": nodes, "edges": edges},
+        "stage_analyses": stage_analyses,
         "wave_results": wave_results,
         "forged_dorks": forged_dorks,
         "arsenal": arsenal,
@@ -505,23 +628,147 @@ def run_autonomous_hunt(
     if save_case:
         base_cases_dir = get_cases_dir(cases_dir)
         case_dir = base_cases_dir / case_id
-        case_dir.mkdir(parents=True, exist_ok=True)
-        ref_root = PKG_PARENT if IS_REPO_MODE else Path.cwd()
-        try:
-            report["meta"]["case_dir"] = str(case_dir.relative_to(ref_root))
-        except ValueError:
-            report["meta"]["case_dir"] = str(case_dir)
-
-        (case_dir / "dossier.md").write_text(dossier_md, encoding="utf-8")
-        (case_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        (case_dir / "graph.json").write_text(json.dumps(report["graph"], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        (case_dir / "stix2_bundle.json").write_text(json.dumps(stix_bundle, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-        manifest_lines = []
-        for artifact in ("dossier.md", "report.json", "graph.json", "stix2_bundle.json"):
-            digest = hashlib.sha256((case_dir / artifact).read_bytes()).hexdigest()
-            manifest_lines.append(f"{digest}  {artifact}")
-        (case_dir / "manifest.sha256").write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
+        _write_case_artifacts(case_dir, report, dossier_md, stix_bundle)
 
     report["dossier_markdown"] = dossier_md
     return report
+
+
+def _resolve_case_dir(case_id_or_dir: str | Path, cases_dir: str | Path | None = None) -> Path:
+    cand = Path(case_id_or_dir)
+    if cand.is_dir() and (cand / "report.json").is_file():
+        return cand
+    base = get_cases_dir(cases_dir)
+    by_id = base / str(case_id_or_dir)
+    if by_id.is_dir() and (by_id / "report.json").is_file():
+        return by_id
+    raise FileNotFoundError(f"Case directory or report.json not found for '{case_id_or_dir}'")
+
+
+def expand_existing_case(
+    case_id_or_dir: str | Path,
+    *,
+    ingested_text: str,
+    additional_stages: int = 3,
+    max_pivots_per_wave: int = 50,
+    max_total_entities: int = 120,
+    cases_dir: str | Path | None = None,
+) -> dict:
+    """Ingest external stage findings (e.g. web_search / fetch_page bios, snippets, pages) into an existing case,
+    carve EVERY newly discovered clue, and hunt ALL new clues across subsequent passive stages until convergence.
+    """
+    t0 = time.monotonic()
+    case_dir = _resolve_case_dir(case_id_or_dir, cases_dir=cases_dir)
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+
+    nodes: list[dict] = report["graph"]["nodes"]
+    edges: list[dict] = report["graph"]["edges"]
+    wave_results: list[dict] = report.get("wave_results") or []
+    stage_analyses: list[dict] = report.get("stage_analyses") or []
+
+    visited: set[str] = {n["id"] for n in nodes}
+    values_by_type: dict[str, list[str]] = {}
+    for n in nodes:
+        values_by_type.setdefault(n["type"], []).append(n["value"])
+
+    last_stage = max((n.get("wave", 1) for n in nodes), default=1)
+    anchor_id = nodes[0]["id"] if nodes else "seed:case"
+
+    carve_res = analyze_stage_and_extract_leads(
+        stage_num=last_stage,
+        stage_items=[],
+        visited=visited,
+        ingested_evidence=[{"source_id": anchor_id, "label": f"stage_{last_stage}_ingested_intel", "text": ingested_text}],
+        expand_handle_variants=True,
+    )
+
+    seen_edges = {(e["source"], e["target"], e["via"]) for e in edges}
+    for e in carve_res["edges"]:
+        ekey = (e["source"], e["target"], e["via"])
+        if ekey not in seen_edges:
+            seen_edges.add(ekey)
+            edges.append({"source": e["source"], "target": e["target"], "via": e["via"]})
+
+    next_queue: list[tuple[str, str]] = []
+    next_stage_num = last_stage + 1
+    for ld in carve_res["leads"]:
+        if len(nodes) >= max_total_entities or len(next_queue) >= max_pivots_per_wave:
+            break
+        dst_id = ld["id"]
+        if dst_id in visited:
+            continue
+        visited.add(dst_id)
+        nodes.append(
+            {
+                "id": dst_id,
+                "type": ld["type"],
+                "value": ld["value"],
+                "wave": next_stage_num,
+                "note": f"Carved from ingested intel ({ld['via']})",
+            }
+        )
+        values_by_type.setdefault(ld["type"], []).append(ld["value"])
+        next_queue.append((ld["type"], ld["value"]))
+
+    stage_analyses.append(
+        {
+            "stage_analyzed": last_stage,
+            "entities_analyzed_in_stage": 0,
+            "ingested_evidence_blocks": 1,
+            "new_leads_count": carve_res["new_leads_count"],
+            "new_leads_by_type": carve_res["new_leads_by_type"],
+            "handle_variants_generated": carve_res["handle_variants_generated"],
+            "filtered_infra_noise_count": carve_res["filtered_infra_noise_count"],
+            "queued_for_next_stage": len(next_queue),
+        }
+    )
+
+    add_exec, converged = (0, True)
+    if next_queue:
+        add_exec, converged = _execute_stage_loop(
+            current_queue=next_queue,
+            start_stage=next_stage_num,
+            max_stage=last_stage + max(1, min(int(additional_stages), 5)),
+            max_pivots_per_wave=max_pivots_per_wave,
+            max_total_entities=max_total_entities,
+            visited=visited,
+            nodes=nodes,
+            edges=edges,
+            wave_results=wave_results,
+            stage_analyses=stage_analyses,
+            values_by_type=values_by_type,
+            is_active=False,
+            enabled_active_mods=[],
+            initial_ingested_evidence=None,
+            expand_handle_variants=True,
+        )
+
+    all_entities = [(n["type"], n["value"]) for n in nodes]
+    report["forged_dorks"] = forge_exhaustive_dorks_for_entities(all_entities, ALL_DORKS, max_total=80)
+    report["arsenal"] = recommend_arsenal_for_selectors(list(values_by_type.keys()), values_by_type, include_active=False)
+    report["stage_analyses"] = stage_analyses
+    report["meta"]["stages_executed"] = report["meta"].get("stages_executed", last_stage) + add_exec
+    report["meta"]["depth"] = max(report["meta"]["depth"], next_stage_num + max(0, add_exec - 1))
+    report["meta"]["converged"] = converged
+    report["meta"]["duration_seconds"] = round(report["meta"].get("duration_seconds", 0.0) + (time.monotonic() - t0), 2)
+
+    dossier_md = render_markdown_dossier(report)
+    stix_bundle = build_stix2_bundle(report["meta"]["case_id"], report["meta"]["raw_input"], nodes, edges)
+    _write_case_artifacts(case_dir, report, dossier_md, stix_bundle)
+    report["dossier_markdown"] = dossier_md
+    report["newly_hunted_entities"] = [{"type": t, "value": v} for t, v in next_queue]
+    return report
+
+
+def get_case_active_target_string(case_id_or_dir: str | Path, cases_dir: str | Path | None = None) -> str:
+    """Build a unified active-recon target string covering ALL domains, URLs, IPs, emails, and handles in a case."""
+    case_dir = _resolve_case_dir(case_id_or_dir, cases_dir=cases_dir)
+    report = json.loads((case_dir / "report.json").read_text(encoding="utf-8"))
+    parts: list[str] = []
+    for n in report["graph"]["nodes"]:
+        nt, nv = n["type"], n["value"]
+        if nt == "username":
+            parts.append(f"@{nv}")
+        elif nt in {"domain", "url", "ip", "email", "onion_url"}:
+            parts.append(nv)
+    return ", ".join(parts[:35]) or report["meta"]["raw_input"]
