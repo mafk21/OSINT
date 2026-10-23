@@ -659,6 +659,10 @@ def build_docs(categories, tools, workflows, dorks, graveyard) -> None:
 
 
 def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from osint_hunter.approval import ACTIVE_MODULES_CATALOG
+
     by_cat: dict[str, list[dict]] = defaultdict(list)
     for t in tools:
         by_cat[t["category"]].append(t)
@@ -670,163 +674,327 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
 
     passive_cnt = sum(1 for t in tools if t["opsec"] == "Passive")
     active_hyb_cnt = sum(1 for t in tools if t["opsec"] in ("Active", "Hybrid"))
+    free_cnt = sum(1 for t in tools if t["pricing"] in ("Free / Open Source", "Free"))
     oss_cnt = sum(1 for t in tools if t["github"])
     no_auth_cnt = sum(1 for t in tools if not t["auth_required"])
+    s_tier_cnt = sum(1 for t in tools if t["tier"] == "S")
+    act_mod_cnt = len(ACTIVE_MODULES_CATALOG)
 
     lines: list[str] = [
         "<div align=\"center\">",
         "",
-        "# 🛰️ OSINT MONSTER DATABASE",
+        "# 🛰️ OSINT MONSTER",
         "",
-        f"**Autonomous OSINT Hunting Engine · {len(tools)}-Tool Intelligence Arsenal · 22 Gated Active Probes · Native MCP & Skills**",
+        f"### Autonomous Multi-Stage Recon Engine · Zero-Network Forensic Decoders · {act_mod_cnt}-Probe Gated Active Recon · {len(tools)}-Tool Validated Intelligence Arsenal",
         "",
-        f"![Verified Tools](https://img.shields.io/badge/Verified_Tools-{len(tools)}-00e5ff?style=for-the-badge) "
-        f"![Passive Safe](https://img.shields.io/badge/Passive_Safe-{passive_cnt}-00e676?style=for-the-badge) "
-        f"![Active & Hybrid](https://img.shields.io/badge/Active_&_Hybrid-{active_hyb_cnt}-ff5252?style=for-the-badge) "
-        f"![Open Source](https://img.shields.io/badge/GitHub_Repos-{oss_cnt}-ffab00?style=for-the-badge) "
-        f"![Disciplines](https://img.shields.io/badge/Disciplines-{len(categories)}-7c4dff?style=for-the-badge)",
+        f"[![CI Validation](https://img.shields.io/github/actions/workflow/status/mafk21/OSINT/validate.yml?branch=main&style=for-the-badge&label=CI%20Self-Tests)](https://github.com/mafk21/OSINT/actions) "
+        f"![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B_%C2%B7_Zero_Deps-3776ab?style=for-the-badge&logo=python&logoColor=white) "
+        f"![MCP Native](https://img.shields.io/badge/MCP_Server-10_Tools-00bfa5?style=for-the-badge) "
+        f"![Agent Skills](https://img.shields.io/badge/Portable_Skills-Claude_%C2%B7_Codex_%C2%B7_75%2B-ff6d00?style=for-the-badge) "
+        f"[![MIT License](https://img.shields.io/badge/License-MIT-9ca3af?style=for-the-badge)](./LICENSE)",
         "",
-        "[**🤖 Agent Protocol**](./AGENTS.md) · "
+        f"![Verified Tools](https://img.shields.io/badge/Verified_Tools-{len(tools)}-00e5ff?style=flat-square) "
+        f"![Passive Safe](https://img.shields.io/badge/Passive_Safe-{passive_cnt}-00e676?style=flat-square) "
+        f"![Active & Hybrid](https://img.shields.io/badge/Active_%26_Hybrid-{active_hyb_cnt}-ff5252?style=flat-square) "
+        f"![Free & OSS](https://img.shields.io/badge/Free_%26_OSS-{free_cnt}-10b981?style=flat-square) "
+        f"![No-Auth Ready](https://img.shields.io/badge/Keyless_No--Auth-{no_auth_cnt}-38bdf8?style=flat-square) "
+        f"![GitHub Repos](https://img.shields.io/badge/GitHub_Backed-{oss_cnt}-ffab00?style=flat-square) "
+        f"![Search Dorks](https://img.shields.io/badge/Search_Dorks-{len(dorks)}-a855f7?style=flat-square) "
+        f"![Playbooks](https://img.shields.io/badge/Playbooks-{len(workflows)}-ec4899?style=flat-square)",
+        "",
+        "[**⚡ Quick Start**](#quick-start) · "
+        "[**🤖 Agent Skills & MCP**](#agent-skills-mcp) · "
+        "[**🧬 Collectors & Forensic Decoders**](#collectors-decoders) · "
+        "[**🖥️ Web Command Center**](#web-command-center) · "
+        f"[**📚 {len(categories)} Disciplines**](#disciplines) · "
+        "[**🧭 24-Selector Pivot Matrix**](#pivot-matrix)",
+        "",
+        "[**📜 Three-Law Agent Protocol (`AGENTS.md`)**](./AGENTS.md) · "
         "[**🧩 Skills Setup**](./docs/SKILLS_SETUP.md) · "
-        f"[**🗂️ Full {len(tools)}-Tool Index**](./docs/FULL_INDEX.md) · "
-        "[**🧭 Pivot Matrix**](./docs/PIVOT_MATRIX.md) · "
+        f"[**🗂️ Master {len(tools)}-Tool Index**](./docs/FULL_INDEX.md) · "
         f"[**🗺️ {len(workflows)} Playbooks**](./docs/WORKFLOWS.md) · "
         f"[**🎯 {len(dorks)} Dorks**](./docs/DORKS_ARSENAL.md) · "
-        "[**🪦 2026 Graveyard**](./docs/GRAVEYARD_2026.md) · "
+        f"[**🪦 {len(graveyard)} Graveyard Alerts**](./docs/GRAVEYARD_2026.md) · "
         "[**🛡️ OPSEC Guide**](./docs/OPSEC_TRADECRAFT.md)",
         "",
         "</div>",
         "",
         "---",
         "",
-        "## ⚡ What's Inside",
+        "## 🔥 Not Another Bookmark List — An Executable Intelligence Monster",
         "",
-        f"Unlike flat bookmark lists filled with dead links, **OSINT Monster Database** combines a **strictly validated {len(tools)}-tool multi-format catalog** ({no_auth_cnt} keyless/no-auth ready) with a **zero-dependency Python execution engine** (`osint_hunter/`) that AI agents, MCP hosts, and human analysts can run out of the box.",
+        f"Most OSINT repositories are unmaintained Markdown walls full of dead URLs and hijacked domains. **OSINT Monster** unifies a **schema-validated, FTS5-indexed {len(tools)}-tool intelligence arsenal** ({s_tier_cnt} S-Tier flagships, {no_auth_cnt} keyless/no-auth ready) with a **zero-dependency Python 3 autonomous hunting, forensic decoding, cross-stage correlation, and STIX 2.1 reporting engine** (`osint_hunter/`).",
         "",
-        "| Capability | Entrypoint | Highlights |",
+        "| Subsystem | Entrypoint | Operational Capabilities |",
         "| :--- | :--- | :--- |",
-        "| **🧩 Portable Agent Skills** | [`skills/`](./skills/) · [`docs/SKILLS_SETUP.md`](./docs/SKILLS_SETUP.md) | Self-contained `osint-hunter` & `osint-arsenal` skills for **Claude Code, Codex, Claude.ai, Cursor & 75+ agents** (no repo clone needed) |",
-        f"| **🤖 Multi-Stage Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | Exhaustive multi-stage surface expansion (`--depth 4..6`), 35+ passive collectors + **22 user-gated active probes**, Exposure Score (`0–100`), standalone **`report.html`**, **`entities.csv`**, Mermaid & **STIX 2.1** |",
-        "| **🧬 Forensic Decoders** | [`osint_hunter/offline_intel.py`](./osint_hunter/offline_intel.py) | **Zero-network** chronolocation & checksum decoding: **TikTok video/post UTC**, Discord/X Snowflakes, **UUIDv1/v6/v7**, ULID, MongoDB ObjectId, **IBAN (ISO 13616 + SAMA)**, E.164 (US/UK/GCC/MENA), VIN, ICAO24, IMO/MMSI, MAC/BSSID, JWT & EXIF |",
-        "| **🔌 Native MCP Server** | [`.mcp.json`](./.mcp.json) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | 10 MCP tools (`osint_auto_hunt`, `osint_ingest_and_expand_case`, `osint_forensic_decode`, `osint_compare_cases`, Active Gate) + [`openai_tools.json`](./data/openai_tools.json) |",
-        "| **🖥️ Web Command Center** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Live Multi-Stage Hunt UI, **Forensic Decoder tab**, Executive Synthesis & Exposure Score, Case Expansion bar, SVG graph, Active Auth Modal & Live Dork Forge |",
-        "| **🗃️ Multi-Format Data** | [`data/`](./data/) · [`scripts/osint.py`](./scripts/osint.py) | `tools.json`, **SQLite FTS5** (`osint.sqlite`), `tools.csv`, `tools.jsonl`, `osint.py decode/doctor`, & `pip install -e .` (`pyproject.toml`) |",
+        "| **🤖 Exhaustive Multi-Stage Hunter** | [`scripts/hunt.py`](./scripts/hunt.py) · [`osint_hunter/`](./osint_hunter/) | Breadth-first recursive hunting (`--depth 4..6`), 35+ passive collectors, stage-by-stage clue & handle-variant carving (`stage_analyzer.py`), `--resume-case` ingestion, & `0–100` Exposure Scoring |",
+        "| **🧬 Zero-Network Forensic Decoders** | [`offline_intel.py`](./osint_hunter/offline_intel.py) · `osint.py decode` | **100% offline (`0` packets)**: **TikTok upload UTC** (`id >> 32`), Discord/X Snowflakes, **UUIDv1 MAC+100ns**, UUIDv6/v7, ULID, MongoDB ObjectId, **ISO 13616 IBAN + SAMA banks**, E.164 (US/UK/GCC/MENA), VIN, ICAO24, MMSI/IMO, MAC/BSSID, JWT & EXIF GPS |",
+        f"| **🔴 {act_mod_cnt}-Probe Hard-Gated Active Recon** | [`active_collectors.py`](./osint_hunter/active_collectors.py) · [`approval.py`](./osint_hunter/approval.py) | Cryptographically gated (`ACT-XXXXXXXX` single-use tokens): DNS AXFR, SRV/M365, CNAME takeover, TLS 1.0–1.3, **62-char Salesforce JARM**, CORS/WAF, OpenAPI/GraphQL, `.git/HEAD`, JS bundle carver, S3/GCS/Azure buckets, 20-port TCP, SSH/SMTP & 16-site handle checks |",
+        "| **📦 8-File Forensic Case Bundles** | [`correlator.py`](./osint_hunter/correlator.py) · `cases/<CASE_ID>/` | Emits `dossier.md` (with Mermaid graph), standalone dark-mode **`report.html`** (inline SVG + print-to-PDF), `report.json`, **`entities.csv`**, `graph.json`, `graph.mermaid`, **OASIS STIX 2.1**, `manifest.sha256` + `--compare-cases` link analysis |",
+        "| **🧩 Portable Agent Skills & MCP** | [`skills/`](./skills/) · [`scripts/mcp_server.py`](./scripts/mcp_server.py) | Standalone `osint-hunter` & `osint-arsenal` skills for **Claude Code, OpenAI Codex, Claude.ai, Cursor & 75+ agents** + **10-tool JSON-RPC 2.0 MCP Server** + [`openai_tools.json`](./data/openai_tools.json) |",
+        f"| **🖥️ Web Command Center & FTS5 Data** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) · [`data/`](./data/) | 8-tab dark-mode Analyst UI (Live Hunter, **Forensic Decoder**, {len(tools)}-Tool Explorer, 24-Pivot Matrix, {len(workflows)} Playbooks, {len(dorks)}-Dork Forge, Graveyard, Loadout) + SQLite **FTS5** (`osint.sqlite`), CSV & JSONL |",
+        "",
+        "```mermaid",
+        "flowchart LR",
+        "    A[\"🎯 Raw Input / File / Prompt<br/>(24 Selector Types)\"] --> B[\"🧠 Selector & Checksum Classifier<br/>(osint_hunter/classify.py)\"]",
+        "    B --> C[\"🟢 Stage 1..N Passive Sweep<br/>35+ Public APIs + 13 Offline Decoders<br/>(0 Packets to Target)\"]",
+        "    C --> D[\"🔄 Exhaustive Stage Analyzer<br/>Carves Handles, Variants, Phones,<br/>Emails, Domains, Names & Orgs\"]",
+        "    D -- \"New Unvisited Leads Found\" --> C",
+        "    D -- \"Converged (0 New Leads)\" --> E[\"📊 Cross-Stage Correlator<br/>Identity/Infra Clusters +<br/>0-100 Exposure Score\"]",
+        "    E --> F[\"📦 8-File Forensic Bundle<br/>dossier.md · report.html · CSV<br/>Mermaid · STIX 2.1 · SHA-256\"]",
+        "    E -. \"Explicit User Approval<br/>Single-Use ACT-XXXXXXXX\" .-> G[\"🔴 22 Live Active Probes<br/>JARM · TLS · AXFR · Buckets<br/>CORS/WAF · TCP · SSH/SMTP\"]",
+        "    G --> F",
+        "```",
         "",
         "---",
         "",
-        "## 🧩 Install as Agent Skills (Claude, Codex, Cursor & 75+ Agents)",
+        "<a id=\"quick-start\"></a>",
+        "## 🚀 60-Second Operator Quick Start",
         "",
-        f"Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + 22-probe User-Gated Active recon engine) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) ({len(tools)}-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and investigate targets from **any directory** without cloning this repo:",
+        "*Runs out of the box on **Python 3.9+ standard library** — **zero `pip install` required** (optional `pip install -e .` provides `osint-hunt`, `osint-arsenal`, `osint-server`, and `osint-mcp` commands).* ",
+        "",
+        "### 1️⃣ Exhaustive Multi-Stage Passive Hunting & Case Link Analysis",
+        "```bash",
+        "# Instant Turn-1 Passive Hunt across multiple selector types (0 questions · 0 packets sent to target servers)",
+        "python3 scripts/hunt.py \"@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000\" --depth 4",
+        "",
+        "# Feed external Stage-1 findings (bios, Linktrees, search snippets) back in to carve & hunt Stage 2..N",
+        "python3 scripts/hunt.py --resume-case CASE-XXXX --ingest-file stage1_findings.txt",
+        "",
+        "# List saved investigations or run Cross-Case Link Analysis (shared entities, domains, /24 IPs, GA4/GTM IDs)",
+        "python3 scripts/hunt.py --list-cases",
+        "python3 scripts/hunt.py --compare-cases CASE-AAAA CASE-BBBB",
+        "```",
+        "",
+        "### 2️⃣ Zero-Network Forensic & Chronolocation Decoder (`0` Outbound Packets)",
+        "```bash",
+        "# Extract exact UTC upload second from a TikTok video URL or 19-digit post ID",
+        "python3 scripts/osint.py decode \"https://www.tiktok.com/@bellingcat/video/7345123456789012485\"",
+        "",
+        "# Extract 100ns creation timestamp + generating machine's 48-bit IEEE MAC & vendor from UUIDv1",
+        "python3 scripts/osint.py decode \"d9b2d63d-a233-11ee-8c90-005056c00008\"",
+        "",
+        "# Validate ISO 13616 IBAN MOD-97-10 checksum & resolve Saudi SAMA bank institution",
+        "python3 scripts/osint.py decode \"SA0380000000608010167519\"",
+        "",
+        "# Decode Discord/X Snowflakes, MongoDB ObjectIds, GCC/MENA/UK/US E.164 phones, VINs, ICAO24, or local files",
+        "python3 scripts/hunt.py --decode \"1216789012345678901 +971501234567 65f1a2b3c4d5e6f7a8b9c0d1\"",
+        "```",
+        "",
+        "### 3️⃣ User-Gated Active Recon, Arsenal Search & Web Command Center",
+        "```bash",
+        "# Step A: Prepare single-use ACT-XXXXXXXX scope across ALL passive-discovered hosts (sends 0 packets)",
+        "python3 scripts/hunt.py --prepare-active --from-case CASE-XXXX",
+        "",
+        "# Step B: Execute 22 direct active probes ONLY after explicit human confirmation",
+        "python3 scripts/hunt.py \"example.com\" --active --request-id ACT-XXXXXXXX --user-approved \"yes\"",
+        "",
+        f"# Query the {len(tools)}-tool catalog, forge {len(dorks)} search dorks, audit local CLI binaries, or launch Web UI",
+        "python3 scripts/osint.py doctor",
+        "python3 scripts/osint.py pivot domain --passive --free --no-auth",
+        "python3 scripts/osint.py dorks --engine Shodan --target example.com",
+        "python3 scripts/server.py --port 8000",
+        "```",
+        "",
+        "---",
+        "",
+        "<a id=\"agent-skills-mcp\"></a>",
+        "## 🧩 Plug Into Any AI Agent in 10 Seconds",
+        "",
+        f"Both [**`osint-hunter`**](./skills/osint-hunter/SKILL.md) (autonomous Passive + {act_mod_cnt}-probe User-Gated Active recon engine + forensic decoders) and [**`osint-arsenal`**](./skills/osint-arsenal/SKILL.md) ({len(tools)}-tool pivot, playbook & dork advisor) are **100% self-contained** — install them globally and run investigations from **any working directory** without cloning this repository:",
         "",
         "```bash",
-        "# Universal Skills CLI (Claude Code, OpenAI Codex, Cursor, OpenCode, Windsurf, Copilot & 75+ agents)",
+        "# 1. Universal Skills CLI (Claude Code, OpenAI Codex, Cursor, Windsurf, Copilot, Cline, Goose & 75+ agents)",
         "npx skills add mafk21/OSINT -g",
         "",
-        "# Claude Code Native Plugin Marketplace (run inside Claude Code)",
+        "# 2. Claude Code Native Plugin Marketplace (run inside Claude Code)",
         "/plugin marketplace add mafk21/OSINT",
         "/plugin install osint-monster@osint-monster",
         "",
-        "# OpenAI Codex Native $skill-installer (run inside Codex)",
+        "# 3. OpenAI Codex Native $skill-installer (run inside Codex)",
         "$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-hunter",
         "$skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-arsenal",
         "",
-        "# Zero-Node Pure-Python Local Installer (from a local checkout)",
+        "# 4. Zero-Node Pure-Python Installer (installs to ~/.claude, ~/.codex, ~/.cursor, ~/.agents)",
         "python3 scripts/install_skills.py --all",
+        "",
+        "# 5. Native Global MCP Server Registration (exposes all 10 OSINT MCP tools)",
+        "claude mcp add --scope user osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py",
+        "codex mcp add osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py",
         "```",
         "",
-        "- **Claude.ai Web & Claude Desktop Upload**: Download [**`releases/osint-hunter-skill.zip`**](./releases/osint-hunter-skill.zip) and [**`releases/osint-arsenal-skill.zip`**](./releases/osint-arsenal-skill.zip) and upload in **Settings → Capabilities → Skills**. Full guide in [**`docs/SKILLS_SETUP.md`**](./docs/SKILLS_SETUP.md).",
+        "> 💡 **Claude.ai Web & Claude Desktop**: Drag-and-drop [**`releases/osint-hunter-skill.zip`**](./releases/osint-hunter-skill.zip) and [**`releases/osint-arsenal-skill.zip`**](./releases/osint-arsenal-skill.zip) directly into **Settings → Capabilities → Skills**. Full platform guide in [**`docs/SKILLS_SETUP.md`**](./docs/SKILLS_SETUP.md).",
         "",
-        "---",
+        "### 🛡️ The Three-Law Autonomous Agent Doctrine",
         "",
-        "## 🚀 60-Second Quick Start",
+        "Every agent entry file ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`.github/copilot-instructions.md`](./.github/copilot-instructions.md), [`skills/`](./skills/), and [`mcp_server.py`](./scripts/mcp_server.py)) enforces three non-negotiable operational laws:",
         "",
-        "*Requires only Python 3.9+ standard library — zero `pip install` needed.*",
-        "",
-        "```bash",
-        "# 1. Instant Exhaustive Multi-Stage Passive Hunt (Zero questions · Zero target packets)",
-        "python3 scripts/hunt.py \"@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000\" --depth 4",
-        "",
-        "# 2. Resume & Expand an Investigation Stage with External Bios/Search Findings + Cross-Case Link Analysis",
-        "python3 scripts/hunt.py --resume-case CASE-XXXX --ingest-file stage1_findings.txt",
-        "python3 scripts/hunt.py --compare-cases CASE-AAAA CASE-BBBB",
-        "",
-        "# 3. Zero-Network Forensic & Chronolocation Decoder (TikTok UTC, Snowflake, UUIDv1/v7, IBAN, Phone, VIN, MAC)",
-        "python3 scripts/osint.py decode \"https://www.tiktok.com/@bellingcat/video/7345123456789012485\"",
-        "python3 scripts/osint.py decode \"SA0380000000608010167519\"",
-        "",
-        "# 4. Active OSINT Mode (ALWAYS asks permission first via single-use ACT-XXXXXXXX gate)",
-        "python3 scripts/hunt.py --prepare-active --from-case CASE-XXXX",
-        "python3 scripts/hunt.py \"github.com\" --active --request-id ACT-XXXXXXXX --user-approved \"yes\"",
-        "",
-        "# 5. Launch Web Command Center + REST API + Search the Arsenal / Run Environment Doctor",
-        "python3 scripts/server.py --port 8000",
-        "python3 scripts/osint.py doctor",
-        "python3 scripts/osint.py pivot domain --opsec Active --free",
-        "python3 scripts/osint.py dorks --engine Shodan --target example.com",
-        "```",
-        "",
-        "---",
-        "",
-        "## 🤖 AI Agent Integration: The Three-Law Doctrine",
-        "",
-        "Whether installed via [**`skills/`**](./skills/) or opened directly in this repo ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), [`.cursorrules`](./.cursorrules), [`.codex-plugin/`](./.codex-plugin/plugin.json), [`.claude-plugin/`](./.claude-plugin/marketplace.json)), connected agents obey three strict laws:",
-        "",
-        "| Law | Agent Behavior | Enforcement & Scope |",
+        "| Law | Mandatory Agent Behavior | Technical Enforcement |",
         "| :--- | :--- | :--- |",
-        "| **`1. 🟢 Turn-1 Passive Start`** | **Starts hunting immediately on Turn 1 with zero clarifying questions** | Queries 35+ passive APIs & zero-network decoders (GitHub commit/SSH/PGP packet carving, npm/PyPI, DoH, `crt.sh`, RDAP, Wayback, InternetDB, RIPEstat, TikTok/Snowflake/UUIDv1/v7, IBAN, E.164, ICAO24, MMSI/IMO, VIN, OUI, EXIF). **Zero packets hit target servers.** |",
-        "| **`2. 🔄 Exhaustive Multi-Stage Convergence`** | **Collects EVERY clue per stage, analyzes ALL findings, and hunts ALL new leads in the next stage** | Powered by [`stage_analyzer.py`](./osint_hunter/stage_analyzer.py) & [`correlator.py`](./osint_hunter/correlator.py): carves handle variants, phones, `wa.me` links, emails, names, orgs & domains across stages until `0` new leads remain (`converged: true`). |",
-        f"| **`3. 🔴 Hard-Gated Active Mode`** | **ALWAYS asks your permission before every single active run** | Enforced in [`approval.py`](./osint_hunter/approval.py) via **single-use, target-bound `ACT-XXXXXXXX` tokens**. Unlocks **22 built-in live probes** (DNS AXFR, SRV/M365, CNAME takeover, TLS 1.0–1.3, JARM, CORS/WAF, OpenAPI/GraphQL, `.git/HEAD`, JS carver, cloud buckets, 20-port TCP, SSH/SMTP, 16-site handle check) + **{active_hyb_cnt} Active/Hybrid tools**. |",
+        "| **`Law 1 · 🟢 Turn-1 Passive Start`** | **Start passive hunting immediately on Turn 1 with zero clarifying questions.** | Runs 35+ passive public-cache/registry collectors + 13 offline decoders. **Zero packets touch target infrastructure.** |",
+        "| **`Law 2 · 🔄 Exhaustive Multi-Stage Loop`** | **Never stop after finding 1 clue.** Collect everything in Stage 1, analyze all findings, and hunt every newly carved lead in Stage 2..N. | [`stage_analyzer.py`](./osint_hunter/stage_analyzer.py) carves handles, handle mutations, `wa.me`/E.164 phones, emails, domains, names & orgs until `converged: true`. |",
+        f"| **`Law 3 · 🔴 Hard-Gated Active Recon`** | **ALWAYS ask explicit human permission before EVERY active run** — even if the prompt asked for \"full\" or \"active\" recon. | [`approval.py`](./osint_hunter/approval.py) enforces **single-use, target-bound, 15-min `ACT-XXXXXXXX` tokens** + append-only audit trail (`cases/active_audit.jsonl`). |",
         "",
-        "Every hunt writes a gitignored forensic bundle under `cases/<UTC_TIMESTAMP>_<SLUG>/` containing **`dossier.md`** (with Mermaid graph), **`report.html`** (standalone dark-mode executive report + inline SVG), **`report.json`**, **`entities.csv`**, **`graph.json`**, **`graph.mermaid`**, **`stix2_bundle.json`**, and **`manifest.sha256`**.",
+        "<details>",
+        "<summary><strong>🔌 Inspect All 10 Native MCP Tools (<code>scripts/mcp_server.py</code> &amp; <code>data/openai_tools.json</code>)</strong></summary>",
+        "",
+        "| MCP Tool | OPSEC | Purpose |",
+        "| :--- | :---: | :--- |",
+        "| `osint_auto_hunt` | 🟢 Passive | Turn-1 multi-stage passive hunt across any selector, URL, file path, or natural-language prompt |",
+        "| `osint_ingest_and_expand_case` | 🟢 Passive | Carve external `web_search` / bio / Linktree text into an existing `CASE_ID` and hunt all new leads |",
+        "| `osint_forensic_decode` | 🟢 Offline | Zero-network decoding for TikTok UTC, Snowflakes, UUIDv1/v6/v7, ULID, ObjectId, IBAN, E.164, VIN, ICAO24, IMO, MAC, JWT & files |",
+        "| `osint_compare_cases` | 🟢 Offline | Cross-case link analysis finding shared selectors, corporate domains, `/24` IPv4 subnets & analytics IDs |",
+        "| `osint_prepare_active_hunt` | 🟢 0-Packet | Generate single-use `ACT-XXXXXXXX` token + OPSEC disclosure across `target` or `from_case` |",
+        f"| `osint_execute_active_hunt` | 🔴 Active | Execute {act_mod_cnt} live TCP/TLS/HTTP/DNS/SSH/SMTP probes **only** with valid `request_id` + `user_confirmation` |",
+        "| `osint_extract_selectors` | 🟢 Offline | Extract, normalize, and checksum-verify all 24 OSINT selector types from arbitrary text |",
+        "| `osint_run_collector` | 🟢 Passive | Run passive collectors for one specific `(selector_type, value)` pair |",
+        f"| `osint_query_arsenal` | 🟢 Offline | Search & filter all {len(tools)} verified OSINT tools by selector, discipline, pricing, tier, or OPSEC |",
+        f"| `osint_forge_dorks` / `osint_get_playbook` | 🟢 Offline | Substitute targets into {len(dorks)} search dorks or retrieve any of the {len(workflows)} multi-phase playbooks |",
+        "",
+        "</details>",
         "",
         "---",
         "",
-        "## 📚 20 Intelligence Disciplines",
+        "<a id=\"collectors-decoders\"></a>",
+        "## 🧬 Built-In Collectors, Forensic Decoders & Active Probes",
         "",
-        f"Browse individual manuals below (with CLI `quick_start` commands and `Input → Output` tags) or open the [**Single-Page {len(tools)}-Tool Directory (`docs/FULL_INDEX.md`)**](./docs/FULL_INDEX.md).",
+        "### 1. Zero-Network Forensic & Chronolocation Decoders (`0` Packets Sent)",
         "",
-        "| # | Discipline | Tools | Flagship S-Tier Tools |",
-        "| :---: | :--- | :---: | :--- |",
+        "| Artifact / Token | Decoder Mechanics | Intelligence Extracted Offline |",
+        "| :--- | :--- | :--- |",
+        "| **TikTok Video / Photo URL or ID** | 64-bit post ID bit-shift (`id >> 32`) | Exact **server-side UTC upload timestamp** (to the second), author handle & worker sequence |",
+        "| **Discord & X/Twitter Snowflakes** | 64-bit custom-epoch bit-shift (`id >> 22`) | Millisecond **UTC creation timestamp**, internal datacenter/worker ID, process ID & increment |",
+        "| **UUIDv1 / UUIDv6 / UUIDv7** | RFC 4122 100ns Gregorian & RFC 9562 ms | Exact creation UTC + **generating machine's 48-bit IEEE MAC address & hardware OUI vendor** (v1) |",
+        "| **ULID & MongoDB ObjectId** | 48-bit Crockford Base32 / 32-bit hex prefix | Millisecond UTC creation time (ULID) or second-level UTC + 5-byte machine/process hex & counter (ObjectId) |",
+        "| **IBAN Bank Account (`ISO 13616`)** | 39-country length + `MOD-97-10` checksum | Checksum validity, country, BBAN & **Saudi SAMA bank resolution** (`Al Rajhi`, `SNB`, `Riyad`, `SAB`, `STC Bank`, etc.) |",
+        "| **Phone Number (`ITU E.164`)** | Country calling code + carrier prefix tables | Country, line type, **US NANPA area state**, & **Saudi / UAE / Kuwait / Qatar / Bahrain / Oman / Egypt / UK** mobile carriers |",
+        "| **Aircraft Mode-S ICAO24 Hex** | 24-bit ICAO registration block lookup | Registration country, airline/state block & **military / government / intelligence airframe flag** |",
+        "| **Vessel MMSI & 7-Digit IMO** | Maritime `MID` prefix + IMO `MOD-10` check | Flag state, vessel transponders (coast station / SAR aircraft / craft) & verified IMO hull checksum |",
+        "| **Vehicle 17-Char VIN (`ISO 3779`)** | WMI table + position-9 `MOD-11` check digit | Country of manufacture, automaker (`Tesla`, `Toyota`, `BMW`, ...), model year (`1980–2039`) & plant code |",
+        "| **MAC Address / Wi-Fi BSSID** | IEEE OUI vendor table + U/L & I/G bitmask | Hardware manufacturer (`Apple`, `DJI`, `Cisco`, `VMware`, ...), randomized LA-MAC detection & multicast flag |",
+        "| **JWT Bearer Token** | Base64URL header & payload inspection | Signing algorithm (`alg`), issuer (`iss`), subject (`sub`), audience, scopes & UTC `iat`/`exp` validity |",
+        "| **Local Media, Docs & Binaries** | Pure-Python EXIF TIFF, ZIP/OOXML & PDF parser | **JPEG GPS coordinates**, camera serials, DOCX/XLSX `core.xml` authors, PDF `/Producer`, SHA-256 & carved IOCs |",
+        "",
+        "### 2. 35+ Live Passive Collectors (`osint_hunter/collectors.py`)",
+        "",
+        "| Collection Domain | Live Zero-Target-Packet Collectors |",
+        "| :--- | :--- |",
+        "| **Developer & Package Attribution** | **GitHub API** + `.patch` commit author email carver + `.keys` SSH fingerprints + `.gpg` OpenPGP UID parser · **GitLab** public API · **npm** registry maintainer leak · **PyPI** package author metadata |",
+        "| **Social, Identity & Proofs** | **Keybase** cryptographic identity graph (linked X, GitHub, Reddit, DNS, BTC/Zcash addresses) · **Reddit** profile JSON · **HackerNews** Firebase API · **Gravatar** SHA-256 email hash check · **Handle Permutation Engine** |",
+        "| **DNS, TLS Logs & Web Archives** | **Google DNS-over-HTTPS** (`A`, `AAAA`, `MX`, `TXT`, `NS`, `SOA`, `CAA`) · **SPF / DMARC / BIMI / DKIM** posture · **`crt.sh` Certificate Transparency** SAN harvesting · **IANA RDAP** registrar/dates · **Wayback Machine CDX** + sensitive path discovery (`.env`, `.git`, `/admin`, `.sql`, `/api`) · **HackerTarget** passive host share |",
+        "| **Network, CTI, Geo & Crypto** | **Shodan InternetDB** (passive open ports, CVEs, CPEs, hostnames) · **RIPEstat** BGP ASN/prefix/holder · **abuse.ch URLhaus** malware IOC lookup · **OpenStreetMap Nominatim** reverse geocode · **Mempool.space** Bitcoin balance/tx count · **Cloudflare Ethereum RPC** live ETH balance & smart-contract bytecode check |",
+        "",
+        "<details>",
+        f"<summary><strong>🔴 Inspect All {act_mod_cnt} Hard-Gated Active Recon Probes (<code>osint_hunter/active_collectors.py</code> — Requires User Approval)</strong></summary>",
+        "",
+        "| # | Active Module ID | Applies To | Direct Network Probe & Extracted Intelligence |",
+        "| :---: | :--- | :--- | :--- |",
     ]
+
+    for idx, (mid, mmeta) in enumerate(ACTIVE_MODULES_CATALOG.items(), 1):
+        applies = ", ".join(f"`{a}`" for a in mmeta["applies_to"])
+        safe_impact = md_escape(mmeta["opsec_impact"]).replace("<", "`<").replace(">", ">`")
+        lines.append(f"| **{idx:02d}** | `{mid}` | {applies} | **{md_escape(mmeta['title'])}** — {safe_impact} |")
+
+    lines.extend(
+        [
+            "",
+            "</details>",
+            "",
+            "---",
+            "",
+            "## 📦 8-Artifact Forensic Case Bundles",
+            "",
+            "Every hunt creates a tamper-evident, gitignored directory under `cases/<UTC_TIMESTAMP>_<TARGET_SLUG>/`:",
+            "",
+            "| Artifact | Format | Purpose |",
+            "| :--- | :--- | :--- |",
+            "| **`dossier.md`** | Markdown + Mermaid | Executive Intelligence Synthesis, `0–100` Exposure Rating, Attribution Bridges, Entity Flowchart & Forged Dorks |",
+            "| **`report.html`** | Standalone HTML5 + SVG | Single-file dark-mode executive briefing with interactive vector entity map & clean **Print-to-PDF** stylesheet |",
+            "| **`entities.csv`** | UTF-8 CSV | Flat spreadsheet export (`stage`, `type`, `value`, `source`, `via`) ready for **Excel, Maltego, Gephi, or i2 Analyst's Notebook** |",
+            "| **`stix2_bundle.json`** | OASIS STIX 2.1 | Standardized CTI graph (`identity`, `domain-name`, `ipv4-addr`, `autonomous-system`, `email-addr`, `user-account`, `relationship`) for **OpenCTI / MISP** |",
+            "| **`report.json`** | Structured JSON | Full collector payloads, `intelligence_synthesis` clusters, stage convergence metrics & authorization audit metadata |",
+            "| **`graph.json` & `graph.mermaid`** | JSON + Mermaid | Raw node/edge adjacency list and portable `flowchart LR` source |",
+            "| **`manifest.sha256`** | SHA-256 Digest | Chain-of-custody cryptographic hashes over all generated case files |",
+            "",
+            "---",
+            "",
+            "<a id=\"web-command-center\"></a>",
+            "## 🖥️ Interactive Web Command Center & REST API",
+            "",
+            "Start the zero-dependency server with `python3 scripts/server.py --port 8000` to launch both the **8-Tab Dark-Mode Analyst UI** (`http://0.0.0.0:8000`) and the **JSON/HTML REST API**:",
+            "",
+            "| Method & Endpoint | Description |",
+            "| :--- | :--- |",
+            "| `GET  /api/health` | Engine version, catalog counts (`760` tools, `105` dorks, `20` workflows), and active probe inventory |",
+            "| `POST /api/detect` | Real-time selector extraction & checksum validation (`{\"input\": \"...\"}`) |",
+            "| `POST /api/decode` | Zero-network forensic & chronolocation decoder (`{\"payload\": \"...\"}`) |",
+            "| `POST /api/hunt` | Execute exhaustive multi-stage passive hunt (`{\"target\": \"...\", \"depth\": 4}`) returning JSON + STIX 2.1 + CSV |",
+            "| `POST /api/cases/expand` | Ingest external bios/snippets into a saved `case_id` and recursively hunt all newly carved leads |",
+            "| `POST /api/cases/compare` | Cross-case link analysis between `case_a` and `case_b` |",
+            "| `GET  /api/cases` · `/api/cases/<ID>` | List recent investigations (with Exposure Scores) or fetch a full saved case bundle |",
+            "| `GET  /api/cases/<ID>/html` | Render the standalone dark-mode executive HTML report (`report.html`) directly in browser |",
+            "| `POST /api/hunt/active/prepare` | Generate single-use `ACT-XXXXXXXX` approval request (supports `from_case` full-surface scoping; sends `0` packets) |",
+            "| `POST /api/hunt/active` | Execute user-authorized Active+Passive hunt (enforces `X-Human-Modal-Confirmed: 1` + valid single-use token) |",
+            "",
+            "---",
+            "",
+            "<a id=\"disciplines\"></a>",
+            f"## 📚 20 Intelligence Disciplines ({len(tools)} Verified Tools)",
+            "",
+            f"Open any discipline manual below for CLI `quick_start` one-liners, OPSEC guidance, and `Input → Output` pivot tags, or search the [**Single-Page {len(tools)}-Tool Master Index (`docs/FULL_INDEX.md`)**](./docs/FULL_INDEX.md).",
+            "",
+            "| # | Discipline | Tools | OPSEC Split | S-Tier | Flagship Tools |",
+            "| :---: | :--- | :---: | :---: | :---: | :--- |",
+        ]
+    )
 
     for c in categories:
         c_tools = by_cat[c["id"]]
+        c_pass = sum(1 for t in c_tools if t["opsec"] == "Passive")
+        c_act = len(c_tools) - c_pass
+        c_stier = sum(1 for t in c_tools if t["tier"] == "S")
         flagships = [t for t in c_tools if t["tier"] == "S"][:4] or c_tools[:3]
         flag_links = ", ".join(f"[{t['name']}]({t['url']})" for t in flagships)
         lines.append(
             f"| **{c['order']:02d}** | [{c['icon']} **{c['short_title']}**](./categories/{c['filename']}) (`{c['code']}`) | "
-            f"**{len(c_tools)}** | {flag_links} |"
+            f"**{len(c_tools)}** | `🟢{c_pass}` `🔴{c_act}` | `{c_stier}` | {flag_links} |"
         )
 
     lines.extend(
         [
             "",
+            "<details>",
+            f"<summary><strong>🗺️ Browse All {len(workflows)} End-to-End Investigation Playbooks (<code>docs/WORKFLOWS.md</code>)</strong></summary>",
+            "",
+            "| Playbook | Discipline | Difficulty | Seed Selector | Operational Objective |",
+            "| :--- | :---: | :---: | :---: | :--- |",
+        ]
+    )
+    for wf in workflows:
+        lines.append(
+            f"| [**{md_escape(wf['title'])}**](./docs/WORKFLOWS.md) (`{wf['id']}`) | `{wf['discipline']}` | `{wf['difficulty']}` | `{wf['starting_selector']}` | {md_escape(wf['summary'])} |"
+        )
+    lines.extend(
+        [
+            "",
+            "</details>",
+            "",
             "---",
             "",
-            "## 🧭 Quick Pivot Cheat Sheet — *\"I Have X, Where Do I Start?\"*",
+            "<a id=\"pivot-matrix\"></a>",
+            "## 🧭 24-Selector Pivot Matrix — *\"I Have X, Where Do I Start?\"*",
             "",
-            "See all 24 input selectors in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.md) or run `python3 scripts/osint.py pivot <selector> --passive`.",
+            "Full interactive chains in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.md) or via `python3 scripts/osint.py pivot <selector> --passive`.",
             "",
-            "| Starting Selector | Tools | Top Passive Starting Stack | Primary Outputs |",
+            "| Starting Selector | Tools | Top Passive Starting Stack | Primary Downstream Outputs |",
             "| :--- | :---: | :--- | :--- |",
         ]
     )
 
-    compact_pivots = [
-        "username",
-        "email",
-        "phone",
-        "person_name",
-        "domain",
-        "ip",
-        "image",
-        "company",
-        "crypto_address",
-        "vessel_imo",
-        "aircraft_hex",
-        "vin",
-    ]
-    for sel in compact_pivots:
+    for sel in SELECTOR_LABELS:
+        if sel not in by_input:
+            continue
         matched = by_input[sel]
         top_s = pick_top_tools_for_selector(sel, matched, count=3)
         links = ", ".join(f"[{t['name']}]({t['url']})" for t in top_s)
@@ -842,36 +1010,57 @@ def build_readme(categories, tools, workflows, dorks, graveyard) -> None:
             "",
             "---",
             "",
-            "## 🗂️ Repository Layout",
+            "## 🗂️ Repository Architecture",
             "",
             "```text",
             "OSINT/",
-            "├── skills/osint-hunter & skills/osint-arsenal     # Self-contained Agent Skills (Claude, Codex, Cursor & 75+)",
-            "├── .claude-plugin/ & .codex-plugin/ & .agents/    # Native Claude Code & OpenAI Codex plugin marketplaces",
-            "├── releases/*-skill.zip                           # Drag-and-drop skill zips for Claude.ai & Claude Desktop",
-            "├── AGENTS.md / CLAUDE.md / .mcp.json              # Zero-question Passive + User-Gated Active repo manifests",
-            "├── osint_hunter/                                  # Autonomous classifier, passive/active collectors & STIX engine",
-            "├── scripts/                                       # hunt.py, osint.py, install_skills.py, mcp_server.py, server.py",
-            "├── categories/01-*.md .. 20-*.md                  # 20 deep-dive manuals with CLI quick-starts & OPSEC notes",
-            "├── docs/                                          # SKILLS_SETUP, FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS",
-            "├── data/                                          # tools.json, schema.json, osint.sqlite (FTS5), tools.csv",
-            "└── web/                                           # Zero-build Interactive OSINT Command Center UI",
+            "├── osint_hunter/                                  # Zero-Dependency Python 3 Recon & Correlation Engine",
+            "│   ├── classify.py                                # 24-selector regex + ISO/MOD-97/MOD-11 checksum classifier",
+            "│   ├── offline_intel.py                           # Zero-network decoders (TikTok, Snowflake, UUID, IBAN, E.164, VIN, EXIF...)",
+            "│   ├── collectors.py                              # 35+ passive collectors (GitHub .patch/.gpg, DoH, crt.sh, RDAP, InternetDB...)",
+            "│   ├── stage_analyzer.py                          # Exhaustive multi-stage clue & handle-variant carver + noise filter",
+            "│   ├── correlator.py                              # Cross-stage synthesis, 0-100 Exposure Score, HTML/SVG/CSV/Mermaid & case diff",
+            "│   ├── active_collectors.py                       # 22 direct active probes (AXFR, JARM, TLS, Buckets, CORS/WAF, TCP, SSH/SMTP)",
+            "│   ├── approval.py                                # Single-use ACT-XXXXXXXX cryptographic human permission gate & audit log",
+            "│   └── engine.py                                  # Orchestrator, STIX 2.1 builder & 8-artifact case writer",
+            "├── scripts/                                       # CLI, Servers, Builder & CI Test Suite",
+            "│   ├── hunt.py                                    # Autonomous hunter CLI (--depth, --resume-case, --decode, --compare-cases)",
+            "│   ├── osint.py                                   # Arsenal CLI (search, pivot, dorks, workflows, graveyard, decode, doctor)",
+            "│   ├── server.py                                  # Unified Web Command Center + JSON/HTML REST API server",
+            "│   ├── mcp_server.py                              # 10-tool stdio JSON-RPC 2.0 Model Context Protocol server",
+            "│   ├── install_skills.py                          # Zero-Node installer for Claude, Codex, Cursor & 75+ agents",
+            "│   └── build.py / validate.py / selftest.py       # Deterministic multi-target generator, schema validator & integration tests",
+            "├── skills/osint-hunter & skills/osint-arsenal     # Portable standalone Agent Skills (work from any folder without repo)",
+            "├── releases/*-skill.zip                           # Pre-built deterministic skill archives for Claude.ai & Claude Desktop",
+            "├── .claude-plugin/ · .codex-plugin/ · .agents/    # Native Claude Code & OpenAI Codex plugin marketplace manifests",
+            "├── AGENTS.md · CLAUDE.md · .cursorrules · .mcp.json # Three-Law autonomous agent protocols & auto-discovered MCP config",
+            "├── data/                                          # tools.json (760), dorks (105), workflows (20), graveyard (25), osint.sqlite (FTS5)",
+            "├── categories/01-*.md .. 20-*.md                  # 20 discipline field manuals with CLI quick-starts & OPSEC notes",
+            "├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026, OPSEC",
+            "├── web/                                           # Zero-build 8-tab Analyst Command Center SPA (index.html, app.js, styles.css)",
+            "└── pyproject.toml                                 # Optional pip install -e . entrypoints (osint-hunt, osint-arsenal, osint-server)",
             "```",
             "",
             "---",
             "",
-            "## 🪦 Critical 2026 Retired / Hijacked Tool Warnings",
+            f"## 🪦 Critical 2026 Hijacked & Retired Tool Warnings ([Full {len(graveyard)}-Entry Board →](./docs/GRAVEYARD_2026.md))",
             "",
-            "- ⚠️ **`telegago.com` is hijacked** — use ONLY the [**Official Google CSE Link**](https://cse.google.com/cse?cx=006368593537057042503:efxu7xprihg) & [**TGStat**](https://tgstat.com/).",
-            "- **Sentinel Hub EO Browser** *(Retired Mar 2026)* → [**Copernicus Data Space Browser**](https://browser.dataspace.copernicus.eu/)",
-            "- **GeoSpy (`geospy.ai`)** *(Public web closed Apr 2026)* → [**Picarta**](https://picarta.ai/), [**geo-sleuth**](https://github.com/Oldcircle/geo-sleuth), & [**Bellingcat OSM Search**](https://osm-search.bellingcat.com/)",
-            "- **CrowdTangle** / **Pushshift** → [**Meta Content Library**](https://transparency.meta.com/researchtools/meta-content-library), [**Who Posted What?**](https://whopostedwhat.com/), & [**PullPush**](https://search.pullpush.io/) — full list in [**`docs/GRAVEYARD_2026.md`**](./docs/GRAVEYARD_2026.md).",
+            "- 🚨 **`telegago.com` IS HIJACKED** — Never visit the bare domain; bookmark **ONLY** the [**Official Google CSE URL**](https://cse.google.com/cse?cx=006368593537057042503:efxu7xprihg) & [**TGStat**](https://tgstat.com/).",
+            "- **Sentinel Hub EO Browser** *(Retired Mar 2026)* → [**Copernicus Data Space Browser**](https://browser.dataspace.copernicus.eu/) & [**NASA FIRMS**](https://firms.modaps.eosdis.nasa.gov/map/).",
+            "- **GeoSpy (`geospy.ai`)** *(Public web closed Apr 2026)* → [**Picarta**](https://picarta.ai/), [**geo-sleuth**](https://github.com/Oldcircle/geo-sleuth), & [**Bellingcat OSM Search**](https://osm-search.bellingcat.com/).",
+            "- **CrowdTangle / Pushshift / Samair / IntelTechniques Pastes** → [**Meta Content Library**](https://transparency.meta.com/researchtools/meta-content-library), [**Who Posted What?**](https://whopostedwhat.com/), & [**PullPush**](https://search.pullpush.io/).",
             "",
             "---",
             "",
-            "## ⚖️ Legal & Ethical Use",
+            "## 🧪 Validation, Determinism & Legal Use",
             "",
-            "Curated strictly for **authorized security assessments, cyber threat intelligence, journalistic verification, academic research, compliance due diligence, and lawful open-source investigations**. Review [**`docs/OPSEC_TRADECRAFT.md`**](./docs/OPSEC_TRADECRAFT.md) before active probing · [**MIT License**](./LICENSE) · [**Contributing**](./CONTRIBUTING.md).",
+            "```bash",
+            "python3 scripts/validate.py   # Strict JSON Schema + URL + referential integrity check across all 760 tools",
+            "python3 scripts/build.py      # Deterministically rebuild SQLite FTS5, manuals, skills, zip releases & README",
+            "python3 scripts/selftest.py   # End-to-end tests: classifiers, decoders, multi-stage hunter, Active Gate, MCP & REST",
+            "```",
+            "",
+            "Built strictly for **authorized security assessments, cyber threat intelligence (CTI), digital forensics (DFIR), journalistic verification, academic research, compliance due diligence, and lawful open-source investigations**. Review [**`docs/OPSEC_TRADECRAFT.md`**](./docs/OPSEC_TRADECRAFT.md) before active probing · [**MIT License**](./LICENSE) · [**Contributing**](./CONTRIBUTING.md).",
         ]
     )
 
