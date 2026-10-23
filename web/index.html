@@ -3,359 +3,254 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OSINT Monster Database — Analyst Command Center</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <title>OSINT — Local Workspace</title>
+  <link rel="stylesheet" href="./styles.css?v=clean2" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="brand">
-        <div class="brand-badge">🛰️</div>
-        <div>
-          <h1>OSINT MONSTER <span class="version-pill">v2026.10.5 · LOCAL WEB APP</span></h1>
-          <div class="brand-sub">100% Local Zero-Terminal Workspace · Multi-Stage Hunter · Drag-and-Drop DFIR · Graph Studio · 760 Tools</div>
-        </div>
+      <div class="brand" id="homeBrandBtn">
+        <span class="brand-dot"></span>
+        <span>OSINT</span>
       </div>
 
       <nav class="nav-tabs" id="mainNav">
-        <button class="nav-tab active" data-view="hunter">⚡ Autonomous Hunter <span class="tab-count">LIVE</span></button>
-        <button class="nav-tab" data-view="cases">🗄️ Case Vault &amp; Watchlist <span class="tab-count" id="navCntCases">0</span></button>
-        <button class="nav-tab" data-view="decoder">🧬 Forensic &amp; DFIR <span class="tab-count">0-NET</span></button>
-        <button class="nav-tab" data-view="arsenal">🗂️ Tool Arsenal <span class="tab-count" id="navCntTools">0</span></button>
-        <button class="nav-tab" data-view="pivots">🧭 Pivot Matrix <span class="tab-count" id="navCntPivots">24</span></button>
-        <button class="nav-tab" data-view="workflows">🗺️ Playbooks <span class="tab-count" id="navCntWorkflows">0</span></button>
-        <button class="nav-tab" data-view="dorks">🎯 Live Dork Forge <span class="tab-count" id="navCntDorks">0</span></button>
-        <button class="nav-tab" data-view="graveyard">🪦 2026 Graveyard <span class="tab-count" id="navCntGraveyard">0</span></button>
-        <button class="nav-tab" data-view="loadout">⭐ Case Loadout <span class="tab-count" id="navCntLoadout">0</span></button>
-        <button class="nav-tab" data-view="settings">⚙️ Settings &amp; Doctor</button>
+        <button class="nav-tab active" data-view="investigate">Investigate</button>
+        <button class="nav-tab" data-view="decode">Decode</button>
+        <button class="nav-tab" data-view="cases">Cases <span class="count-pill" id="navCntCases">0</span></button>
+        <button class="nav-tab" data-view="directory">Directory</button>
+        <button class="nav-tab" data-view="settings">Settings</button>
       </nav>
     </div>
   </header>
 
-  <section class="telemetry-bar" id="telemetryBar"></section>
-
   <main class="container">
-    <!-- VIEW 0: AUTONOMOUS HUNTER CONSOLE -->
-    <section class="view-panel active" id="view-hunter">
-      <div class="hunter-hero">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-          <div>
-            <h2 style="margin:0; font-size:19px;">⚡ Autonomous OSINT Hunter (Instant Passive + User-Gated Active Recon)</h2>
-            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
-              <strong>🟢 Passive Mode</strong> runs immediately with zero questions and zero target packets. <strong>🔴 Active Mode</strong> adds live TLS X.509 SANs, HTTP/CSP headers, <code>security.txt</code>, Shodan <code>mmh3</code> favicon hashes &amp; TCP banners — and <strong>ALWAYS asks your explicit permission before sending a single packet</strong>.
-            </div>
-          </div>
-          <span class="badge opsec-Passive" id="opsecHeaderBadge" style="font-size:12px; padding:5px 10px;">🟢 Passive Default · Active Hard-Gated</span>
-        </div>
-
-        <div class="hunter-input-row">
-          <input type="text" id="huntTargetInput" class="hunter-input" placeholder="Paste ANY selector or prompt: https://github.com/torvalds, +966501234567, aircraft AE01D5, MMSI 613123456..." />
-          <select id="huntModeSelect" class="select-ctrl" style="border-color:var(--green);">
-            <option value="passive" selected>🟢 Passive Mode (Instant · Zero Questions)</option>
-            <option value="active">🔴 Active + Passive (Ask Permission First)</option>
-          </select>
-          <select id="huntDepthSelect" class="select-ctrl">
-            <option value="1">Depth 1 (Seed Stage Only)</option>
-            <option value="2">Depth 2 (2 Stages)</option>
-            <option value="3">Depth 3 (3 Stages)</option>
-            <option value="4" selected>Depth 4 (Exhaustive Default)</option>
-            <option value="5">Depth 5 (Deep Convergence)</option>
-            <option value="6">Depth 6 (Maximum Convergence)</option>
-          </select>
-          <button type="button" class="chip-toggle" id="huntDiffLastToggle" title="Automatically compare against your last saved run of this target">📈 Diff vs Last Run</button>
-          <button id="launchHuntBtn" class="btn-hunt">⚡ HUNT NOW</button>
-        </div>
-
-        <div class="file-dropzone" id="hunterDropzone">
-          <div>
-            <strong>📂 Or Drag &amp; Drop Evidence File to Carve &amp; Hunt:</strong>
-            <span style="color:var(--text-2); margin-left:6px;"><code>.eml</code>, <code>.pcap</code>, <code>.har</code>, <code>.mp4</code>/<code>.mov</code>, <code>.png</code>/<code>.webp</code> (C2PA/AI), <code>.jpg</code> EXIF, <code>.pdf</code>, <code>.docx</code></span>
-          </div>
-          <button type="button" class="btn-sm" style="border-color:var(--cyan); color:var(--cyan);">📎 Choose File &amp; Hunt Pivots</button>
-          <input type="file" id="hunterFileInput" style="display:none;" />
-        </div>
-
-        <div id="liveDetectedRow" style="margin-top:9px; font-size:12px; color:var(--text-2); min-height:22px;"></div>
-
-        <div class="preset-row">
-          <span style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">Instant Demo Targets:</span>
-          <button class="sel-pill" data-hunt-preset="@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000, BSSID 60:60:1F:AA:BB:CC">🛰️ Multi-Domain Tactical Sweep (6 Selectors)</button>
-          <button class="sel-pill" data-hunt-preset="sindresorhus">👤 Dev &amp; npm Attribution (sindresorhus)</button>
-          <button class="sel-pill" data-hunt-preset="requests">📦 PyPI / Repo Attribution (requests)</button>
-          <button class="sel-pill" data-hunt-preset="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045">💎 EVM Wallet Sweep</button>
-        </div>
+    <!-- 1. INVESTIGATE (HOME) -->
+    <section class="view-panel active" id="view-investigate">
+      <div class="hero-center" id="investigateHero">
+        <h1>Investigate any target</h1>
+        <p>Enter a username, email, domain, IP, phone number, wallet, or drop a file.</p>
       </div>
 
-      <div id="huntResultsArea">
-        <div class="agent-connect-grid">
-          <div class="collector-card">
-            <h3 style="margin:0 0 6px;">🖥️ 100% Local Desktop Web App — Zero Terminal Needed</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Everything runs locally on your own machine with zero cloud accounts. Double-click to open directly in your browser:</p>
-            <div class="code-block">Windows: Start-Web-UI.bat   |   macOS: Start-Web-UI.command   |   Linux: ./start-web-ui.sh</div>
+      <div class="search-shell" id="hunterDropzone">
+        <div class="search-main-row">
+          <input
+            type="text"
+            id="huntTargetInput"
+            class="main-input"
+            placeholder="torvalds, example.com, +966501234567, wallet..."
+            autocomplete="off"
+          />
+          <button id="launchHuntBtn" class="btn-primary">Investigate</button>
+        </div>
+
+        <div class="search-sub-row">
+          <div class="sub-controls">
+            <select id="huntModeSelect" class="ctrl-select" title="Scan mode">
+              <option value="passive" selected>Passive (silent)</option>
+              <option value="active">Active (asks permission first)</option>
+            </select>
+
+            <select id="huntDepthSelect" class="ctrl-select" title="Search depth">
+              <option value="1">Quick (1 stage)</option>
+              <option value="2">Light (2 stages)</option>
+              <option value="4" selected>Standard (4 stages)</option>
+              <option value="6">Deep (6 stages)</option>
+            </select>
+
+            <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
+              <input type="checkbox" id="huntDiffLastCheck" style="accent-color:#3b82f6;" />
+              <span>Compare with last run</span>
+            </label>
           </div>
-          <div class="collector-card">
-            <h3 style="margin:0 0 6px;">📂 Drag-and-Drop DFIR + Multi-Stage Graph Studio</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">Drop emails (<code>.eml</code>), packet captures (<code>.pcap</code>), videos (<code>.mp4</code>), or images (<code>.jpg</code>/<code>.png</code>) above—or paste any handle, domain, phone, or wallet—and export HTML, Gephi <code>.gexf</code>, Neo4j <code>.cypher</code>, Obsidian <code>.zip</code>, and STIX 2.1.</p>
-          </div>
-          <div class="collector-card">
-            <h3 style="margin:0 0 6px;">🔑 Keyless by Default + Visual Settings Vault</h3>
-            <p style="margin:0 0 8px; color:var(--text-1); font-size:12.5px;">45+ passive collectors &amp; all forensic decoders work with <strong>0 API keys</strong>. Have optional Shodan, VirusTotal, HIBP, or GitHub keys? Add them visually in the <strong>⚙️ Settings &amp; Doctor</strong> tab.</p>
+
+          <div>
+            <button type="button" class="btn-ghost" id="pickHuntFileBtn">Attach or drop file...</button>
+            <input type="file" id="hunterFileInput" style="display:none;" />
           </div>
         </div>
+
+        <div id="liveDetectedRow" style="display:none; padding:8px 8px 2px; font-size:12px; color:var(--text-muted);"></div>
       </div>
+
+      <div class="examples-row" id="examplesRow">
+        <span>Try:</span>
+        <button class="chip" data-hunt-preset="torvalds">torvalds</button>
+        <button class="chip" data-hunt-preset="sindresorhus">sindresorhus</button>
+        <button class="chip" data-hunt-preset="+966501234567">+966501234567</button>
+        <button class="chip" data-hunt-preset="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045">0xd8dA...6045</button>
+      </div>
+
+      <div id="huntResultsArea"></div>
     </section>
 
-    <!-- VIEW 0A: SAVED CASE VAULT, VISUAL DIFF & TYPOSQUAT STUDIO -->
+    <!-- 2. DECODE (OFFLINE FORENSICS) -->
+    <section class="view-panel" id="view-decode">
+      <div class="hero-center">
+        <h1>Offline Decoder</h1>
+        <p>Inspect IDs, timestamps, IBANs, phone numbers, VINs, SSH keys, or files locally with zero network traffic.</p>
+      </div>
+
+      <div class="search-shell" id="decoderDropzone">
+        <div class="search-main-row">
+          <input
+            type="text"
+            id="forensicDecodeInput"
+            class="main-input"
+            placeholder="Paste TikTok URL, Snowflake ID, UUID, IBAN, phone, VIN, or SSH key..."
+            autocomplete="off"
+          />
+          <button id="runDecodeBtn" class="btn-primary">Decode</button>
+        </div>
+
+        <div class="search-sub-row">
+          <span>Supports <code>.eml</code>, <code>.pcap</code>, <code>.har</code>, <code>.mp4</code>, <code>.png</code>, <code>.jpg</code>, <code>.pdf</code>, <code>.docx</code></span>
+          <div>
+            <button type="button" class="btn-ghost" id="pickDecodeFileBtn">Inspect local file...</button>
+            <input type="file" id="decoderFileInput" style="display:none;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="examples-row">
+        <span>Examples:</span>
+        <button class="chip" data-decode-preset="https://www.tiktok.com/@bellingcat/video/7345123456789012485">TikTok URL</button>
+        <button class="chip" data-decode-preset="https://www.google.com/search?q=osint&amp;ei=gIfsZQABAgM">Google ei= URL</button>
+        <button class="chip" data-decode-preset="d9b2d63d-a233-11ee-8c90-005056c00008">UUIDv1</button>
+        <button class="chip" data-decode-preset="SA0380000000608010167519">Saudi IBAN</button>
+        <button class="chip" data-decode-preset="+966501234567">Phone</button>
+      </div>
+
+      <div id="forensicDecodeResults" style="max-width:860px; margin:0 auto;"></div>
+    </section>
+
+    <!-- 3. CASES -->
     <section class="view-panel" id="view-cases">
-      <div class="hunter-hero">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-          <div>
-            <h2 style="margin:0; font-size:19px;">🗄️ Forensic Case Vault, Cross-Case Linker &amp; Surface Drift Studio</h2>
-            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
-              Reload any saved <code>cases/CASE-...</code> dossier into the Interactive Graph Studio, export Gephi <code>.gexf</code> / GraphML / Neo4j Cypher, uncover shared infrastructure across investigations, or compute temporal attack-surface drift (<code>--diff-last</code>).
-            </div>
-          </div>
-          <button class="btn-sm" id="refreshCasesBtn" style="border-color:var(--cyan); color:var(--cyan);">🔄 Refresh Case Vault</button>
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0; font-size:20px; font-weight:650;">Saved Cases</h2>
+          <div style="color:var(--text-muted); font-size:13.5px;">Open past investigations, compare two cases, or monitor targets.</div>
         </div>
+        <button class="btn" id="refreshCasesBtn">Refresh</button>
+      </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; margin-top:14px;">
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
-            <div style="font-size:12px; font-weight:700; color:var(--cyan); text-transform:uppercase; margin-bottom:8px;">🔗 Cross-Case Link &amp; Temporal Drift Analyzer</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-              <select id="caseSelectA" class="select-ctrl" style="flex:1; min-width:160px;"><option value="">Select Case A (Baseline)...</option></select>
-              <select id="caseSelectB" class="select-ctrl" style="flex:1; min-width:160px;"><option value="">Select Case B (Current)...</option></select>
-            </div>
+      <div class="grid-3">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Compare Cases</div>
+          <div style="display:grid; gap:8px;">
+            <select id="caseSelectA" class="ctrl-select"><option value="">Baseline case...</option></select>
+            <select id="caseSelectB" class="ctrl-select"><option value="">Second case...</option></select>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn-sm" id="runCaseCompareBtn" style="border-color:var(--cyan); color:var(--cyan);">🔗 Shared Links &amp; /24 Subnets</button>
-              <button class="btn-sm" id="runCaseDiffBtn" style="border-color:#fbbf24; color:#fbbf24;">📈 Temporal Surface Drift (Delta)</button>
+              <button class="btn" id="runCaseCompareBtn">Shared Links</button>
+              <button class="btn" id="runCaseDiffBtn">Surface Changes</button>
             </div>
           </div>
+        </div>
 
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
-            <div style="font-size:12px; font-weight:700; color:#a78bfa; text-transform:uppercase; margin-bottom:8px;">🎭 Offline Typosquat &amp; IDN Homoglyph Generator (0 Packets)</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <input type="text" id="typosquatDomainInput" class="hunter-input" style="flex:1; min-width:180px;" placeholder="e.g. tesla.com or github.com" />
-              <button class="btn-sm" id="runTyposquatBtn" style="border-color:#a78bfa; color:#c4b5fd; font-weight:700;">⚡ Generate Permutations</button>
-            </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Domain Lookalikes</div>
+          <div style="color:var(--text-muted); font-size:12.5px; margin-bottom:10px;">Generate offline typosquats and IDN lookalike domains.</div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="typosquatDomainInput" class="ctrl-input" style="flex:1;" placeholder="example.com" />
+            <button class="btn" id="runTyposquatBtn">Generate</button>
           </div>
+        </div>
 
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:9px; padding:12px;">
-            <div style="font-size:12px; font-weight:700; color:#34d399; text-transform:uppercase; margin-bottom:8px;">📡 Target Watchlist &amp; Automated Drift Sweep</div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
-              <input type="text" id="watchlistTargetInput" class="hunter-input" style="flex:1; min-width:150px;" placeholder="Add domain, handle, email..." />
-              <button class="btn-sm" id="addWatchlistBtn" style="border-color:#34d399; color:#34d399;">＋ Add</button>
-              <button class="btn-sm" id="runWatchlistSweepBtn" style="border-color:#fbbf24; color:#fde68a;">📡 Sweep All</button>
-            </div>
-            <div id="watchlistItemsArea" style="font-size:12px; color:var(--text-2);"></div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Watchlist</div>
+          <div style="display:flex; gap:6px; margin-bottom:10px;">
+            <input type="text" id="watchlistTargetInput" class="ctrl-input" style="flex:1;" placeholder="Add target..." />
+            <button class="btn" id="addWatchlistBtn">Add</button>
+            <button class="btn" id="runWatchlistSweepBtn">Run All</button>
           </div>
+          <div id="watchlistItemsArea" style="font-size:12.5px; color:var(--text-muted);"></div>
         </div>
       </div>
 
-      <div id="caseComparisonOutput"></div>
-      <div id="savedCasesList" style="margin-top:12px;"></div>
+      <div id="caseComparisonOutput" style="margin-top:14px;"></div>
+      <div id="savedCasesList" style="margin-top:14px;"></div>
     </section>
 
-    <!-- VIEW 0B: ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER -->
-    <section class="view-panel" id="view-decoder">
-      <div class="hunter-hero">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-          <div>
-            <h2 style="margin:0; font-size:19px;">🧬 Zero-Network Forensic &amp; Chronolocation Decoder</h2>
-            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
-              Extract exact upload timestamps, hardware OUIs, bank identifiers, mobile carriers, and ISO checksums with <strong>ZERO outbound network packets</strong>:
-              TikTok video/post IDs &amp; URLs · Discord &amp; X/Twitter Snowflakes · UUIDv1 (MAC + 100ns time) · UUIDv6/v7 · ULIDs · MongoDB ObjectIds · ISO 13616 IBANs (SAMA) · E.164 Phones (GCC/MENA/UK/US) · Aircraft ICAO24 · Vessel IMO/MMSI · ISO 3779 VIN · IEEE MAC/BSSID · JWTs.
-            </div>
+    <!-- 4. DIRECTORY (TOOLS, DORKS, PLAYBOOKS, RETIRED) -->
+    <section class="view-panel" id="view-directory">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;">
+        <div class="segmented" id="dirSubTabs" style="margin-bottom:0;">
+          <button class="seg-btn active" data-subview="tools">Tools</button>
+          <button class="seg-btn" data-subview="dorks">Search Dorks</button>
+          <button class="seg-btn" data-subview="playbooks">Playbooks</button>
+          <button class="seg-btn" data-subview="retired">Retired Tools</button>
+        </div>
+        <div id="dirSummaryLabel" style="color:var(--text-muted); font-size:13px;"></div>
+      </div>
+
+      <!-- 4A. Tools Subview -->
+      <div id="dir-tools">
+        <div class="card" style="padding:14px 16px;">
+          <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <input type="text" id="searchInput" class="ctrl-input" style="flex:1; min-width:220px; padding:8px 12px; font-size:13.5px;" placeholder="Search 760 OSINT tools by name, input, or topic..." />
+            <select id="categorySelect" class="ctrl-select">
+              <option value="">All 20 Categories</option>
+            </select>
+            <select id="inputSelectorSelect" class="ctrl-select">
+              <option value="">Any Starting Evidence</option>
+            </select>
+            <button class="chip" id="togPassive">Passive only</button>
+            <button class="chip" id="togFree">Free</button>
+            <button class="chip" id="togNoAuth">No login</button>
           </div>
-          <span class="badge opsec-Passive" style="font-size:12px; padding:5px 10px;">🟢 100% Offline · 0 Packets Sent</span>
         </div>
-
-        <div class="hunter-input-row">
-          <input type="text" id="forensicDecodeInput" class="hunter-input" placeholder="Paste TikTok URL/ID, Google ei= URL, SSH key, Snowflake, UUIDv1/v7, ULID, ObjectId, IBAN, Phone, VIN, ICAO24, MAC, or JWT..." />
-          <button id="runDecodeBtn" class="btn-hunt">🧬 DECODE OFFLINE</button>
-        </div>
-
-        <div class="file-dropzone" id="decoderDropzone">
-          <div>
-            <strong>📂 Drag &amp; Drop Local File for 100% Offline DFIR Inspection (0 Packets Sent):</strong>
-            <span style="color:var(--text-2); margin-left:6px;"><code>.eml</code> spoofing/hops · <code>.pcap</code>/<code>.pcapng</code> DNS/TLS-SNI · <code>.har</code> · <code>.mp4</code>/<code>.mov</code> GPS · <code>.png</code>/<code>.webp</code> C2PA &amp; AI prompts · <code>.jpg</code> EXIF · <code>.pdf</code> · <code>.docx</code></span>
-          </div>
-          <button type="button" class="btn-sm" style="border-color:var(--green); color:#6ee7b7;">📎 Inspect File Offline</button>
-          <input type="file" id="decoderFileInput" style="display:none;" />
-        </div>
-
-        <div class="preset-row" style="margin-top:10px;">
-          <span style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">Instant Artifacts:</span>
-          <button class="sel-pill" data-decode-preset="https://www.tiktok.com/@bellingcat/video/7345123456789012485">🎵 TikTok Upload UTC</button>
-          <button class="sel-pill" data-decode-preset="https://www.google.com/search?q=osint&amp;ei=gIfsZQABAgM">🔍 Google ei= Timestamp</button>
-          <button class="sel-pill" data-decode-preset="1216789012345678901">💬 Discord/X Snowflake</button>
-          <button class="sel-pill" data-decode-preset="d9b2d63d-a233-11ee-8c90-005056c00008">🔑 UUIDv1 (MAC + Time)</button>
-          <button class="sel-pill" data-decode-preset="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJC analyst@corp-sec.io">🛡️ SSH Key Fingerprint</button>
-          <button class="sel-pill" data-decode-preset="SA0380000000608010167519">🏦 Saudi IBAN (Al Rajhi)</button>
-          <button class="sel-pill" data-decode-preset="+966501234567">📱 Saudi Mobile (+966)</button>
-          <button class="sel-pill" data-decode-preset="5YJ3E1EA7KF317000">🚗 Tesla VIN Checksum</button>
-          <button class="sel-pill" data-decode-preset="A835AF">✈️ Aircraft ICAO24</button>
-          <button class="sel-pill" data-decode-preset="65f1a2b3c4d5e6f7a8b9c0d1">🍃 MongoDB ObjectId</button>
-        </div>
+        <div class="grid-2" id="toolsContainer"></div>
       </div>
 
-      <div id="forensicDecodeResults"></div>
-    </section>
-
-    <!-- VIEW 1: ARSENAL -->
-    <section class="view-panel" id="view-arsenal">
-      <div class="arsenal-layout">
-        <aside class="sidebar">
-          <div class="sidebar-title">
-            <span>Disciplines (20)</span>
-            <a href="#" id="resetCatLink" style="font-size:11px;">All</a>
-          </div>
-          <div id="categoryList"></div>
-        </aside>
-
-        <div>
-          <div class="filter-console">
-            <div class="search-row">
-              <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search 680+ Passive & Active OSINT tools, tags, CLI commands, capabilities (press / to focus)..." autocomplete="off" />
-                <span class="kbd-hint">/</span>
-              </div>
-
-              <select class="select-ctrl" id="typeSelect">
-                <option value="">All Tool Types</option>
-              </select>
-
-              <select class="select-ctrl" id="outputSelect">
-                <option value="">Produces Output...</option>
-              </select>
-
-              <select class="select-ctrl" id="sortSelect">
-                <option value="tier">Sort: Tier (S → A → B)</option>
-                <option value="name">Sort: Name (A → Z)</option>
-                <option value="passive">Sort: Passive First</option>
-              </select>
-            </div>
-
-            <div class="toggle-row">
-              <button class="chip-toggle" id="togPassive">🟢 Passive Only</button>
-              <button class="chip-toggle" id="togFree">💸 Free / Open Source</button>
-              <button class="chip-toggle" id="togNoAuth">✅ No Login / Keyless</button>
-              <button class="chip-toggle" id="togSTier">⭐ S-Tier Gold Standard</button>
-              <button class="chip-toggle" id="togGitHub">🐙 Open-Source GitHub</button>
-              <button class="btn-sm" id="resetAllBtn" style="margin-left:auto;">Reset Filters</button>
-            </div>
-
-            <div class="selector-strip">
-              <div class="selector-strip-label">
-                <span>🧭 I Have This Starting Evidence (Click Input Selector to Pivot):</span>
-                <span id="activeSelectorHint" style="color:var(--cyan);"></span>
-              </div>
-              <div class="selector-pills" id="selectorPills"></div>
-              <div class="pivot-banner" id="pivotBanner"></div>
-            </div>
-          </div>
-
-          <div class="results-bar">
-            <div id="resultsSummary">Showing tools...</div>
-            <div style="display:flex; gap:8px;">
-              <button class="btn-sm" id="viewModeBtn">📋 Switch to Compact Table</button>
-              <button class="btn-sm" id="exportFilteredBtn">⬇️ Export Filtered CSV</button>
-            </div>
-          </div>
-
-          <div id="toolsContainer"></div>
+      <!-- 4B. Dorks Subview -->
+      <div id="dir-dorks" style="display:none;">
+        <div class="card" style="padding:14px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+          <input type="text" id="dorkTargetInput" class="ctrl-input" style="flex:1; min-width:200px;" placeholder="Target domain or company (e.g. tesla.com)" />
+          <select id="dorkEngineSelect" class="ctrl-select">
+            <option value="">All Search Engines</option>
+          </select>
+          <input type="text" id="dorkSearchInput" class="ctrl-input" style="min-width:200px;" placeholder="Filter dorks..." />
         </div>
+        <div class="grid-2" id="dorksGrid"></div>
+      </div>
+
+      <!-- 4C. Playbooks Subview -->
+      <div id="dir-playbooks" style="display:none;">
+        <div class="grid-2" id="workflowsGrid"></div>
+      </div>
+
+      <!-- 4D. Retired Tools Subview -->
+      <div id="dir-retired" style="display:none;">
+        <div class="grid-2" id="graveyardGrid"></div>
       </div>
     </section>
 
-    <!-- VIEW 2: PIVOT MATRIX -->
-    <section class="view-panel" id="view-pivots">
-      <div class="filter-console" style="margin-bottom:16px;">
-        <h2 style="margin:0 0 6px;">🧭 Selector Pivot Matrix (`Input Artifact → OSINT Tools → Downstream Outputs`)</h2>
-        <p style="margin:0; color:var(--text-1);">Click any input selector below to jump directly into the filtered Tool Arsenal for that artifact type.</p>
-      </div>
-      <div class="pivot-grid" id="pivotMatrixGrid"></div>
-    </section>
-
-    <!-- VIEW 3: PLAYBOOKS -->
-    <section class="view-panel" id="view-workflows">
-      <div class="filter-console" style="margin-bottom:16px;">
-        <h2 style="margin:0 0 6px;">🗺️ End-to-End OSINT Investigation Playbooks</h2>
-        <p style="margin:0; color:var(--text-1);">Multi-phase operational tradecraft chaining passive &amp; active tools from seed selector to court/CTI-ready reporting. Click any tool chip to inspect its dossier and CLI quick-start.</p>
-      </div>
-      <div class="wf-grid" id="workflowsGrid"></div>
-    </section>
-
-    <!-- VIEW 4: DORK FORGE -->
-    <section class="view-panel" id="view-dorks">
-      <div class="dork-forge-bar">
-        <div>
-          <strong style="font-size:15px;">🎯 Live Dork Target Injector</strong>
-          <div style="font-size:12px; color:var(--text-2);">Type a domain, company, or handle to dynamically rewrite all 105 Google, Shodan, Censys, FOFA, ZoomEye, URLScan &amp; GitHub dorks:</div>
-        </div>
-        <input type="text" id="dorkTargetInput" placeholder="e.g. tesla.com or Acme Corp" />
-        <select class="select-ctrl" id="dorkEngineSelect">
-          <option value="">All Engines</option>
-        </select>
-        <input type="text" id="dorkSearchInput" class="select-ctrl" placeholder="Filter dorks (S3, Jenkins, K8s, PDF...)" style="min-width:220px;" />
-      </div>
-      <div class="tools-grid" id="dorksGrid"></div>
-    </section>
-
-    <!-- VIEW 5: GRAVEYARD -->
-    <section class="view-panel" id="view-graveyard">
-      <div class="filter-console" style="margin-bottom:16px; border-color:rgba(239,68,68,0.4);">
-        <h2 style="margin:0 0 6px;">🪦 Dead, Retired &amp; Hijacked OSINT Tools (2026 Replacement Board)</h2>
-        <p style="margin:0; color:var(--text-1);">Protect your investigations from hijacked domains (like <code>telegago.com</code>) and deprecated platforms (EO Browser, GeoSpy public web, CrowdTangle, Pushshift).</p>
-      </div>
-      <div class="wf-grid" id="graveyardGrid"></div>
-    </section>
-
-    <!-- VIEW 6: CASE LOADOUT -->
-    <section class="view-panel" id="view-loadout">
-      <div class="filter-console" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
-        <div>
-          <h2 style="margin:0 0 4px;">⭐ Custom Investigation Case Loadout</h2>
-          <p style="margin:0; color:var(--text-1);">Bookmark tools using the ★ icon on any card to assemble a case-specific toolkit and export as JSON, CSV, or Markdown.</p>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn-sm" id="exportLoadoutMd">📄 Export Markdown</button>
-          <button class="btn-sm" id="exportLoadoutJson">📦 Export JSON</button>
-          <button class="btn-sm" id="clearLoadoutBtn" style="color:#f87171;">🗑️ Clear Loadout</button>
-        </div>
-      </div>
-      <div id="loadoutContainer"></div>
-    </section>
-
-    <!-- VIEW 7: LOCAL SETTINGS, BYOK API KEYS & SYSTEM DOCTOR -->
+    <!-- 5. SETTINGS -->
     <section class="view-panel" id="view-settings">
-      <div class="hunter-hero">
-        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
-          <div>
-            <h2 style="margin:0; font-size:19px;">⚙️ Local App Settings, Optional API Keys &amp; System Doctor</h2>
-            <div style="color:var(--text-1); font-size:13px; margin-top:3px;">
-              Manage everything from your browser—zero terminal configuration required. Optional API keys are stored locally in your gitignored <code>.osint.env</code> file (<code>0600</code> permissions) and never leave your machine except to query their official passive APIs.
-            </div>
-          </div>
-          <button class="btn-sm" id="refreshDoctorBtn" style="border-color:var(--cyan); color:var(--cyan);">🔄 Refresh Diagnostics</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0; font-size:20px; font-weight:650;">Settings</h2>
+          <div style="color:var(--text-muted); font-size:13.5px;">Local system status and optional third-party API keys.</div>
         </div>
+        <button class="btn" id="refreshDoctorBtn">Refresh</button>
       </div>
 
       <div id="doctorStatusArea"></div>
-      <div id="byokSettingsArea" style="margin-top:14px;"></div>
+      <div id="byokSettingsArea"></div>
     </section>
   </main>
 
-  <!-- TOOL DOSSIER MODAL -->
+  <!-- TOOL DETAILS MODAL -->
   <div class="modal-backdrop" id="toolModalBackdrop">
     <div class="modal" id="toolModalContent"></div>
   </div>
 
-  <!-- MANDATORY ACTIVE OSINT AUTHORIZATION MODAL -->
+  <!-- ACTIVE SCAN PERMISSION MODAL -->
   <div class="modal-backdrop" id="activeAuthBackdrop">
-    <div class="modal" id="activeAuthModalContent" style="border-color:var(--red);"></div>
+    <div class="modal" id="activeAuthModalContent"></div>
   </div>
 
-  <script src="./data.js"></script>
-  <script src="./app.js"></script>
+  <script src="./data.js?v=clean2"></script>
+  <script src="./app.js?v=clean2"></script>
 </body>
 </html>

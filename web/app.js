@@ -1,42 +1,25 @@
 (function () {
   "use strict";
 
-  const DB = window.OSINT_DB;
+  const DB = window.OSINT_DB || { categories: [], tools: [], workflows: [], dorks: [], graveyard: [] };
   const toolsById = new Map(DB.tools.map((t) => [t.id, t]));
   const catsById = new Map(DB.categories.map((c) => [c.id, c]));
 
-  const STORAGE_KEY = "osint_monster_loadout_v1";
-  let savedIds = new Set();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) savedIds = new Set(JSON.parse(raw));
-  } catch (_) {}
-
-  function persistLoadout() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...savedIds]));
-    } catch (_) {}
-    document.getElementById("navCntLoadout").textContent = String(savedIds.size);
-  }
-
   const state = {
-    view: "hunter",
-    category: "",
+    view: "investigate",
+    dirSubview: "tools",
     query: "",
-    type: "",
-    output: "",
+    category: "",
     inputSelector: "",
     passiveOnly: false,
     freeOnly: false,
     noAuthOnly: false,
-    sTierOnly: false,
-    githubOnly: false,
-    sort: "tier",
-    compactTable: false,
     dorkTarget: "",
     dorkEngine: "",
     dorkQuery: "",
   };
+
+  let lastHuntReport = null;
 
   function esc(str) {
     return String(str ?? "")
@@ -46,14 +29,20 @@
       .replace(/"/g, "&quot;");
   }
 
+  function prettyKey(k) {
+    return String(k)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   function copyText(text, btnEl) {
     navigator.clipboard?.writeText(text);
     if (btnEl) {
       const prev = btnEl.textContent;
-      btnEl.textContent = "✓ Copied!";
+      btnEl.textContent = "Copied";
       setTimeout(() => {
         btnEl.textContent = prev;
-      }, 1300);
+      }, 1200);
     }
   }
 
@@ -69,587 +58,42 @@
     URL.revokeObjectURL(url);
   }
 
-  function initHeaderTelemetry() {
-    document.getElementById("navCntTools").textContent = String(DB.tools.length);
-    document.getElementById("navCntWorkflows").textContent = String(DB.workflows.length);
-    document.getElementById("navCntDorks").textContent = String(DB.dorks.length);
-    document.getElementById("navCntGraveyard").textContent = String(DB.graveyard.length);
-    document.getElementById("navCntLoadout").textContent = String(savedIds.size);
-
-    const passiveCnt = DB.tools.filter((t) => t.opsec === "Passive").length;
-    const freeCnt = DB.tools.filter((t) => t.pricing === "Free / Open Source" || t.pricing === "Free").length;
-    const noAuthCnt = DB.tools.filter((t) => !t.auth_required).length;
-    const sTierCnt = DB.tools.filter((t) => t.tier === "S").length;
-    const ghCnt = DB.tools.filter((t) => Boolean(t.github)).length;
-
-    const stats = [
-      { v: DB.tools.length, l: "Verified Active OSINT Tools" },
-      { v: DB.categories.length, l: "Intelligence Disciplines" },
-      { v: `${passiveCnt} (${Math.round((passiveCnt * 100) / DB.tools.length)}%)`, l: "🟢 Passive-Safe Tools" },
-      { v: freeCnt, l: "💸 Free & Open-Source" },
-      { v: noAuthCnt, l: "✅ Keyless / No-Login Ready" },
-      { v: `${sTierCnt} S-Tier · ${ghCnt} GH`, l: "Flagships & GitHub Repos" },
-    ];
-
-    document.getElementById("telemetryBar").innerHTML = stats
-      .map(
-        (s) => `
-      <div class="stat-card">
-        <div class="stat-value">${esc(s.v)}</div>
-        <div class="stat-label">${esc(s.l)}</div>
-      </div>`
-      )
-      .join("");
-  }
-
-  function initSelectDropdowns() {
-    const types = [...new Set(DB.tools.map((t) => t.type))].sort();
-    const typeSel = document.getElementById("typeSelect");
-    types.forEach((tp) => {
-      const opt = document.createElement("option");
-      opt.value = tp;
-      opt.textContent = `Type: ${tp}`;
-      typeSel.appendChild(opt);
-    });
-
-    const outputs = [...new Set(DB.tools.flatMap((t) => t.outputs))].sort();
-    const outSel = document.getElementById("outputSelect");
-    outputs.forEach((o) => {
-      const opt = document.createElement("option");
-      opt.value = o;
-      opt.textContent = `Output → ${o}`;
-      outSel.appendChild(opt);
-    });
-
-    const engines = [...new Set(DB.dorks.map((d) => d.engine))];
-    const engSel = document.getElementById("dorkEngineSelect");
-    engines.forEach((eng) => {
-      const opt = document.createElement("option");
-      opt.value = eng;
-      opt.textContent = eng;
-      engSel.appendChild(opt);
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Could not read file"));
+      reader.readAsDataURL(file);
     });
   }
 
-  function getFilteredTools(ignoreCategory = false) {
-    const q = state.query.trim().toLowerCase();
-    const terms = q ? q.split(/\s+/) : [];
-
-    const filtered = DB.tools.filter((t) => {
-      if (!ignoreCategory && state.category && t.category !== state.category) return false;
-      if (state.type && t.type !== state.type) return false;
-      if (state.output && !t.outputs.includes(state.output)) return false;
-      if (state.inputSelector && !t.inputs.includes(state.inputSelector)) return false;
-      if (state.passiveOnly && t.opsec !== "Passive") return false;
-      if (state.freeOnly && t.pricing !== "Free / Open Source" && t.pricing !== "Free") return false;
-      if (state.noAuthOnly && t.auth_required) return false;
-      if (state.sTierOnly && t.tier !== "S") return false;
-      if (state.githubOnly && !t.github) return false;
-
-      if (terms.length) {
-        const hay = `${t.id} ${t.name} ${t.subcategory} ${t.description} ${t.tags.join(" ")} ${t.inputs.join(" ")} ${t.outputs.join(" ")} ${t.quick_start}`.toLowerCase();
-        for (const term of terms) {
-          if (!hay.includes(term)) return false;
-        }
-      }
-      return true;
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  function switchView(viewName) {
+    state.view = viewName;
+    document.querySelectorAll(".nav-tab[data-view]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.view === viewName);
     });
-
-    const tierRank = { S: 0, A: 1, B: 2 };
-    const opsecRank = { Passive: 0, Hybrid: 1, Active: 2 };
-
-    filtered.sort((a, b) => {
-      if (state.sort === "name") return a.name.localeCompare(b.name);
-      if (state.sort === "passive") {
-        const d = opsecRank[a.opsec] - opsecRank[b.opsec];
-        if (d !== 0) return d;
-      }
-      const tr = tierRank[a.tier] - tierRank[b.tier];
-      if (tr !== 0) return tr;
-      return a.name.localeCompare(b.name);
+    document.querySelectorAll(".view-panel").forEach((p) => {
+      p.classList.toggle("active", p.id === `view-${viewName}`);
     });
-
-    return filtered;
+    if (viewName === "cases") renderCasesVault();
+    if (viewName === "directory") renderDirectory();
+    if (viewName === "settings") renderSettingsAndDoctor();
   }
 
-  function renderSidebar() {
-    const basePool = getFilteredTools(true);
-    const counts = new Map();
-    for (const t of basePool) {
-      counts.set(t.category, (counts.get(t.category) || 0) + 1);
-    }
+  document.getElementById("homeBrandBtn")?.addEventListener("click", () => switchView("investigate"));
+  document.querySelectorAll(".nav-tab[data-view]").forEach((btn) => {
+    btn.addEventListener("click", () => switchView(btn.dataset.view));
+  });
 
-    const listEl = document.getElementById("categoryList");
-    const allBtn = `
-      <button class="cat-btn ${state.category === "" ? "active" : ""}" data-cat="">
-        <span>🌐 All 20 Disciplines</span>
-        <span class="cnt">${basePool.length}</span>
-      </button>`;
-
-    const items = DB.categories
-      .map((c) => {
-        const cnt = counts.get(c.id) || 0;
-        return `
-        <button class="cat-btn ${state.category === c.id ? "active" : ""}" data-cat="${esc(c.id)}">
-          <span>${esc(c.icon)} ${esc(c.short_title)}</span>
-          <span class="cnt">${cnt}</span>
-        </button>`;
-      })
-      .join("");
-
-    listEl.innerHTML = allBtn + items;
-    listEl.querySelectorAll(".cat-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.category = btn.dataset.cat;
-        renderArsenal();
-      });
+  // Close open dropdowns on outside click
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll(".dropdown.open").forEach((dd) => {
+      if (!dd.contains(e.target)) dd.classList.remove("open");
     });
-  }
+  });
 
-  function renderSelectorPills(filtered) {
-    const counts = new Map();
-    for (const t of DB.tools) {
-      for (const inp of t.inputs) counts.set(inp, (counts.get(inp) || 0) + 1);
-    }
-    const selectors = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-    document.getElementById("navCntPivots").textContent = String(selectors.length);
-
-    const container = document.getElementById("selectorPills");
-    container.innerHTML = selectors
-      .map(
-        ([sel, cnt]) => `
-      <button class="sel-pill ${state.inputSelector === sel ? "active" : ""}" data-sel="${esc(sel)}">
-        ${esc(sel)} <span style="opacity:0.6;">(${cnt})</span>
-      </button>`
-      )
-      .join("");
-
-    container.querySelectorAll(".sel-pill").forEach((el) => {
-      el.addEventListener("click", () => {
-        const s = el.dataset.sel;
-        state.inputSelector = state.inputSelector === s ? "" : s;
-        renderArsenal();
-      });
-    });
-
-    const banner = document.getElementById("pivotBanner");
-    const hint = document.getElementById("activeSelectorHint");
-    if (state.inputSelector) {
-      const label = DB.selector_labels[state.inputSelector] || state.inputSelector;
-      hint.textContent = `Active Pivot: ${label}`;
-      const outMap = new Map();
-      filtered.forEach((t) => t.outputs.forEach((o) => outMap.set(o, (outMap.get(o) || 0) + 1)));
-      const topOuts = [...outMap.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(
-          ([o, c]) =>
-            `<button class="sel-pill" data-out="${esc(o)}" style="margin:2px;">→ ${esc(o)} (${c})</button>`
-        )
-        .join(" ");
-      banner.className = "pivot-banner visible";
-      banner.innerHTML = `<strong>Pivot Chain from <code>${esc(state.inputSelector)}</code> (${esc(label)}):</strong> ${filtered.length} matching tools unlock these downstream outputs (click to filter):<div style="margin-top:6px;">${topOuts}</div>`;
-      banner.querySelectorAll("[data-out]").forEach((b) => {
-        b.addEventListener("click", () => {
-          state.output = b.dataset.out;
-          document.getElementById("outputSelect").value = state.output;
-          renderArsenal();
-        });
-      });
-    } else {
-      hint.textContent = "";
-      banner.className = "pivot-banner";
-      banner.innerHTML = "";
-    }
-  }
-
-  function renderToolCard(t) {
-    const cat = catsById.get(t.category);
-    const isSaved = savedIds.has(t.id);
-    const opsecIcon = t.opsec === "Passive" ? "🟢" : t.opsec === "Hybrid" ? "🟡" : "🔴";
-    const ghLink = t.github
-      ? `<a class="ext-link" href="https://github.com/${esc(t.github)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🐙 GitHub</a>`
-      : `<span></span>`;
-
-    return `
-      <article class="tool-card" data-tool-id="${esc(t.id)}">
-        <div>
-          <div class="card-top">
-            <div style="display:flex; gap:8px; align-items:flex-start;">
-              <span class="tier-badge tier-${esc(t.tier)}">${esc(t.tier)}</span>
-              <div>
-                <h3 class="tool-title">${esc(t.name)}</h3>
-                <div class="tool-subcat">${esc(cat ? cat.icon + " " + cat.short_title : t.category)} · ${esc(t.subcategory)}</div>
-              </div>
-            </div>
-            <button class="star-btn ${isSaved ? "saved" : ""}" data-star="${esc(t.id)}" title="Save to Case Loadout">★</button>
-          </div>
-
-          <p class="tool-desc" style="margin-top:9px;">${esc(t.description)}</p>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div class="badge-row">
-            <span class="badge opsec-${esc(t.opsec)}">${opsecIcon} ${esc(t.opsec)}</span>
-            <span class="badge badge-neutral">${esc(t.type)}</span>
-            <span class="badge badge-neutral">${esc(t.pricing)}</span>
-            <span class="badge badge-neutral">${t.auth_required ? "🔑 Auth/Key" : "✅ No-Auth"}</span>
-          </div>
-
-          <div class="io-line" title="Inputs → Outputs">
-            in: ${esc(t.inputs.slice(0, 3).join(", "))} → out: ${esc(t.outputs.slice(0, 3).join(", "))}
-          </div>
-
-          <div class="card-actions">
-            ${ghLink}
-            <a class="ext-link" href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Launch Tool ↗</a>
-          </div>
-        </div>
-      </article>`;
-  }
-
-  function bindCardEvents(rootEl) {
-    rootEl.querySelectorAll("[data-tool-id]").forEach((card) => {
-      card.addEventListener("click", () => openToolModal(card.dataset.toolId));
-    });
-    rootEl.querySelectorAll("[data-star]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.star;
-        if (savedIds.has(id)) savedIds.delete(id);
-        else savedIds.add(id);
-        persistLoadout();
-        btn.classList.toggle("saved", savedIds.has(id));
-        if (state.view === "loadout") renderLoadout();
-      });
-    });
-  }
-
-  function renderArsenal() {
-    renderSidebar();
-    const filtered = getFilteredTools(false);
-    renderSelectorPills(filtered);
-
-    const catLabel = state.category ? ` in ${catsById.get(state.category)?.short_title}` : " across all 20 disciplines";
-    document.getElementById("resultsSummary").innerHTML = `Showing <strong>${filtered.length}</strong> of ${DB.tools.length} verified tools${esc(catLabel)}`;
-
-    const container = document.getElementById("toolsContainer");
-    if (!filtered.length) {
-      container.innerHTML = `<div class="filter-console" style="text-align:center; padding:36px;"><h3>No matching tools</h3><p style="color:var(--text-2);">Try clearing active selector/output filters or broadening your search terms.</p></div>`;
-      return;
-    }
-
-    if (state.compactTable) {
-      container.innerHTML = `
-        <div class="tools-table-wrap">
-          <table class="tools-table">
-            <thead>
-              <tr>
-                <th>Tier</th>
-                <th>Tool</th>
-                <th>Discipline</th>
-                <th>Type</th>
-                <th>OPSEC</th>
-                <th>Pricing</th>
-                <th>Auth</th>
-                <th>Link</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filtered
-                .map(
-                  (t) => `
-                <tr data-tool-id="${esc(t.id)}" style="cursor:pointer;">
-                  <td><span class="tier-badge tier-${esc(t.tier)}">${esc(t.tier)}</span></td>
-                  <td><strong>${esc(t.name)}</strong><div style="font-size:11.5px;color:var(--text-2);">${esc(t.subcategory)}</div></td>
-                  <td>${esc(catsById.get(t.category)?.code || t.category)}</td>
-                  <td>${esc(t.type)}</td>
-                  <td><span class="badge opsec-${esc(t.opsec)}">${esc(t.opsec)}</span></td>
-                  <td>${esc(t.pricing)}</td>
-                  <td>${t.auth_required ? "🔑" : "✅"}</td>
-                  <td><a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open ↗</a></td>
-                </tr>`
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>`;
-      bindCardEvents(container);
-    } else {
-      container.innerHTML = `<div class="tools-grid">${filtered.map(renderToolCard).join("")}</div>`;
-      bindCardEvents(container);
-    }
-  }
-
-  function openToolModal(toolId) {
-    const t = toolsById.get(toolId);
-    if (!t) return;
-    const cat = catsById.get(t.category);
-    const backdrop = document.getElementById("toolModalBackdrop");
-    const modal = document.getElementById("toolModalContent");
-
-    modal.innerHTML = `
-      <div class="modal-header">
-        <div>
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
-            <span class="tier-badge tier-${esc(t.tier)}">${esc(t.tier)}-TIER</span>
-            <span class="badge opsec-${esc(t.opsec)}">${esc(t.opsec)} OPSEC</span>
-            <span class="badge badge-neutral">${esc(t.type)}</span>
-            <span class="badge badge-neutral">${esc(t.pricing)}</span>
-          </div>
-          <h2 style="margin:4px 0 2px;">${esc(t.name)}</h2>
-          <div style="color:var(--text-2); font-size:12.5px;">${esc(cat?.icon || "")} ${esc(cat?.title || t.category)} › ${esc(t.subcategory)} · ID: <code>${esc(t.id)}</code></div>
-        </div>
-        <button class="close-btn" id="closeModalBtn">✕ ESC</button>
-      </div>
-
-      <p style="font-size:14.5px; color:var(--text-0); line-height:1.6;">${esc(t.description)}</p>
-
-      <div style="margin:14px 0;">
-        <div style="font-size:11.5px; font-weight:700; color:var(--text-2); text-transform:uppercase;">Quick-Start Command / Analyst Tradecraft</div>
-        <div class="code-block" id="modalQuickCmd">${esc(t.quick_start)}</div>
-        <button class="btn-sm" id="copyQuickBtn">📋 Copy Quick-Start</button>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0;">
-        <div style="background:var(--bg-0); padding:10px 12px; border-radius:8px; border:1px solid var(--border);">
-          <div style="font-size:11px; color:var(--text-2); text-transform:uppercase; margin-bottom:6px;">Accepts Input Selectors</div>
-          <div class="badge-row">${t.inputs.map((i) => `<button class="sel-pill" data-pivot-in="${esc(i)}">${esc(i)}</button>`).join("")}</div>
-        </div>
-        <div style="background:var(--bg-0); padding:10px 12px; border-radius:8px; border:1px solid var(--border);">
-          <div style="font-size:11px; color:var(--text-2); text-transform:uppercase; margin-bottom:6px;">Produces Intelligence Outputs</div>
-          <div class="badge-row">${t.outputs.map((o) => `<span class="badge badge-neutral">${esc(o)}</span>`).join("")}</div>
-        </div>
-      </div>
-
-      <div style="font-size:12.5px; color:var(--text-2); margin-bottom:16px;">
-        <strong>Platforms:</strong> ${esc(t.platforms.join(", "))} &nbsp;·&nbsp;
-        <strong>Auth:</strong> ${t.auth_required ? "Account / API Key Required" : "Keyless / No Registration Required"} &nbsp;·&nbsp;
-        <strong>Tags:</strong> ${t.tags.map((tg) => `<code>#${esc(tg)}</code>`).join(" ")}
-      </div>
-
-      <div style="display:flex; gap:10px; flex-wrap:wrap; border-top:1px solid var(--border); padding-top:14px;">
-        <a href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" class="nav-tab active" style="text-decoration:none;">🚀 Open Official Tool ↗</a>
-        ${
-          t.github
-            ? `<a href="https://github.com/${esc(t.github)}" target="_blank" rel="noopener noreferrer" class="nav-tab" style="text-decoration:none;">🐙 GitHub (${esc(t.github)}) ↗</a>`
-            : ""
-        }
-      </div>
-    `;
-
-    backdrop.classList.add("open");
-    document.getElementById("closeModalBtn").onclick = () => backdrop.classList.remove("open");
-    document.getElementById("copyQuickBtn").onclick = function () {
-      copyText(t.quick_start, this);
-    };
-    modal.querySelectorAll("[data-pivot-in]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        backdrop.classList.remove("open");
-        switchView("arsenal");
-        state.inputSelector = btn.dataset.pivotIn;
-        state.category = "";
-        renderArsenal();
-      });
-    });
-  }
-
-  function renderPivotMatrix() {
-    const bySel = new Map();
-    for (const t of DB.tools) {
-      for (const inp of t.inputs) {
-        if (!bySel.has(inp)) bySel.set(inp, []);
-        bySel.get(inp).push(t);
-      }
-    }
-    const sorted = [...bySel.entries()].sort((a, b) => b[1].length - a[1].length);
-
-    const grid = document.getElementById("pivotMatrixGrid");
-    grid.innerHTML = sorted
-      .map(([sel, list]) => {
-        const passive = list.filter((t) => t.opsec === "Passive").length;
-        const outs = new Map();
-        list.forEach((t) => t.outputs.forEach((o) => outs.set(o, (outs.get(o) || 0) + 1)));
-        const topOuts = [...outs.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([o]) => `<code>${esc(o)}</code>`)
-          .join(", ");
-        const topTools = list
-          .filter((t) => t.tier === "S")
-          .slice(0, 4)
-          .map((t) => `<span class="wf-tool-chip" data-open-tool="${esc(t.id)}">★ ${esc(t.name)}</span>`)
-          .join(" ");
-
-        return `
-        <div class="pivot-card">
-          <h3>
-            <span><code>${esc(sel)}</code> · ${esc(DB.selector_labels[sel] || sel)}</span>
-            <span class="version-pill">${list.length} tools</span>
-          </h3>
-          <div style="font-size:12px; color:var(--text-2); margin-bottom:8px;">
-            🟢 ${passive} Passive-Safe &nbsp;·&nbsp; Pivots into: ${topOuts}
-          </div>
-          <div class="wf-tools" style="margin-bottom:12px;">${topTools}</div>
-          <button class="btn-sm" data-jump-sel="${esc(sel)}">🧭 Pivot with ${list.length} Tools in Arsenal →</button>
-        </div>`;
-      })
-      .join("");
-
-    grid.querySelectorAll("[data-open-tool]").forEach((el) => {
-      el.addEventListener("click", () => openToolModal(el.dataset.openTool));
-    });
-    grid.querySelectorAll("[data-jump-sel]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.inputSelector = btn.dataset.jumpSel;
-        state.category = "";
-        switchView("arsenal");
-        renderArsenal();
-      });
-    });
-  }
-
-  function renderWorkflows() {
-    const grid = document.getElementById("workflowsGrid");
-    grid.innerHTML = DB.workflows
-      .map(
-        (wf) => `
-      <div class="wf-card">
-        <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
-          <span class="version-pill">${esc(wf.discipline)}</span>
-          <span style="font-size:12px; color:var(--text-2);">Seed: <code>${esc(wf.starting_selector)}</code> · ${esc(wf.difficulty)}</span>
-        </div>
-        <h3 style="margin:8px 0 6px; font-size:16px;">${esc(wf.title)}</h3>
-        <p style="margin:0 0 10px; color:var(--text-1); font-size:13px;">${esc(wf.summary)}</p>
-        ${wf.steps
-          .map(
-            (st) => `
-          <div class="wf-step">
-            <div class="wf-step-title">Phase ${st.step}: ${esc(st.phase)}</div>
-            <div style="font-size:12.5px; color:var(--text-1); margin-top:3px;">${esc(st.action)}</div>
-            <div class="wf-tools">
-              ${st.recommended_tools
-                .map((tid) => {
-                  const t = toolsById.get(tid);
-                  return t
-                    ? `<button class="wf-tool-chip" data-open-tool="${esc(tid)}">[${esc(t.tier)}] ${esc(t.name)}</button>`
-                    : "";
-                })
-                .join("")}
-            </div>
-          </div>`
-          )
-          .join("")}
-      </div>`
-      )
-      .join("");
-
-    grid.querySelectorAll("[data-open-tool]").forEach((btn) => {
-      btn.addEventListener("click", () => openToolModal(btn.dataset.openTool));
-    });
-  }
-
-  function rewriteDork(query, target) {
-    if (!target) return query;
-    return query
-      .replace(/example\.com/gi, target)
-      .replace(/Target Corp/gi, target)
-      .replace(/Target Company/gi, target)
-      .replace(/target-company/gi, target)
-      .replace(/target_company/gi, target)
-      .replace(/target_org/gi, target)
-      .replace(/target_keyword/gi, target)
-      .replace(/target_handle/gi, target)
-      .replace(/Target Name/gi, target);
-  }
-
-  function dorkLaunchUrl(engine, q) {
-    const enc = encodeURIComponent(q);
-    if (engine === "Google") return `https://www.google.com/search?q=${enc}`;
-    if (engine === "Shodan") return `https://www.shodan.io/search?query=${enc}`;
-    if (engine === "Censys") return `https://search.censys.io/search?resource=hosts&q=${enc}`;
-    if (engine === "GitHub") return `https://github.com/search?q=${enc}&type=code`;
-    if (engine === "URLScan.io") return `https://urlscan.io/search/#${enc}`;
-    if (engine === "X (Twitter)") return `https://x.com/search?q=${enc}&f=live`;
-    return "";
-  }
-
-  function renderDorks() {
-    const q = state.dorkQuery.trim().toLowerCase();
-    const list = DB.dorks.filter((d) => {
-      if (state.dorkEngine && d.engine !== state.dorkEngine) return false;
-      if (q) {
-        const hay = `${d.title} ${d.category} ${d.purpose} ${d.query} ${d.engine}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-
-    const grid = document.getElementById("dorksGrid");
-    grid.innerHTML = list
-      .map((d) => {
-        const rewritten = rewriteDork(d.query, state.dorkTarget.trim());
-        const launch = dorkLaunchUrl(d.engine, rewritten);
-        return `
-        <div class="dork-card">
-          <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:4px;">
-            <span class="version-pill">${esc(d.engine)}</span>
-            <span style="font-size:11.5px; color:var(--text-2);">${esc(d.category)}</span>
-          </div>
-          <h3 style="margin:4px 0; font-size:14.5px;">${esc(d.title)}</h3>
-          <p style="margin:0; font-size:12.5px; color:var(--text-1);">${esc(d.purpose)}</p>
-          <div class="code-block">${esc(rewritten)}</div>
-          <div style="display:flex; gap:8px; justify-content:space-between; align-items:center;">
-            <button class="btn-sm" data-copy-dork="${esc(rewritten)}">📋 Copy Query</button>
-            ${launch ? `<a class="ext-link" href="${esc(launch)}" target="_blank" rel="noopener noreferrer">Run in ${esc(d.engine)} ↗</a>` : ""}
-          </div>
-        </div>`;
-      })
-      .join("");
-
-    grid.querySelectorAll("[data-copy-dork]").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        copyText(this.dataset.copyDork, this);
-      });
-    });
-  }
-
-  function renderGraveyard() {
-    const grid = document.getElementById("graveyardGrid");
-    grid.innerHTML = DB.graveyard
-      .map(
-        (g) => `
-      <div class="wf-card" style="border-color:rgba(239,68,68,0.28);">
-        <div style="display:flex; justify-content:space-between; gap:8px;">
-          <span class="badge opsec-Active">${esc(g.status)}</span>
-          <code style="font-size:11.5px; color:var(--text-2);">${esc(g.former_url)}</code>
-        </div>
-        <h3 style="margin:8px 0 6px;">🪦 ${esc(g.dead_tool)}</h3>
-        <p style="font-size:13px; color:var(--text-1); margin:0 0 12px;">${esc(g.what_happened)}</p>
-        <div style="font-size:11.5px; font-weight:700; color:#34d399; text-transform:uppercase; margin-bottom:6px;">Verified 2026 Replacements:</div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          ${g.replacements
-            .map(
-              (r) => `
-            <div style="background:var(--bg-0); padding:8px 10px; border-radius:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px;">
-              <div>
-                <strong style="color:var(--cyan); cursor:pointer;" data-open-tool="${esc(r.id)}">${esc(r.name)}</strong>
-                <div style="font-size:12px; color:var(--text-2);">${esc(r.note)}</div>
-              </div>
-              <button class="btn-sm" data-open-tool="${esc(r.id)}">Inspect</button>
-            </div>`
-            )
-            .join("")}
-        </div>
-      </div>`
-      )
-      .join("");
-
-    grid.querySelectorAll("[data-open-tool]").forEach((el) => {
-      el.addEventListener("click", () => openToolModal(el.dataset.openTool));
-    });
-  }
-
+  // ── Clean Entity Graph Renderer ────────────────────────────────────────────
   function renderEntityGraphSvg(graph, opts = {}) {
     const allNodes = graph.nodes || [];
     const allEdges = graph.edges || [];
@@ -657,7 +101,6 @@
 
     const stageFilter = opts.stage || "";
     const typeFilter = opts.type || "";
-    const minConf = parseFloat(opts.minConf || "0");
     const highlightPathSet = opts.highlightPathSet || new Set();
     const highlightNodeSet = opts.highlightNodeSet || new Set();
 
@@ -667,11 +110,10 @@
       return true;
     });
     const allowedIds = new Set(nodes.map((n) => n.id));
-    const edges = allEdges.filter(
-      (e) => allowedIds.has(e.source) && allowedIds.has(e.target) && (e.confidence ?? 0.8) >= minConf
-    );
+    const edges = allEdges.filter((e) => allowedIds.has(e.source) && allowedIds.has(e.target));
+
     if (!nodes.length) {
-      return `<div style="padding:24px; text-align:center; color:var(--text-2);">No entities match the current graph filter.</div>`;
+      return `<div style="padding:28px; text-align:center; color:var(--text-muted);">No entities match this filter.</div>`;
     }
 
     const byWave = new Map();
@@ -682,14 +124,14 @@
     });
 
     const waves = [...byWave.keys()].sort((a, b) => a - b);
-    const width = 980;
+    const width = 960;
     const maxPerCol = Math.max(...waves.map((w) => byWave.get(w).length), 1);
-    const height = Math.max(250, maxPerCol * 58 + 54);
+    const height = Math.max(220, maxPerCol * 56 + 48);
     const pos = new Map();
 
     waves.forEach((w, colIdx) => {
       const colNodes = byWave.get(w);
-      const x = waves.length === 1 ? width / 2 : 160 + (colIdx * (width - 320)) / (waves.length - 1);
+      const x = waves.length === 1 ? width / 2 : 150 + (colIdx * (width - 300)) / (waves.length - 1);
       colNodes.forEach((n, rowIdx) => {
         const y = ((rowIdx + 1) * height) / (colNodes.length + 1);
         pos.set(n.id, { x, y, node: n });
@@ -698,12 +140,11 @@
 
     const colorFor = (tp) => {
       if (tp === "email") return "#f59e0b";
-      if (tp === "domain" || tp === "ip") return "#22d3ee";
-      if (tp === "username") return "#8b5cf6";
+      if (tp === "domain" || tp === "ip") return "#38bdf8";
+      if (tp === "username") return "#a78bfa";
       if (tp === "person_name" || tp === "company") return "#f472b6";
-      if (tp === "phone") return "#34d399";
-      if (tp === "crypto_address") return "#10b981";
-      return "#60a5fa";
+      if (tp === "phone" || tp === "crypto_address") return "#34d399";
+      return "#94a3b8";
     };
 
     const edgeLines = edges
@@ -713,36 +154,31 @@
         if (!s || !t) return "";
         const mx = (s.x + t.x) / 2;
         const my = (s.y + t.y) / 2 - 6;
-        const confPct = Math.round((e.confidence ?? 0.8) * 100);
         const isHi = highlightPathSet.has(`${e.source}|${e.target}`) || highlightPathSet.has(`${e.target}|${e.source}`);
-        const stroke = isHi ? "#fbbf24" : confPct >= 90 ? "#38bdf8" : "#35507f";
-        const sw = isHi ? "3.2" : confPct >= 90 ? "2.1" : "1.5";
-        const dash = isHi ? "" : confPct < 70 ? 'stroke-dasharray="4 3"' : "";
         return `
-          <line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="${stroke}" stroke-width="${sw}" ${dash} />
-          <text x="${mx}" y="${my}" fill="${isHi ? "#fde68a" : "#7b90b6"}" font-size="9.5" font-weight="${isHi ? "700" : "400"}" text-anchor="middle">${esc(e.via)} (${confPct}%)</text>`;
+          <line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}" stroke="${isHi ? "#fbbf24" : "rgba(255,255,255,0.16)"}" stroke-width="${isHi ? "2.6" : "1.3"}" />
+          <text x="${mx}" y="${my}" fill="${isHi ? "#fde68a" : "#6b7280"}" font-size="9.5" text-anchor="middle">${esc(e.via)}</text>`;
       })
       .join("");
 
-    const nodeCircles = [...pos.values()]
+    const nodeCards = [...pos.values()]
       .map(({ x, y, node }) => {
-        const isHiNode = highlightNodeSet.has(node.id);
-        const col = isHiNode ? "#fbbf24" : colorFor(node.type);
-        const label = node.value.length > 28 ? node.value.slice(0, 26) + "…" : node.value;
+        const isHi = highlightNodeSet.has(node.id);
+        const col = isHi ? "#fbbf24" : colorFor(node.type);
+        const label = node.value.length > 26 ? node.value.slice(0, 24) + "…" : node.value;
         return `
           <g class="svg-node" data-rehunt="${esc(node.value)}" style="cursor:pointer;">
-            <rect x="${x - 116}" y="${y - 19}" width="232" height="38" rx="8" fill="${isHiNode ? "#292107" : "#131c2e"}" stroke="${col}" stroke-width="${isHiNode ? "2.8" : "1.6"}" />
-            <text x="${x}" y="${y - 4}" fill="${col}" font-size="9.5" font-weight="700" text-anchor="middle">[S${node.wave}] ${esc(node.type.toUpperCase())}</text>
-            <text x="${x}" y="${y + 11}" fill="#eef4ff" font-size="11" font-family="monospace" text-anchor="middle">${esc(label)}</text>
+            <rect x="${x - 108}" y="${y - 18}" width="216" height="36" rx="9" fill="#12151f" stroke="${col}" stroke-opacity="${isHi ? "1" : "0.55"}" stroke-width="${isHi ? "2.2" : "1.2"}" />
+            <text x="${x}" y="${y - 3}" fill="${col}" font-size="9" font-weight="600" text-anchor="middle">${esc(node.type)}</text>
+            <text x="${x}" y="${y + 11}" fill="#f3f4f6" font-size="11" font-family="monospace" text-anchor="middle">${esc(label)}</text>
           </g>`;
       })
       .join("");
 
-    return `<svg id="interactiveGraphSvg" viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:500px; display:block; cursor:grab; user-select:none;"><g id="graphViewportGroup">${edgeLines}${nodeCircles}</g></svg>`;
+    return `<svg id="interactiveGraphSvg" viewBox="0 0 ${width} ${height}" style="width:100%; height:auto; max-height:460px; display:block; cursor:grab; user-select:none;"><g id="graphViewportGroup">${edgeLines}${nodeCards}</g></svg>`;
   }
 
-  let lastHuntReport = null;
-
+  // ── Active Scan Permission Modal (Mandatory Gate) ──────────────────────────
   async function openActiveAuthorizationModal(targetOverride, fromCaseId) {
     const inputEl = document.getElementById("huntTargetInput");
     const target = (targetOverride || inputEl.value || "").trim();
@@ -754,7 +190,7 @@
     const backdrop = document.getElementById("activeAuthBackdrop");
     const modal = document.getElementById("activeAuthModalContent");
     backdrop.classList.add("open");
-    modal.innerHTML = `<div style="padding:24px; text-align:center;"><h3>🔒 Preparing Active OSINT Scope Across All Discovered Infrastructure (Zero Packets Sent)...</h3></div>`;
+    modal.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted);">Preparing active scan scope (no packets sent yet)...</div>`;
 
     try {
       const resp = await fetch("./api/hunt/active/prepare", {
@@ -769,97 +205,71 @@
       const allMods = plan.all_available_modules || plan.planned_active_modules || [];
 
       modal.innerHTML = `
-        <div class="modal-header">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;">
           <div>
-            <span class="badge opsec-Active" style="font-size:12px;">🔴 MANDATORY USER AUTHORIZATION GATE</span>
-            <h2 style="margin:6px 0 2px;">Authorize Active OSINT Probing?</h2>
-            <div style="font-size:12px; color:var(--text-2);">Single-Use Request ID: <code>${esc(plan.request_id)}</code> · Zero packets have been sent yet</div>
+            <span class="status-pill red">Permission Required</span>
+            <h3 style="margin:8px 0 2px; font-size:18px;">Run active network probes?</h3>
+            <div style="font-size:12.5px; color:var(--text-muted);">Target: <code>${esc(plan.target)}</code> · Token: <code>${esc(plan.request_id)}</code></div>
           </div>
-          <button class="close-btn" id="cancelActiveModalBtn">✕ Cancel</button>
+          <button class="btn-ghost" id="cancelActiveModalBtn">✕</button>
         </div>
 
-        <div style="background:var(--red-dim); border:1px solid rgba(239,68,68,0.45); border-radius:8px; padding:11px 13px; font-size:13px; color:#fecaca; margin-bottom:12px;">
-          <strong>⚠️ OPSEC DISCLOSURE:</strong> ${esc(plan.opsec_warning)}
+        <div style="background:var(--red-soft); border:1px solid rgba(239,68,68,0.3); border-radius:9px; padding:11px 13px; font-size:13px; color:#fecaca; margin-bottom:14px;">
+          Active scans connect directly to the target's servers (TLS, HTTP headers, DNS, open ports) and may appear in their server logs.
         </div>
 
-        <div style="margin-bottom:12px; font-size:13px;">
-          <strong>Target Scope:</strong> <code>${esc(plan.target)}</code><br/>
-          <strong>Detected Selectors:</strong> ${(plan.detected_selectors || [])
-            .map((s) => `<span class="badge badge-neutral" style="margin:2px;">${esc(s.type)}: ${esc(s.value)}</span>`)
-            .join("")}
-        </div>
+        <details style="margin-bottom:16px;">
+          <summary style="cursor:pointer; font-size:13px; color:var(--text-muted);">Customize active probes (${plannedSet.size} selected)</summary>
+          <div style="display:grid; gap:6px; max-height:200px; overflow-y:auto; margin-top:10px; padding-right:4px;">
+            ${allMods
+              .map(
+                (m) => `
+              <label style="display:flex; gap:8px; align-items:center; font-size:12.5px; cursor:pointer;">
+                <input type="checkbox" class="act-mod-chk" value="${esc(m.module)}" ${plannedSet.has(m.module) ? "checked" : ""} />
+                <span><strong>${esc(m.title)}</strong> <span style="color:var(--text-dim);">(${esc(m.module)})</span></span>
+              </label>`
+              )
+              .join("")}
+          </div>
+        </details>
 
-        <div style="font-size:11.5px; font-weight:700; color:var(--text-2); text-transform:uppercase; margin-bottom:6px;">
-          Select Active Reconnaissance Modules to Permit:
-        </div>
-        <div style="display:flex; flex-direction:column; gap:6px; max-height:240px; overflow-y:auto; margin-bottom:14px;">
-          ${allMods
-            .map(
-              (m) => `
-            <label style="display:flex; gap:9px; align-items:flex-start; background:var(--bg-0); border:1px solid var(--border); padding:8px 10px; border-radius:7px; cursor:pointer;">
-              <input type="checkbox" class="active-mod-chk" value="${esc(m.module)}" ${plannedSet.has(m.module) ? "checked" : ""} style="margin-top:3px;" />
-              <div>
-                <div style="font-weight:700; font-size:12.5px;">${esc(m.title)} (<code>${esc(m.module)}</code>)</div>
-                <div style="font-size:11.5px; color:var(--text-2);">${esc(m.opsec_impact)}</div>
-              </div>
-            </label>`
-            )
-            .join("")}
-        </div>
-
-        <label style="display:flex; gap:9px; align-items:center; padding:10px 12px; background:var(--bg-2); border:1px solid var(--border-hi); border-radius:8px; cursor:pointer; font-weight:600; margin-bottom:14px;">
-          <input type="checkbox" id="confirmActiveConsentChk" />
-          <span>I explicitly authorize direct Active OSINT network requests against this target for this single run.</span>
-        </label>
-
-        <div style="display:flex; justify-content:flex-end; gap:10px;">
-          <button class="btn-sm" id="abortActiveBtn">Keep Passive Only (Cancel)</button>
-          <button class="btn-hunt" id="confirmActiveLaunchBtn" disabled style="background:linear-gradient(135deg,#dc2626,#ea580c);">
-            🔴 Authorize &amp; Launch Active Hunt (${esc(plan.request_id)})
-          </button>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button class="btn" id="abortActiveBtn">Cancel</button>
+          <button class="btn btn-danger" id="confirmActiveBtn" style="background:rgba(239,68,68,0.16); font-weight:600;">Approve &amp; Run Active Scan</button>
         </div>
       `;
 
-      const close = () => backdrop.classList.remove("open");
-      document.getElementById("cancelActiveModalBtn").onclick = close;
-      document.getElementById("abortActiveBtn").onclick = close;
-
-      const consentChk = document.getElementById("confirmActiveConsentChk");
-      const goBtn = document.getElementById("confirmActiveLaunchBtn");
-      consentChk.addEventListener("change", () => {
-        goBtn.disabled = !consentChk.checked;
-      });
-
-      goBtn.addEventListener("click", async () => {
-        const chosenMods = [...modal.querySelectorAll(".active-mod-chk:checked")].map((c) => c.value);
-        close();
-        await runAuthorizedActiveHunt(plan.target, plan.request_id, chosenMods);
-      });
+      const closeModal = () => backdrop.classList.remove("open");
+      document.getElementById("cancelActiveModalBtn").onclick = closeModal;
+      document.getElementById("abortActiveBtn").onclick = closeModal;
+      document.getElementById("confirmActiveBtn").onclick = async () => {
+        const chosen = [...modal.querySelectorAll(".act-mod-chk:checked")].map((c) => c.value);
+        closeModal();
+        await executeApprovedActiveHunt(plan.target, plan.request_id, chosen);
+      };
     } catch (err) {
-      modal.innerHTML = `<div style="padding:18px;"><h3 style="color:var(--red);">Failed to prepare Active request (${esc(err.message)})</h3><button class="btn-sm" onclick="document.getElementById('activeAuthBackdrop').classList.remove('open')">Close</button></div>`;
+      modal.innerHTML = `<div style="padding:12px;"><h4>Could not prepare active scan</h4><p style="color:var(--text-muted);">${esc(err.message)}</p><button class="btn" id="errCloseAct">Close</button></div>`;
+      document.getElementById("errCloseAct").onclick = () => backdrop.classList.remove("open");
     }
   }
 
-  async function runAuthorizedActiveHunt(target, requestId, modules) {
+  async function executeApprovedActiveHunt(target, requestId, modules) {
     const btn = document.getElementById("launchHuntBtn");
-    const depth = parseInt(document.getElementById("huntDepthSelect").value || "2", 10);
+    const depth = Math.min(3, parseInt(document.getElementById("huntDepthSelect").value || "2", 10));
     const outArea = document.getElementById("huntResultsArea");
 
     btn.disabled = true;
-    btn.textContent = "🔴 EXECUTING AUTHORIZED ACTIVE + PASSIVE HUNT...";
-    outArea.innerHTML = `<div class="collector-card" style="text-align:center; padding:36px; border-color:var(--red);"><h3>🔴 User-Authorized Active + Passive Collectors Running (${esc(requestId)})...</h3><p style="color:var(--text-2);">Inspecting live TLS SANs, HTTP/CSP headers, robots/security.txt, Shodan mmh3 favicon hashes, TCP banners, and passive intelligence.</p></div>`;
+    btn.textContent = "Running...";
+    outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Running authorized active + passive checks on <code>${esc(target)}</code>...</div>`;
 
     try {
       const resp = await fetch("./api/hunt/active", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Human-Modal-Confirmed": "1",
-        },
+        headers: { "Content-Type": "application/json", "X-Human-Modal-Confirmed": "1" },
         body: JSON.stringify({
           target,
           request_id: requestId,
-          user_confirmation: "Approved via Web Command Center Authorization Modal",
+          user_confirmation: "Approved via Local Web Workspace",
           depth,
           modules,
           save_case: true,
@@ -870,18 +280,20 @@
       lastHuntReport = report;
       renderHuntReport(report);
     } catch (err) {
-      outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>🚫 Active Gate Rejected Execution</h3><p style="color:var(--text-1);">${esc(err.message)}</p></div>`;
+      outArea.innerHTML = `<div class="card"><div class="card-title" style="color:#fca5a5;">Active scan stopped</div><p style="color:var(--text-muted); margin:6px 0 0;">${esc(err.message)}</p></div>`;
     } finally {
       btn.disabled = false;
-      btn.textContent = "⚡ HUNT NOW";
+      btn.textContent = "Investigate";
     }
   }
 
+  // ── Investigate Execution & Clean Results View ─────────────────────────────
   async function executeLiveHunt() {
     const inputEl = document.getElementById("huntTargetInput");
     const modeSel = document.getElementById("huntModeSelect");
     const btn = document.getElementById("launchHuntBtn");
-    const depth = parseInt(document.getElementById("huntDepthSelect").value || "2", 10);
+    const depth = parseInt(document.getElementById("huntDepthSelect").value || "4", 10);
+    const diffLast = Boolean(document.getElementById("huntDiffLastCheck")?.checked);
     const outArea = document.getElementById("huntResultsArea");
     const target = inputEl.value.trim();
     if (!target) {
@@ -889,17 +301,14 @@
       return;
     }
 
-    // MANDATORY ACTIVE MODE RULE: NEVER start Active OSINT without asking user first!
     if (modeSel && modeSel.value === "active") {
       await openActiveAuthorizationModal(target);
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = "⏳ HUNTING WAVE 1 → WAVE " + depth + "...";
-    outArea.innerHTML = `<div class="collector-card" style="text-align:center; padding:36px;"><h3>🛰️ Autonomous Passive Collectors Firing in Parallel...</h3><p style="color:var(--text-2);">Extracting selectors, querying registries/GitHub/npm/PyPI/DNS/forensic decoders, and pivoting across discovered entities without prompting.</p></div>`;
-
-    const diffLast = Boolean(document.getElementById("huntDiffLastToggle")?.classList.contains("active"));
+    btn.textContent = "Investigating...";
+    outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Searching public sources and correlating leads for <code>${esc(target)}</code>...</div>`;
 
     try {
       const resp = await fetch("./api/hunt", {
@@ -908,315 +317,284 @@
         body: JSON.stringify({ target, depth, save_case: true, diff_last: diffLast }),
       });
       const report = await resp.json();
-      if (!resp.ok || report.error) {
-        throw new Error(report.error || `HTTP ${resp.status}`);
-      }
+      if (!resp.ok || report.error) throw new Error(report.error || `HTTP ${resp.status}`);
       lastHuntReport = report;
       renderHuntReport(report);
     } catch (err) {
-      outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Local Backend Unreachable (${esc(err.message)})</h3><p style="color:var(--text-1);">Double-click <code>Start-Web-UI.bat</code> (Windows), <code>Start-Web-UI.command</code> (macOS), or run <code>./start-web-ui.sh</code>.</p></div>`;
+      outArea.innerHTML = `<div class="card"><div class="card-title" style="color:#fca5a5;">Local server not running</div><p style="color:var(--text-muted); margin:6px 0 0;">Double-click <code>Start-Web-UI.bat</code> (Windows), <code>Start-Web-UI.command</code> (macOS), or run <code>./start-web-ui.sh</code>.</p></div>`;
     } finally {
       btn.disabled = false;
-      btn.textContent = "⚡ HUNT NOW";
+      btn.textContent = "Investigate";
     }
   }
 
   function renderHuntReport(report) {
     const outArea = document.getElementById("huntResultsArea");
-    const m = report.meta;
-    const svg = renderEntityGraphSvg(report.graph);
-
-    const waveHtml = (report.wave_results || [])
-      .map(
-        (w) => `
-        <div class="collector-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-            <div>
-              <span class="version-pill">WAVE ${w.wave}</span>
-              <strong style="margin-left:8px; font-size:15px;">[${esc(w.type)}] <code>${esc(w.value)}</code></strong>
-            </div>
-            <button class="btn-sm" data-pivot-arsenal="${esc(w.type)}">🧭 Open ${esc(w.type)} Tools in Arsenal</button>
-          </div>
-          ${w.collector_outputs
-            .map((c) => {
-              const icon = c.status === "ok" ? "✅" : c.status === "not_found" ? "⚪" : "🔒";
-              const hasData = c.status === "ok" && c.data && Object.keys(c.data).length > 0;
-              return `
-                <div style="background:var(--bg-0); border:1px solid ${c.opsec === "Active" ? "rgba(239,68,68,0.45)" : "var(--border)"}; border-radius:7px; padding:9px 12px; margin-top:7px;">
-                  <div style="font-size:13px;">${icon} ${c.opsec === "Active" ? '<span class="badge opsec-Active" style="margin-right:5px;">🔴 ACTIVE</span>' : ""}<strong><code>${esc(c.module)}</code></strong> — <span style="color:var(--text-1);">${esc(c.summary)}</span></div>
-                  ${
-                    hasData
-                      ? `<details style="margin-top:6px;"><summary style="cursor:pointer; font-size:11.5px; color:var(--cyan);">Inspect Raw Telemetry JSON</summary><div class="code-block">${esc(
-                          JSON.stringify(c.data, null, 2)
-                        )}</div></details>`
-                      : ""
-                  }
-                </div>`;
-            })
-            .join("")}
-        </div>`
-      )
-      .join("");
-
-    const dorksHtml = (report.forged_dorks || [])
-      .slice(0, 8)
-      .map(
-        (d) => `
-        <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:8px 11px;">
-          <div style="font-size:11.5px; color:var(--cyan); font-weight:700;">[${esc(d.engine)}] ${esc(d.title)}</div>
-          <div class="code-block" style="margin:5px 0;">${esc(d.query)}</div>
-        </div>`
-      )
-      .join("");
-
-    const isAct = m.opsec_mode === "Active+Passive";
+    const m = report.meta || {};
     const syn = report.intelligence_synthesis || {};
-    const expScore = syn.exposure_score ?? 0;
-    const expRating = syn.exposure_rating || "MINIMAL";
-    const expColor = expScore >= 70 ? "#ef4444" : expScore >= 40 ? "#f59e0b" : "#10b981";
     const idC = syn.identity_cluster || {};
     const infC = syn.infrastructure_cluster || {};
-
-    const synHtml = `
-      <div class="collector-card" style="border-color:rgba(56,189,248,0.4);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-          <h3 style="margin:0; font-size:15.5px;">🧠 Cross-Stage Executive Intelligence Synthesis</h3>
-          <span class="badge" style="background:rgba(15,23,42,0.9); border:1.5px solid ${expColor}; color:${expColor}; font-weight:800; font-size:12.5px;">
-            EXPOSURE SCORE: ${esc(expScore)}/100 · ${esc(expRating)}
-          </span>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:10px; font-size:12.5px;">
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
-            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">👤 Identity Cluster</div>
-            <div><strong>Names/Orgs:</strong> ${esc([...(idC.person_names || []), ...(idC.organizations || [])].join(", ") || "—")}</div>
-            <div><strong>Handles:</strong> ${esc((idC.usernames_and_variants || []).slice(0, 8).join(", ") || "—")}</div>
-            <div><strong>Emails:</strong> ${esc((idC.emails || []).slice(0, 6).join(", ") || "—")}</div>
-          </div>
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
-            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">🌐 Infrastructure Cluster</div>
-            <div><strong>Domains:</strong> ${esc((infC.domains_and_subdomains || []).slice(0, 6).join(", ") || "—")}</div>
-            <div><strong>IPs / ASNs:</strong> ${esc([...(infC.ip_addresses || []), ...(infC.asns || [])].slice(0, 6).join(", ") || "—")}</div>
-            <div><strong>Locations:</strong> ${esc((idC.locations || []).slice(0, 5).join(", ") || "—")}</div>
-          </div>
-          <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:9px 11px;">
-            <div style="color:var(--cyan); font-weight:700; margin-bottom:4px;">🔗 Attribution Bridges &amp; OPSEC</div>
-            <div><strong>Bridges:</strong> ${esc((syn.cross_entity_attribution_bridges || []).slice(0, 3).join(" · ") || "Seed stage")}</div>
-            <div style="margin-top:3px;"><strong>Exposures:</strong> ${esc((syn.security_and_opsec_exposures || []).slice(0, 2).join(" · ") || "None flagged")}</div>
-          </div>
-        </div>
-      </div>`;
-
     const tprof = report.temporal_profile || {};
     const pconf = report.persona_and_confidence || {};
-    const hist24 = tprof.hourly_utc_histogram || {};
-    const maxHr = Math.max(1, ...Object.values(hist24).map((v) => Number(v) || 0));
-    const bars24 = Array.from({ length: 24 }, (_, h) => {
-      const k = String(h).padStart(2, "0");
-      const v = Number(hist24[k] || 0);
-      const pct = Math.max(8, Math.round((v / maxHr) * 44));
-      return `<div title="${k}:00 UTC — ${v} event(s)" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;">
-        <div style="width:100%; height:46px; display:flex; align-items:flex-end;"><div style="width:100%; height:${v ? pct : 3}px; background:${v ? "var(--cyan)" : "#1e293b"}; border-radius:2px;"></div></div>
-        <span style="font-size:8.5px; color:var(--text-2);">${h % 4 === 0 ? k : ""}</span>
-      </div>`;
-    }).join("");
 
-    const temporalAndConfidenceHtml = `
-      <div class="collector-card" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-        <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
-          <div style="font-size:12px; font-weight:700; color:var(--cyan); margin-bottom:5px;">🕒 Pattern-of-Life &amp; 24h UTC Circadian Activity</div>
-          <div style="font-size:12px; color:var(--text-1); margin-bottom:6px;">
-            <strong>UTC Offsets:</strong> <code>${esc(Object.keys(tprof.inferred_timezone_offsets || {}).join(", ") || "None leaked")}</code> ·
-            <strong>Regions:</strong> ${esc((tprof.likely_geographic_regions || []).slice(0, 2).join("; ") || "Insufficient timestamps")}
-            ${tprof.estimated_sleep_window_utc ? `<br/><strong>Est. Sleep Trough:</strong> <code>${esc(tprof.estimated_sleep_window_utc.sleep_window_utc)}</code> (<code>${esc(tprof.estimated_sleep_window_utc.inferred_utc_offset)}</code>)` : ""}
-          </div>
-          <div style="display:flex; gap:2px; align-items:flex-end; padding-top:4px;">${bars24}</div>
-        </div>
-        <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
-          <div style="font-size:12px; font-weight:700; color:#fbbf24; margin-bottom:5px;">🎯 Weighted Attribution Confidence &amp; Persona Flags</div>
-          <div style="font-size:11.8px; color:var(--text-1);">
-            ${
-              (pconf.attribution_chains || []).length
-                ? (pconf.attribution_chains || [])
-                    .slice(0, 4)
-                    .map((c) => `<div style="margin-bottom:4px;"><code>${esc(c.formatted_chain)}</code> <strong>(${Math.round(c.joint_confidence * 100)}%)</strong></div>`)
-                    .join("")
-                : "<div>Seed-stage entities collected — expand stages or click two nodes below to trace shortest path.</div>"
-            }
-            ${(pconf.sockpuppet_and_burner_indicators || []).map((f) => `<div style="color:#fca5a5; margin-top:4px;">🎭 ${esc(f)}</div>`).join("")}
-          </div>
-        </div>
-      </div>`;
+    const isAct = m.opsec_mode === "Active+Passive";
+    const score = syn.exposure_score ?? 0;
+    const scoreClass = score >= 65 ? "red" : score >= 35 ? "amber" : "green";
+    const tzKeys = Object.keys(tprof.inferred_timezone_offsets || {});
+    const sleepWin = tprof.estimated_sleep_window_utc?.sleep_window_utc;
 
+    const svg = renderEntityGraphSvg(report.graph);
     const uniqueStages = [...new Set((report.graph.nodes || []).map((n) => n.wave || 1))].sort((a, b) => a - b);
     const uniqueTypes = [...new Set((report.graph.nodes || []).map((n) => n.type))].sort();
     const nodeOptions = (report.graph.nodes || [])
-      .map((n) => `<option value="${esc(n.id)}">[S${n.wave}] ${esc(n.type)}: ${esc(n.value.slice(0, 36))}</option>`)
+      .map((n) => `<option value="${esc(n.id)}">${esc(n.type)}: ${esc(n.value.slice(0, 34))}</option>`)
+      .join("");
+
+    // Group findings cleanly: show positive matches prominently, collapse empty checks
+    const findingsHtml = (report.wave_results || [])
+      .map((w) => {
+        const hits = (w.collector_outputs || []).filter((c) => c.status === "ok");
+        const emptyCnt = (w.collector_outputs || []).length - hits.length;
+        return `
+          <div class="card">
+            <div class="card-header" style="margin-bottom:${hits.length ? "8px" : "0"};">
+              <div>
+                <span class="status-pill">Stage ${w.wave}</span>
+                <strong style="margin-left:8px; font-size:14.5px;">${esc(w.value)}</strong>
+                <span style="color:var(--text-dim); font-size:12.5px; margin-left:6px;">${esc(w.type)}</span>
+              </div>
+              <span style="font-size:12px; color:var(--text-muted);">${hits.length} match${hits.length === 1 ? "" : "es"}${emptyCnt ? ` · ${emptyCnt} empty` : ""}</span>
+            </div>
+            ${
+              hits.length
+                ? hits
+                    .map(
+                      (c) => `
+                  <div class="finding-row">
+                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                      <div>
+                        <strong style="font-size:13px;">${esc(prettyKey(c.module))}</strong>
+                        ${c.opsec === "Active" ? `<span class="status-pill red" style="margin-left:6px;">Active</span>` : ""}
+                        <div style="color:var(--text-muted); font-size:13px; margin-top:2px;">${esc(c.summary)}</div>
+                      </div>
+                    </div>
+                    ${
+                      c.data && Object.keys(c.data).length
+                        ? `<details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--text-dim);">Details</summary><div class="pre-box">${esc(
+                            JSON.stringify(c.data, null, 2)
+                          )}</div></details>`
+                        : ""
+                    }
+                  </div>`
+                    )
+                    .join("")
+                : `<div style="font-size:13px; color:var(--text-dim); margin-top:6px;">No public records matched for this selector.</div>`
+            }
+          </div>`;
+      })
       .join("");
 
     outArea.innerHTML = `
-      <div class="collector-card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; border-color:${isAct ? "var(--red)" : "var(--border-hi)"};">
+      <!-- Clean Header Bar -->
+      <div class="card" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
         <div>
-          <strong>${isAct ? "🔴 Active+Passive" : "🟢 Passive"} Case <code>${esc(m.case_id)}</code> · ${esc(m.stages_executed || m.depth)} Stage(s) in ${esc(m.duration_seconds)}s</strong>
-          <div style="font-size:12px; color:var(--text-2);">
-            ${report.graph.nodes.length} Entity Node(s) · ${report.graph.edges.length} Pivot Edge(s) · Converged: <code>${esc(Boolean(m.converged))}</code> · ${isAct ? `Authorized via <code>${esc(m.approval_request_id)}</code> · ` : ""}Saved to <code>${esc(m.case_dir || "memory")}/</code>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong style="font-size:16px;">${esc(m.raw_input)}</strong>
+            <span class="status-pill ${isAct ? "red" : "green"}">${isAct ? "Active + Passive" : "Passive"}</span>
+            <span class="status-pill ${scoreClass}">Exposure ${esc(score)}/100</span>
+          </div>
+          <div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">
+            ${report.graph.nodes.length} entities · ${report.graph.edges.length} connections · ${esc(m.stages_executed || m.depth)} stage(s) in ${esc(m.duration_seconds)}s
           </div>
         </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          ${!isAct ? `<button class="btn-sm" id="escalateActiveBtn" style="border-color:var(--red); color:#fca5a5;">🔴 Escalate Infra to Active OSINT...</button>` : ""}
-          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 HTML Report ↗</a>` : ""}
-          <button class="btn-sm" id="dlDossierMd">📄 .md</button>
-          <button class="btn-sm" id="dlEntitiesCsv">📊 .csv</button>
-          ${report.gexf_xml || m.case_id ? `<button class="btn-sm" id="dlGexfBtn" title="Gephi 1.3 Link Graph">🕸️ Gephi .gexf</button>` : ""}
-          ${report.graphml_xml || m.case_id ? `<button class="btn-sm" id="dlGraphmlBtn" title="yEd / Cytoscape GraphML">📐 .graphml</button>` : ""}
-          ${report.neo4j_cypher || m.case_id ? `<button class="btn-sm" id="dlCypherBtn" title="Neo4j Cypher Script">🗄️ Neo4j .cypher</button>` : ""}
-          ${m.case_id ? `<a class="btn-sm" href="./api/cases/${encodeURIComponent(m.case_id)}/obsidian.zip" download="${esc(m.case_id)}-obsidian-vault.zip" style="text-decoration:none;" title="Obsidian [[WikiLink]] Markdown Vault">📓 Obsidian .zip</a>` : ""}
-          <button class="btn-sm" id="dlStixJson">🛡️ STIX 2.1</button>
-          <button class="btn-sm" id="dlFullJson">📦 JSON</button>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          ${!isAct ? `<button class="btn" id="escalateActiveBtn">Run Active Scan...</button>` : ""}
+          <div class="dropdown" id="exportDropdown">
+            <button class="btn" id="exportMenuBtn">Export ▾</button>
+            <div class="dropdown-menu">
+              ${m.case_id ? `<a class="dropdown-item" href="./api/cases/${encodeURIComponent(m.case_id)}/html" target="_blank" rel="noopener">Printable Report <span>HTML</span></a>` : ""}
+              <button class="dropdown-item" id="dlDossierMd">Summary Dossier <span>.md</span></button>
+              <button class="dropdown-item" id="dlEntitiesCsv">Spreadsheet <span>.csv</span></button>
+              <button class="dropdown-item" id="dlGexfBtn">Gephi Graph <span>.gexf</span></button>
+              <button class="dropdown-item" id="dlGraphmlBtn">GraphML <span>.graphml</span></button>
+              <button class="dropdown-item" id="dlCypherBtn">Neo4j Import <span>.cypher</span></button>
+              ${m.case_id ? `<a class="dropdown-item" href="./api/cases/${encodeURIComponent(m.case_id)}/obsidian.zip" download="${esc(m.case_id)}-obsidian.zip">Obsidian Vault <span>.zip</span></a>` : ""}
+              <button class="dropdown-item" id="dlStixJson">STIX 2.1 Bundle <span>.json</span></button>
+              <button class="dropdown-item" id="dlFullJson">Raw Telemetry <span>.json</span></button>
+            </div>
+          </div>
         </div>
       </div>
 
       ${
         report.surface_delta
-          ? `<div class="collector-card" style="border-color:#fbbf24;">
-              <strong>📈 Attack-Surface Drift vs Baseline <code>${esc(report.surface_delta.baseline_case_id)}</code>:</strong>
-              <span style="margin-left:8px; color:var(--text-1); font-size:12.5px;">
-                <code>+${esc(report.surface_delta.added_entity_count)}</code> new / <code>-${esc(report.surface_delta.removed_entity_count)}</code> retired entities ·
-                Exposure Score <strong>${esc(report.surface_delta.exposure_score_before)} → ${esc(report.surface_delta.exposure_score_after)}</strong>
-                ${(report.surface_delta.new_domains_and_subdomains || []).length ? ` · New Domains: <code>${esc(report.surface_delta.new_domains_and_subdomains.slice(0, 6).join(", "))}</code>` : ""}
+          ? `<div class="card" style="border-color:rgba(245,158,11,0.35);">
+              <strong style="font-size:13.5px;">Changes since previous run (${esc(report.surface_delta.baseline_case_id)}):</strong>
+              <span style="color:var(--text-muted); margin-left:6px;">
+                +${esc(report.surface_delta.added_entity_count)} new, -${esc(report.surface_delta.removed_entity_count)} removed · Score ${esc(report.surface_delta.exposure_score_before)} → ${esc(report.surface_delta.exposure_score_after)}
               </span>
             </div>`
           : ""
       }
 
-      ${synHtml}
-      ${temporalAndConfidenceHtml}
-
-      <div class="graph-box">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-          <div style="font-size:11.5px; color:var(--text-2); font-weight:700; text-transform:uppercase;">
-            🕸️ Interactive Graph Studio (Drag to Pan · Scroll to Zoom · Click Node to Focus-Hunt)
-          </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-            <select id="graphStageFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
-              <option value="">All Stages</option>
-              ${uniqueStages.map((s) => `<option value="${s}">Stage ${s}</option>`).join("")}
-            </select>
-            <select id="graphTypeFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
-              <option value="">All Entity Types</option>
-              ${uniqueTypes.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}
-            </select>
-            <select id="graphConfFilter" class="select-ctrl" style="padding:4px 8px; font-size:11.5px;">
-              <option value="0">All Confidence</option>
-              <option value="0.75">≥ 75% Correlated</option>
-              <option value="0.88">≥ 88% High Proof</option>
-            </select>
-            <button class="btn-sm" id="graphZoomInBtn" title="Zoom In">＋</button>
-            <button class="btn-sm" id="graphZoomOutBtn" title="Zoom Out">－</button>
-            <button class="btn-sm" id="graphResetViewBtn" title="Reset Pan/Zoom">⟲ Reset</button>
+      <!-- Clean 3-Column Overview -->
+      <div class="grid-3">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Identity &amp; Accounts</div>
+          <div class="kv-list">
+            <div class="kv-row"><span class="kv-key">Names / Orgs</span><span class="kv-val">${esc([...(idC.person_names || []), ...(idC.organizations || [])].slice(0, 4).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">Handles</span><span class="kv-val">${esc((idC.usernames_and_variants || []).slice(0, 6).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">Emails</span><span class="kv-val">${esc((idC.emails || []).slice(0, 4).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">Phones</span><span class="kv-val">${esc((idC.phones || []).map((p) => p.e164 || p).slice(0, 3).join(", ") || "—")}</span></div>
           </div>
         </div>
-        ${
-          report.graph.nodes.length > 1
-            ? `<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:8px; font-size:12px;">
-                <span style="color:#fbbf24; font-weight:700;">🧭 Shortest Attribution Path:</span>
-                <select id="pathSrcSelect" class="select-ctrl" style="padding:4px 8px; font-size:11.5px; max-width:220px;">${nodeOptions}</select>
-                <span>→</span>
-                <select id="pathDstSelect" class="select-ctrl" style="padding:4px 8px; font-size:11.5px; max-width:220px;">${nodeOptions}</select>
-                <button class="btn-sm" id="tracePathBtn" style="border-color:#fbbf24; color:#fde68a;">✨ Trace Chain</button>
-                <span id="tracePathResult" style="font-size:11.5px; color:#fde68a;"></span>
-              </div>`
-            : ""
-        }
-        <div id="graphSvgViewport" style="overflow:hidden; border-radius:8px; background:#070b14; border:1px solid var(--border);">${svg}</div>
+
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Domains &amp; Network</div>
+          <div class="kv-list">
+            <div class="kv-row"><span class="kv-key">Domains</span><span class="kv-val">${esc((infC.domains_and_subdomains || []).slice(0, 5).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">IPs / ASNs</span><span class="kv-val">${esc([...(infC.ip_addresses || []), ...(infC.asns || [])].slice(0, 4).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">Locations</span><span class="kv-val">${esc((idC.locations || []).slice(0, 4).join(", ") || "—")}</span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title" style="margin-bottom:10px;">Signals &amp; Activity</div>
+          <div class="kv-list">
+            <div class="kv-row"><span class="kv-key">Timezone</span><span class="kv-val">${esc(tzKeys.join(", ") || (sleepWin ? `Quiet ${sleepWin}` : "—"))}</span></div>
+            <div class="kv-row"><span class="kv-key">Key Links</span><span class="kv-val">${esc(String((pconf.attribution_chains || []).length || (syn.cross_entity_attribution_bridges || []).length || 0))}</span></div>
+            <div class="kv-row"><span class="kv-key">Security Notes</span><span class="kv-val">${esc((syn.security_and_opsec_exposures || [])[0] || "None flagged")}</span></div>
+          </div>
+        </div>
       </div>
 
+      <!-- Clean Graph Card -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <span class="card-title">Relationship Graph</span>
+            <span style="color:var(--text-dim); font-size:12px; margin-left:8px;">Drag to pan · Scroll to zoom · Click any node to investigate</span>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <select id="graphStageFilter" class="ctrl-select">
+              <option value="">All stages</option>
+              ${uniqueStages.map((s) => `<option value="${s}">Stage ${s}</option>`).join("")}
+            </select>
+            <select id="graphTypeFilter" class="ctrl-select">
+              <option value="">All types</option>
+              ${uniqueTypes.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}
+            </select>
+            <button class="btn" id="graphResetViewBtn">Reset</button>
+          </div>
+        </div>
+
+        ${
+          report.graph.nodes.length > 1
+            ? `<details style="margin-bottom:10px;">
+                <summary style="cursor:pointer; font-size:12.5px; color:var(--text-muted);">Trace connection path between two entities</summary>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px;">
+                  <select id="pathSrcSelect" class="ctrl-select" style="max-width:220px;">${nodeOptions}</select>
+                  <span style="color:var(--text-dim);">→</span>
+                  <select id="pathDstSelect" class="ctrl-select" style="max-width:220px;">${nodeOptions}</select>
+                  <button class="btn" id="tracePathBtn">Highlight Path</button>
+                  <span id="tracePathResult" style="font-size:12.5px; color:#fcd34d;"></span>
+                </div>
+              </details>`
+            : ""
+        }
+
+        <div id="graphSvgViewport" class="graph-canvas">${svg}</div>
+      </div>
+
+      <!-- Findings -->
+      ${findingsHtml}
+
+      <!-- Optional Case Expansion -->
       ${
         m.case_id
-          ? `<div class="collector-card">
-              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-                <strong>🔄 Multi-Stage Case Expansion — Feed External Stage Findings into <code>${esc(m.case_id)}</code></strong>
-                <span style="font-size:11.5px; color:var(--text-2);">Carves every new handle, phone, WhatsApp link, email &amp; domain and hunts ALL of them</span>
-              </div>
+          ? `<div class="card">
+              <div class="card-title" style="margin-bottom:6px;">Add More Clues</div>
+              <div style="color:var(--text-muted); font-size:12.5px; margin-bottom:10px;">Paste a bio, Linktree, webpage text, or notes to extract new leads and continue this investigation.</div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <input type="text" id="expandCaseTextInput" class="hunter-input" style="flex:1; min-width:260px;" placeholder="Paste search snippets, Instagram/TikTok bios, Linktree URLs, or directory text to carve &amp; hunt next stage..." />
-                <button class="btn-sm" id="expandCaseBtn" style="border-color:var(--cyan); color:var(--cyan); font-weight:700;">⚡ Expand Case &amp; Hunt All Clues</button>
+                <input type="text" id="expandCaseTextInput" class="ctrl-input" style="flex:1; min-width:240px; padding:8px 12px;" placeholder="Paste additional text or links..." />
+                <button class="btn" id="expandCaseBtn">Expand Case</button>
               </div>
             </div>`
           : ""
       }
-
-      ${waveHtml}
-
-      ${
-        dorksHtml
-          ? `<div class="collector-card"><h3 style="margin:0 0 8px;">🎯 Auto-Forged Search Dorks for Discovered Entities</h3><div class="tools-grid">${dorksHtml}</div></div>`
-          : ""
-      }
     `;
 
-    const escBtn = document.getElementById("escalateActiveBtn");
-    if (escBtn) {
-      escBtn.onclick = () => openActiveAuthorizationModal(m.raw_input, m.case_id);
-    }
-    document.getElementById("dlDossierMd").onclick = () =>
-      downloadBlob(`${m.case_id}-dossier.md`, report.dossier_markdown, "text/markdown;charset=utf-8");
-    const csvBtn = document.getElementById("dlEntitiesCsv");
-    if (csvBtn) {
-      csvBtn.onclick = () =>
-        downloadBlob(`${m.case_id}-entities.csv`, report.entities_csv || "", "text/csv;charset=utf-8");
-    }
-    document.getElementById("dlStixJson").onclick = () =>
-      downloadBlob(`${m.case_id}-stix2.json`, JSON.stringify(report.stix2_bundle, null, 2), "application/json");
-    document.getElementById("dlFullJson").onclick = () =>
-      downloadBlob(`${m.case_id}-report.json`, JSON.stringify(report, null, 2), "application/json");
+    // Bind Export dropdown
+    const expDd = document.getElementById("exportDropdown");
+    document.getElementById("exportMenuBtn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      expDd?.classList.toggle("open");
+    });
 
-    const gexfBtn = document.getElementById("dlGexfBtn");
-    if (gexfBtn) {
-      gexfBtn.onclick = async () => {
-        if (report.gexf_xml) {
-          downloadBlob(`${m.case_id}.gexf`, report.gexf_xml, "application/xml;charset=utf-8");
-        } else if (m.case_id) {
-          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/gexf`);
-          if (r.ok) downloadBlob(`${m.case_id}.gexf`, await r.text(), "application/xml;charset=utf-8");
-        }
-      };
-    }
-    const graphmlBtn = document.getElementById("dlGraphmlBtn");
-    if (graphmlBtn) {
-      graphmlBtn.onclick = async () => {
-        if (report.graphml_xml) {
-          downloadBlob(`${m.case_id}.graphml`, report.graphml_xml, "application/xml;charset=utf-8");
-        } else if (m.case_id) {
-          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/graphml`);
-          if (r.ok) downloadBlob(`${m.case_id}.graphml`, await r.text(), "application/xml;charset=utf-8");
-        }
-      };
-    }
-    const cypherBtn = document.getElementById("dlCypherBtn");
-    if (cypherBtn) {
-      cypherBtn.onclick = async () => {
-        if (report.neo4j_cypher) {
-          downloadBlob(`${m.case_id}.cypher`, report.neo4j_cypher, "text/plain;charset=utf-8");
-        } else if (m.case_id) {
-          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/cypher`);
-          if (r.ok) downloadBlob(`${m.case_id}.cypher`, await r.text(), "text/plain;charset=utf-8");
-        }
-      };
-    }
+    document.getElementById("escalateActiveBtn")?.addEventListener("click", () =>
+      openActiveAuthorizationModal(m.raw_input, m.case_id)
+    );
+    document.getElementById("dlDossierMd")?.addEventListener("click", () =>
+      downloadBlob(`${m.case_id}-dossier.md`, report.dossier_markdown, "text/markdown;charset=utf-8")
+    );
+    document.getElementById("dlEntitiesCsv")?.addEventListener("click", () =>
+      downloadBlob(`${m.case_id}-entities.csv`, report.entities_csv || "", "text/csv;charset=utf-8")
+    );
+    document.getElementById("dlStixJson")?.addEventListener("click", () =>
+      downloadBlob(`${m.case_id}-stix2.json`, JSON.stringify(report.stix2_bundle, null, 2), "application/json")
+    );
+    document.getElementById("dlFullJson")?.addEventListener("click", () =>
+      downloadBlob(`${m.case_id}-report.json`, JSON.stringify(report, null, 2), "application/json")
+    );
 
-    // Interactive Graph Studio pan/zoom/filter/shortest-path controls
-    let gScale = 1;
-    let gPanX = 0;
-    let gPanY = 0;
-    let hiEdgeSet = new Set();
-    let hiNodeSet = new Set();
+    const fetchAndDl = (btnId, prop, endpoint, ext, mime) => {
+      document.getElementById(btnId)?.addEventListener("click", async () => {
+        if (report[prop]) {
+          downloadBlob(`${m.case_id}.${ext}`, report[prop], mime);
+        } else if (m.case_id) {
+          const r = await fetch(`./api/cases/${encodeURIComponent(m.case_id)}/${endpoint}`);
+          if (r.ok) downloadBlob(`${m.case_id}.${ext}`, await r.text(), mime);
+        }
+      });
+    };
+    fetchAndDl("dlGexfBtn", "gexf_xml", "gexf", "gexf", "application/xml;charset=utf-8");
+    fetchAndDl("dlGraphmlBtn", "graphml_xml", "graphml", "graphml", "application/xml;charset=utf-8");
+    fetchAndDl("dlCypherBtn", "neo4j_cypher", "cypher", "cypher", "text/plain;charset=utf-8");
 
-    function applyGraphTransform() {
+    // Expand case handler
+    const expBtn = document.getElementById("expandCaseBtn");
+    expBtn?.addEventListener("click", async () => {
+      const txt = (document.getElementById("expandCaseTextInput")?.value || "").trim();
+      if (!txt) return;
+      expBtn.disabled = true;
+      expBtn.textContent = "Expanding...";
+      try {
+        const r = await fetch("./api/cases/expand", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ case_id: m.case_id, ingested_text: txt, additional_stages: 3 }),
+        });
+        const nextRep = await r.json();
+        if (!r.ok || nextRep.error) throw new Error(nextRep.error || `HTTP ${r.status}`);
+        lastHuntReport = nextRep;
+        renderHuntReport(nextRep);
+      } catch (e) {
+        expBtn.textContent = "Expand failed";
+        expBtn.disabled = false;
+      }
+    });
+
+    // Graph Pan/Zoom/Filter
+    let gScale = 1, gPanX = 0, gPanY = 0;
+    let hiEdgeSet = new Set(), hiNodeSet = new Set();
+
+    function applyTransform() {
       const grp = document.getElementById("graphViewportGroup");
       if (grp) grp.setAttribute("transform", `translate(${gPanX}, ${gPanY}) scale(${gScale})`);
     }
 
-    function bindGraphInteractions() {
+    function bindSvg() {
       const svgEl = document.getElementById("interactiveGraphSvg");
       if (!svgEl) return;
       svgEl.querySelectorAll("[data-rehunt]").forEach((g) => {
@@ -1225,65 +603,46 @@
           executeLiveHunt();
         });
       });
-      let dragging = false;
-      let startX = 0;
-      let startY = 0;
+      let dragging = false, sx = 0, sy = 0;
       svgEl.addEventListener("mousedown", (ev) => {
         if (ev.target.closest(".svg-node")) return;
         dragging = true;
-        startX = ev.clientX - gPanX;
-        startY = ev.clientY - gPanY;
+        sx = ev.clientX - gPanX;
+        sy = ev.clientY - gPanY;
       });
       window.addEventListener("mousemove", (ev) => {
         if (!dragging) return;
-        gPanX = ev.clientX - startX;
-        gPanY = ev.clientY - startY;
-        applyGraphTransform();
+        gPanX = ev.clientX - sx;
+        gPanY = ev.clientY - sy;
+        applyTransform();
       });
-      window.addEventListener("mouseup", () => {
-        dragging = false;
-      });
+      window.addEventListener("mouseup", () => { dragging = false; });
       svgEl.addEventListener("wheel", (ev) => {
         ev.preventDefault();
-        gScale = Math.min(3.2, Math.max(0.45, gScale * (ev.deltaY < 0 ? 1.12 : 0.9)));
-        applyGraphTransform();
+        gScale = Math.min(3, Math.max(0.5, gScale * (ev.deltaY < 0 ? 1.1 : 0.9)));
+        applyTransform();
       }, { passive: false });
-      applyGraphTransform();
+      applyTransform();
     }
 
-    function refreshGraphSvg() {
+    function refreshSvg() {
       const vp = document.getElementById("graphSvgViewport");
       if (!vp) return;
       vp.innerHTML = renderEntityGraphSvg(report.graph, {
         stage: document.getElementById("graphStageFilter")?.value || "",
         type: document.getElementById("graphTypeFilter")?.value || "",
-        minConf: document.getElementById("graphConfFilter")?.value || "0",
         highlightPathSet: hiEdgeSet,
         highlightNodeSet: hiNodeSet,
       });
-      bindGraphInteractions();
+      bindSvg();
     }
 
-    ["graphStageFilter", "graphTypeFilter", "graphConfFilter"].forEach((fid) => {
-      document.getElementById(fid)?.addEventListener("change", refreshGraphSvg);
-    });
-    document.getElementById("graphZoomInBtn")?.addEventListener("click", () => {
-      gScale = Math.min(3.2, gScale * 1.2);
-      applyGraphTransform();
-    });
-    document.getElementById("graphZoomOutBtn")?.addEventListener("click", () => {
-      gScale = Math.max(0.45, gScale / 1.2);
-      applyGraphTransform();
-    });
+    document.getElementById("graphStageFilter")?.addEventListener("change", refreshSvg);
+    document.getElementById("graphTypeFilter")?.addEventListener("change", refreshSvg);
     document.getElementById("graphResetViewBtn")?.addEventListener("click", () => {
-      gScale = 1;
-      gPanX = 0;
-      gPanY = 0;
-      hiEdgeSet = new Set();
-      hiNodeSet = new Set();
-      const tr = document.getElementById("tracePathResult");
-      if (tr) tr.textContent = "";
-      refreshGraphSvg();
+      gScale = 1; gPanX = 0; gPanY = 0;
+      hiEdgeSet = new Set(); hiNodeSet = new Set();
+      refreshSvg();
     });
 
     const dstSel = document.getElementById("pathDstSelect");
@@ -1293,84 +652,43 @@
       const tId = document.getElementById("pathDstSelect")?.value;
       const resSpan = document.getElementById("tracePathResult");
       if (!sId || !tId) return;
-      try {
-        const r = await fetch("./api/graph/path", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nodes: report.graph.nodes, edges: report.graph.edges, source: sId, target: tId }),
+      const r = await fetch("./api/graph/path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nodes: report.graph.nodes, edges: report.graph.edges, source: sId, target: tId }),
+      });
+      const d = await r.json();
+      hiEdgeSet = new Set(); hiNodeSet = new Set();
+      if (d.path?.steps) {
+        hiNodeSet.add(sId);
+        d.path.steps.forEach((st) => {
+          hiEdgeSet.add(`${st.from}|${st.to}`);
+          hiNodeSet.add(st.to);
         });
-        const d = await r.json();
-        hiEdgeSet = new Set();
-        hiNodeSet = new Set();
-        if (d.path && d.path.steps) {
-          hiNodeSet.add(sId);
-          d.path.steps.forEach((st) => {
-            hiEdgeSet.add(`${st.from}|${st.to}`);
-            hiNodeSet.add(st.to);
-          });
-          if (resSpan) resSpan.textContent = `${d.path.hops} hop(s) · Joint Confidence: ${Math.round(d.path.joint_confidence * 100)}%`;
-        } else if (resSpan) {
-          resSpan.textContent = "No connected path between selected entities.";
-        }
-        refreshGraphSvg();
-      } catch (_) {}
+        if (resSpan) resSpan.textContent = `${d.path.hops} step(s) · ${Math.round(d.path.joint_confidence * 100)}% confidence`;
+      } else if (resSpan) {
+        resSpan.textContent = "No path between those entities";
+      }
+      refreshSvg();
     });
 
-    bindGraphInteractions();
+    bindSvg();
     refreshCasesBadgeCount();
-
-    const expCaseBtn = document.getElementById("expandCaseBtn");
-    if (expCaseBtn) {
-      expCaseBtn.onclick = async () => {
-        const txt = (document.getElementById("expandCaseTextInput")?.value || "").trim();
-        if (!txt) return;
-        expCaseBtn.disabled = true;
-        expCaseBtn.textContent = "⏳ Expanding Stage...";
-        try {
-          const r = await fetch("./api/cases/expand", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ case_id: m.case_id, ingested_text: txt, additional_stages: 3 }),
-          });
-          const nextRep = await r.json();
-          if (!r.ok || nextRep.error) throw new Error(nextRep.error || `HTTP ${r.status}`);
-          lastHuntReport = nextRep;
-          renderHuntReport(nextRep);
-        } catch (e) {
-          expCaseBtn.textContent = `⚠️ ${e.message}`;
-          expCaseBtn.disabled = false;
-        }
-      };
-    }
-
-    outArea.querySelectorAll("[data-rehunt]").forEach((g) => {
-      g.addEventListener("click", () => {
-        document.getElementById("huntTargetInput").value = g.dataset.rehunt;
-        executeLiveHunt();
-      });
-    });
-
-    outArea.querySelectorAll("[data-pivot-arsenal]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const tp = btn.dataset.pivotArsenal;
-        state.inputSelector = tp === "local_file" || tp === "jwt_token" ? "document" : tp;
-        state.category = "";
-        switchView("arsenal");
-        renderArsenal();
-      });
-    });
   }
 
-  function initHunterControls() {
+  // ── Investigate Input & File Drop Wiring ───────────────────────────────────
+  function initInvestigateControls() {
     const huntInput = document.getElementById("huntTargetInput");
     const detectedRow = document.getElementById("liveDetectedRow");
-    if (!huntInput) return;
+    const shell = document.getElementById("hunterDropzone");
+    const fileIn = document.getElementById("hunterFileInput");
 
     let detectTimer = null;
     huntInput.addEventListener("input", () => {
       clearTimeout(detectTimer);
       const val = huntInput.value.trim();
       if (!val) {
+        detectedRow.style.display = "none";
         detectedRow.innerHTML = "";
         return;
       }
@@ -1384,12 +702,14 @@
           if (!r.ok) return;
           const d = await r.json();
           const sels = d.selectors || [];
-          detectedRow.innerHTML = sels.length
-            ? `Auto-Detected Selectors (${sels.length}): ` +
-              sels.map((s) => `<span class="badge opsec-Passive" style="margin-right:4px;">${esc(s.type)}: ${esc(s.value)}</span>`).join("")
-            : "";
+          if (sels.length) {
+            detectedRow.style.display = "block";
+            detectedRow.innerHTML = "Detected: " + sels.map((s) => `<code>${esc(s.type)}: ${esc(s.value)}</code>`).join(" ");
+          } else {
+            detectedRow.style.display = "none";
+          }
         } catch (_) {}
-      }, 160);
+      }, 180);
     });
 
     huntInput.addEventListener("keydown", (e) => {
@@ -1398,29 +718,21 @@
         executeLiveHunt();
       }
     });
-
     document.getElementById("launchHuntBtn").addEventListener("click", executeLiveHunt);
 
-    const diffToggle = document.getElementById("huntDiffLastToggle");
-    if (diffToggle) {
-      diffToggle.addEventListener("click", () => diffToggle.classList.toggle("active"));
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(new Error("Could not read file"));
-        reader.readAsDataURL(file);
+    document.querySelectorAll("[data-hunt-preset]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        huntInput.value = btn.dataset.huntPreset;
+        executeLiveHunt();
       });
-    }
+    });
 
-    async function handleHunterFileUpload(file) {
+    async function handleFileHunt(file) {
       if (!file) return;
       const outArea = document.getElementById("huntResultsArea");
       const depth = parseInt(document.getElementById("huntDepthSelect")?.value || "4", 10);
-      const diffLast = Boolean(document.getElementById("huntDiffLastToggle")?.classList.contains("active"));
-      outArea.innerHTML = `<div class="collector-card" style="text-align:center; padding:34px;"><h3>📂 Carving DFIR Metadata &amp; Pivots from <code>${esc(file.name)}</code>...</h3><p style="color:var(--text-2);">Inspecting binary headers, EXIF/C2PA/AI tags, .eml hops, .pcap DNS/SNI, and recursively hunting every discovered clue.</p></div>`;
+      const diffLast = Boolean(document.getElementById("huntDiffLastCheck")?.checked);
+      outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Extracting leads from <code>${esc(file.name)}</code> and investigating...</div>`;
       try {
         const b64 = await fileToBase64(file);
         const r = await fetch("./api/hunt/file", {
@@ -1433,207 +745,66 @@
         lastHuntReport = rep;
         renderHuntReport(rep);
       } catch (err) {
-        outArea.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ File Hunt Failed (${esc(err.message)})</h3></div>`;
+        outArea.innerHTML = `<div class="card"><div class="card-title" style="color:#fca5a5;">Could not analyze file</div><p style="color:var(--text-muted);">${esc(err.message)}</p></div>`;
       }
     }
 
-    const hDrop = document.getElementById("hunterDropzone");
-    const hFileIn = document.getElementById("hunterFileInput");
-    if (hDrop && hFileIn) {
-      hDrop.addEventListener("click", (e) => {
-        if (e.target !== hFileIn) hFileIn.click();
-      });
-      hFileIn.addEventListener("change", () => {
-        if (hFileIn.files?.[0]) handleHunterFileUpload(hFileIn.files[0]);
-      });
-      hDrop.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        hDrop.classList.add("drag-over");
-      });
-      hDrop.addEventListener("dragleave", () => hDrop.classList.remove("drag-over"));
-      hDrop.addEventListener("drop", (e) => {
-        e.preventDefault();
-        hDrop.classList.remove("drag-over");
-        if (e.dataTransfer?.files?.[0]) handleHunterFileUpload(e.dataTransfer.files[0]);
-      });
-    }
+    document.getElementById("pickHuntFileBtn")?.addEventListener("click", () => fileIn.click());
+    fileIn?.addEventListener("change", () => { if (fileIn.files?.[0]) handleFileHunt(fileIn.files[0]); });
+    shell?.addEventListener("dragover", (e) => { e.preventDefault(); shell.classList.add("drag-over"); });
+    shell?.addEventListener("dragleave", () => shell.classList.remove("drag-over"));
+    shell?.addEventListener("drop", (e) => {
+      e.preventDefault();
+      shell.classList.remove("drag-over");
+      if (e.dataTransfer?.files?.[0]) handleFileHunt(e.dataTransfer.files[0]);
+    });
 
-    const modeSel = document.getElementById("huntModeSelect");
-    if (modeSel) {
-      modeSel.addEventListener("change", () => {
-        modeSel.style.borderColor = modeSel.value === "active" ? "var(--red)" : "var(--green)";
-      });
-    }
-
-    const activeBackdrop = document.getElementById("activeAuthBackdrop");
-    if (activeBackdrop) {
-      activeBackdrop.addEventListener("click", (e) => {
-        if (e.target === activeBackdrop) activeBackdrop.classList.remove("open");
-      });
-    }
-
-    document.querySelectorAll("[data-hunt-preset]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        huntInput.value = btn.dataset.huntPreset;
-        executeLiveHunt();
-      });
+    document.getElementById("activeAuthBackdrop")?.addEventListener("click", (e) => {
+      if (e.target.id === "activeAuthBackdrop") e.target.classList.remove("open");
     });
   }
-  function renderLoadout() {
-    const container = document.getElementById("loadoutContainer");
-    const items = [...savedIds].map((id) => toolsById.get(id)).filter(Boolean);
+
+  // ── Clean Offline Decoder View ─────────────────────────────────────────────
+  function renderCleanDecodeCards(items, outEl, sourceText) {
     if (!items.length) {
-      container.innerHTML = `<div class="filter-console" style="text-align:center; padding:40px;"><h3>Your Case Loadout is Empty</h3><p style="color:var(--text-2);">Click the <strong>★</strong> button on any tool card in the Tool Arsenal to assemble a custom investigation kit.</p></div>`;
+      outEl.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted);">No known timestamp, checksum, or file structure matched that input.</div>`;
       return;
     }
-    container.innerHTML = `<div class="tools-grid">${items.map(renderToolCard).join("")}</div>`;
-    bindCardEvents(container);
-  }
 
-  function switchView(viewName) {
-    state.view = viewName;
-    document.querySelectorAll(".nav-tab[data-view]").forEach((b) => {
-      b.classList.toggle("active", b.dataset.view === viewName);
-    });
-    document.querySelectorAll(".view-panel").forEach((p) => {
-      p.classList.toggle("active", p.id === `view-${viewName}`);
-    });
-    if (viewName === "loadout") renderLoadout();
-    if (viewName === "cases") renderCasesVault();
-    if (viewName === "settings") renderSettingsAndDoctor();
-  }
+    outEl.innerHTML = items
+      .map((a) => {
+        const scalarRows = Object.entries(a)
+          .filter(([k, v]) => k !== "decoder" && (typeof v === "string" || typeof v === "number" || typeof v === "boolean"))
+          .map(
+            ([k, v]) =>
+              `<div class="kv-row"><span class="kv-key">${esc(prettyKey(k))}</span><span class="kv-val"><code>${esc(v)}</code></span></div>`
+          )
+          .join("");
 
-  function bindGlobalControls() {
-    document.querySelectorAll(".nav-tab[data-view]").forEach((btn) => {
-      btn.addEventListener("click", () => switchView(btn.dataset.view));
-    });
+        return `
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <span class="status-pill green">Offline Decode</span>
+                <strong style="margin-left:8px; font-size:15px;">${esc(prettyKey(a.decoder || "Artifact"))}</strong>
+              </div>
+              ${sourceText ? `<button class="btn" data-investigate-decoded="${esc(sourceText)}">Investigate Target →</button>` : ""}
+            </div>
+            ${scalarRows ? `<div class="kv-list" style="margin-bottom:10px;">${scalarRows}</div>` : ""}
+            <details>
+              <summary style="cursor:pointer; font-size:12px; color:var(--text-dim);">Full decoded output</summary>
+              <div class="pre-box">${esc(JSON.stringify(a, null, 2))}</div>
+            </details>
+          </div>`;
+      })
+      .join("");
 
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-      state.query = e.target.value;
-      renderArsenal();
-    });
-
-    document.getElementById("typeSelect").addEventListener("change", (e) => {
-      state.type = e.target.value;
-      renderArsenal();
-    });
-
-    document.getElementById("outputSelect").addEventListener("change", (e) => {
-      state.output = e.target.value;
-      renderArsenal();
-    });
-
-    document.getElementById("sortSelect").addEventListener("change", (e) => {
-      state.sort = e.target.value;
-      renderArsenal();
-    });
-
-    const bindToggle = (id, key) => {
-      const btn = document.getElementById(id);
-      btn.addEventListener("click", () => {
-        state[key] = !state[key];
-        btn.classList.toggle("active", state[key]);
-        renderArsenal();
-      });
-    };
-    bindToggle("togPassive", "passiveOnly");
-    bindToggle("togFree", "freeOnly");
-    bindToggle("togNoAuth", "noAuthOnly");
-    bindToggle("togSTier", "sTierOnly");
-    bindToggle("togGitHub", "githubOnly");
-
-    document.getElementById("resetCatLink").addEventListener("click", (e) => {
-      e.preventDefault();
-      state.category = "";
-      renderArsenal();
-    });
-
-    document.getElementById("resetAllBtn").addEventListener("click", () => {
-      state.category = "";
-      state.query = "";
-      state.type = "";
-      state.output = "";
-      state.inputSelector = "";
-      state.passiveOnly = false;
-      state.freeOnly = false;
-      state.noAuthOnly = false;
-      state.sTierOnly = false;
-      state.githubOnly = false;
-      document.getElementById("searchInput").value = "";
-      document.getElementById("typeSelect").value = "";
-      document.getElementById("outputSelect").value = "";
-      ["togPassive", "togFree", "togNoAuth", "togSTier", "togGitHub"].forEach((id) =>
-        document.getElementById(id).classList.remove("active")
-      );
-      renderArsenal();
-    });
-
-    document.getElementById("viewModeBtn").addEventListener("click", function () {
-      state.compactTable = !state.compactTable;
-      this.textContent = state.compactTable ? "🗂️ Switch to Card Grid" : "📋 Switch to Compact Table";
-      renderArsenal();
-    });
-
-    document.getElementById("exportFilteredBtn").addEventListener("click", () => {
-      const rows = getFilteredTools(false);
-      const header = ["id", "name", "tier", "category", "type", "opsec", "pricing", "url"];
-      const csv = [
-        header.join(","),
-        ...rows.map((r) => header.map((k) => `"${String(r[k] ?? "").replace(/"/g, '""')}"`).join(",")),
-      ].join("\n");
-      downloadBlob("osint-filtered-tools.csv", csv, "text/csv;charset=utf-8");
-    });
-
-    // Dorks controls
-    document.getElementById("dorkTargetInput").addEventListener("input", (e) => {
-      state.dorkTarget = e.target.value;
-      renderDorks();
-    });
-    document.getElementById("dorkEngineSelect").addEventListener("change", (e) => {
-      state.dorkEngine = e.target.value;
-      renderDorks();
-    });
-    document.getElementById("dorkSearchInput").addEventListener("input", (e) => {
-      state.dorkQuery = e.target.value;
-      renderDorks();
-    });
-
-    // Loadout export controls
-    document.getElementById("exportLoadoutJson").addEventListener("click", () => {
-      const items = [...savedIds].map((id) => toolsById.get(id)).filter(Boolean);
-      downloadBlob("osint-case-loadout.json", JSON.stringify(items, null, 2), "application/json");
-    });
-    document.getElementById("exportLoadoutMd").addEventListener("click", () => {
-      const items = [...savedIds].map((id) => toolsById.get(id)).filter(Boolean);
-      const md = [
-        "# OSINT Case Investigation Loadout",
-        "",
-        ...items.map(
-          (t) => `- **[${t.name}](${t.url})** (\`${t.opsec}\`, \`${t.pricing}\`) — ${t.description}\n  - Quick-start: \`${t.quick_start}\``
-        ),
-      ].join("\n");
-      downloadBlob("osint-case-loadout.md", md, "text/markdown;charset=utf-8");
-    });
-    document.getElementById("clearLoadoutBtn").addEventListener("click", () => {
-      savedIds.clear();
-      persistLoadout();
-      renderLoadout();
-      renderArsenal();
-    });
-
-    // Modal backdrop & keyboard shortcuts
-    const backdrop = document.getElementById("toolModalBackdrop");
-    backdrop.addEventListener("click", (e) => {
-      if (e.target === backdrop) backdrop.classList.remove("open");
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") backdrop.classList.remove("open");
-      if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "SELECT") {
-        e.preventDefault();
-        switchView("arsenal");
-        document.getElementById("searchInput").focus();
-      }
+    outEl.querySelectorAll("[data-investigate-decoded]").forEach((b) => {
+      b.onclick = () => {
+        document.getElementById("huntTargetInput").value = b.dataset.investigateDecoded;
+        switchView("investigate");
+        executeLiveHunt();
+      };
     });
   }
 
@@ -1641,16 +812,14 @@
     const inp = document.getElementById("forensicDecodeInput");
     const btn = document.getElementById("runDecodeBtn");
     const out = document.getElementById("forensicDecodeResults");
-    if (!inp || !btn || !out) return;
+    const shell = document.getElementById("decoderDropzone");
+    const fileIn = document.getElementById("decoderFileInput");
 
     async function runDecode() {
       const payload = inp.value.trim();
-      if (!payload) {
-        inp.focus();
-        return;
-      }
+      if (!payload) { inp.focus(); return; }
       btn.disabled = true;
-      btn.textContent = "⏳ DECODING...";
+      btn.textContent = "Decoding...";
       try {
         const r = await fetch("./api/decode", {
           method: "POST",
@@ -1659,67 +828,20 @@
         });
         const data = await r.json();
         if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
-        const arts = data.results || [];
-        if (!arts.length) {
-          out.innerHTML = `<div class="collector-card"><h3>⚪ No Offline Forensic Structure Matched</h3><p style="color:var(--text-2);">Input did not match a valid TikTok ID/URL, Snowflake, UUID/ULID/ObjectId, IBAN, E.164 phone, VIN, ICAO24, IMO/MMSI, MAC/BSSID, or JWT.</p></div>`;
-        } else {
-          out.innerHTML = arts
-            .map(
-              (a) => `
-              <div class="collector-card" style="border-color:rgba(16,185,129,0.45);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <div>
-                    <span class="badge opsec-Passive">🟢 ZERO-PACKET DECODE</span>
-                    <strong style="margin-left:8px; font-size:15px;">${esc(a.decoder)}</strong>
-                  </div>
-                  <button class="btn-sm" data-hunt-from-decode="${esc(payload)}">⚡ Send to Autonomous Hunter</button>
-                </div>
-                <div class="code-block">${esc(JSON.stringify(a, null, 2))}</div>
-              </div>`
-            )
-            .join("");
-          out.querySelectorAll("[data-hunt-from-decode]").forEach((b) => {
-            b.onclick = () => {
-              document.getElementById("huntTargetInput").value = b.dataset.huntFromDecode;
-              switchView("hunter");
-              executeLiveHunt();
-            };
-          });
-        }
+        renderCleanDecodeCards(data.results || [], out, payload);
       } catch (err) {
-        out.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Decode API Unreachable (${esc(err.message)})</h3><p style="color:var(--text-1);">Run <code>python3 scripts/osint.py decode "${esc(payload)}"</code> from CLI or start <code>python3 scripts/server.py</code>.</p></div>`;
+        out.innerHTML = `<div class="card" style="color:#fca5a5;">Decode error: ${esc(err.message)}</div>`;
       } finally {
         btn.disabled = false;
-        btn.textContent = "🧬 DECODE OFFLINE";
+        btn.textContent = "Decode";
       }
     }
 
-    btn.addEventListener("click", runDecode);
-    inp.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        runDecode();
-      }
-    });
-    document.querySelectorAll("[data-decode-preset]").forEach((p) => {
-      p.addEventListener("click", () => {
-        inp.value = p.dataset.decodePreset;
-        runDecode();
-      });
-    });
-
-    const dDrop = document.getElementById("decoderDropzone");
-    const dFileIn = document.getElementById("decoderFileInput");
-    async function decodeLocalBrowserFile(file) {
+    async function runFileDecode(file) {
       if (!file) return;
-      out.innerHTML = `<div class="collector-card"><h3>📂 Inspecting <code>${esc(file.name)}</code> Offline (0 Outbound Packets)...</h3></div>`;
+      out.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted);">Inspecting <code>${esc(file.name)}</code> locally...</div>`;
       try {
-        const b64 = await new Promise((res, rej) => {
-          const rd = new FileReader();
-          rd.onload = () => res(String(rd.result || ""));
-          rd.onerror = () => rej(new Error("File read error"));
-          rd.readAsDataURL(file);
-        });
+        const b64 = await fileToBase64(file);
         const r = await fetch("./api/decode/file", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1727,52 +849,37 @@
         });
         const data = await r.json();
         if (!r.ok || data.error) throw new Error(data.error || `HTTP ${r.status}`);
-        const arts = data.results || [];
-        out.innerHTML = arts
-          .map(
-            (a) => `
-            <div class="collector-card" style="border-color:rgba(16,185,129,0.45);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <div>
-                  <span class="badge opsec-Passive">🟢 OFFLINE FILE DFIR</span>
-                  <strong style="margin-left:8px; font-size:15px;">${esc(file.name)} (${esc(a.detected_format || a.decoder)})</strong>
-                </div>
-              </div>
-              <div class="code-block">${esc(JSON.stringify(a, null, 2))}</div>
-            </div>`
-          )
-          .join("");
+        renderCleanDecodeCards(data.results || [], out, "");
       } catch (err) {
-        out.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ File Decode Error: ${esc(err.message)}</h3></div>`;
+        out.innerHTML = `<div class="card" style="color:#fca5a5;">File inspection error: ${esc(err.message)}</div>`;
       }
     }
-    if (dDrop && dFileIn) {
-      dDrop.addEventListener("click", (e) => {
-        if (e.target !== dFileIn) dFileIn.click();
-      });
-      dFileIn.addEventListener("change", () => {
-        if (dFileIn.files?.[0]) decodeLocalBrowserFile(dFileIn.files[0]);
-      });
-      dDrop.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dDrop.classList.add("drag-over");
-      });
-      dDrop.addEventListener("dragleave", () => dDrop.classList.remove("drag-over"));
-      dDrop.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dDrop.classList.remove("drag-over");
-        if (e.dataTransfer?.files?.[0]) decodeLocalBrowserFile(e.dataTransfer.files[0]);
-      });
-    }
+
+    btn.addEventListener("click", runDecode);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); runDecode(); } });
+    document.querySelectorAll("[data-decode-preset]").forEach((p) => {
+      p.addEventListener("click", () => { inp.value = p.dataset.decodePreset; runDecode(); });
+    });
+
+    document.getElementById("pickDecodeFileBtn")?.addEventListener("click", () => fileIn.click());
+    fileIn?.addEventListener("change", () => { if (fileIn.files?.[0]) runFileDecode(fileIn.files[0]); });
+    shell?.addEventListener("dragover", (e) => { e.preventDefault(); shell.classList.add("drag-over"); });
+    shell?.addEventListener("dragleave", () => shell.classList.remove("drag-over"));
+    shell?.addEventListener("drop", (e) => {
+      e.preventDefault();
+      shell.classList.remove("drag-over");
+      if (e.dataTransfer?.files?.[0]) runFileDecode(e.dataTransfer.files[0]);
+    });
   }
 
+  // ── Saved Cases, Compare & Watchlist ───────────────────────────────────────
   async function refreshCasesBadgeCount() {
     try {
       const r = await fetch("./api/cases");
       if (!r.ok) return;
       const d = await r.json();
-      const cntEl = document.getElementById("navCntCases");
-      if (cntEl && Array.isArray(d.cases)) cntEl.textContent = String(d.cases.length);
+      const el = document.getElementById("navCntCases");
+      if (el && Array.isArray(d.cases)) el.textContent = String(d.cases.length);
     } catch (_) {}
   }
 
@@ -1781,69 +888,60 @@
     const selA = document.getElementById("caseSelectA");
     const selB = document.getElementById("caseSelectB");
     if (!listEl) return;
-    listEl.innerHTML = `<div class="collector-card">Loading saved forensic cases from <code>cases/</code>...</div>`;
+
     try {
       const r = await fetch("./api/cases");
       const d = await r.json();
       const cases = d.cases || [];
-      const cntEl = document.getElementById("navCntCases");
-      if (cntEl) cntEl.textContent = String(cases.length);
+      document.getElementById("navCntCases").textContent = String(cases.length);
 
       const opts = cases
-        .map((c) => `<option value="${esc(c.case_id)}">${esc(c.case_id)} — ${esc(c.raw_input.slice(0, 38))} (${c.nodes} nodes)</option>`)
+        .map((c) => `<option value="${esc(c.case_id)}">${esc(c.raw_input.slice(0, 32))} (${esc(c.case_id.slice(0, 16))})</option>`)
         .join("");
-      if (selA) selA.innerHTML = `<option value="">Select Case A (Baseline)...</option>${opts}`;
+      if (selA) selA.innerHTML = `<option value="">Baseline case...</option>${opts}`;
       if (selB) {
-        selB.innerHTML = `<option value="">Select Case B (Current)...</option>${opts}`;
-        if (cases.length >= 2) {
-          selA.selectedIndex = 2;
-          selB.selectedIndex = 1;
-        }
+        selB.innerHTML = `<option value="">Second case...</option>${opts}`;
+        if (cases.length >= 2) { selA.selectedIndex = 2; selB.selectedIndex = 1; }
       }
 
       if (!cases.length) {
-        listEl.innerHTML = `<div class="collector-card" style="text-align:center; padding:32px;"><h3>No Saved Cases Yet</h3><p style="color:var(--text-2);">Run any investigation in <strong>⚡ Autonomous Hunter</strong> to populate <code>cases/CASE-...</code> with STIX 2.1, Gephi <code>.gexf</code>, Neo4j <code>.cypher</code>, and Obsidian notes.</p></div>`;
+        listEl.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">No saved cases yet. Run any investigation to save it automatically.</div>`;
         return;
       }
 
-      listEl.innerHTML = `<div class="tools-grid">${cases
+      listEl.innerHTML = `<div class="grid-2">${cases
         .map(
           (c) => `
-          <div class="collector-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-              <span class="badge ${c.opsec_mode === "Active+Passive" ? "opsec-Active" : "opsec-Passive"}">${esc(c.opsec_mode)}</span>
-              <span style="font-size:11.5px; color:var(--text-2);">${esc(c.timestamp_utc)}</span>
+          <div class="card" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+              <strong style="font-size:15px;">${esc(c.raw_input)}</strong>
+              <span class="status-pill ${c.opsec_mode === "Active+Passive" ? "red" : "green"}">${esc(c.opsec_mode)}</span>
             </div>
-            <h3 style="margin:7px 0 4px; font-size:14.5px;"><code>${esc(c.case_id)}</code></h3>
-            <div style="font-size:12.5px; color:var(--text-1); margin-bottom:8px;">Target: <strong>${esc(c.raw_input)}</strong></div>
-            <div style="font-size:12px; color:var(--text-2); margin-bottom:10px;">
-              Stages: <code>${esc(c.stages_executed)}</code> · Entities: <code>${esc(c.nodes)}</code> · Edges: <code>${esc(c.edges)}</code> · Exposure: <strong>${esc(c.exposure_score ?? 0)}/100</strong>
+            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">
+              ${esc(c.timestamp_utc)} · ${c.nodes} entities · Score ${esc(c.exposure_score ?? 0)}/100
             </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">
-              <button class="btn-sm" data-open-case="${esc(c.case_id)}" style="border-color:var(--cyan); color:var(--cyan);">🕸️ Load in Graph Studio</button>
-              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/html" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">🌐 HTML ↗</a>
-              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/gexf" download="${esc(c.case_id)}.gexf" style="text-decoration:none;">.gexf</a>
-              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/cypher" download="${esc(c.case_id)}.cypher" style="text-decoration:none;">.cypher</a>
-              <a class="btn-sm" href="./api/cases/${encodeURIComponent(c.case_id)}/obsidian.zip" download="${esc(c.case_id)}-obsidian-vault.zip" style="text-decoration:none;">📓 Obsidian</a>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn" data-open-case="${esc(c.case_id)}">Open</button>
+              <a class="btn" href="./api/cases/${encodeURIComponent(c.case_id)}/html" target="_blank" rel="noopener">HTML Report ↗</a>
+              <a class="btn" href="./api/cases/${encodeURIComponent(c.case_id)}/obsidian.zip" download="${esc(c.case_id)}-obsidian.zip">Obsidian .zip</a>
             </div>
           </div>`
         )
         .join("")}</div>`;
 
       listEl.querySelectorAll("[data-open-case]").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const cid = btn.dataset.openCase;
-          const cr = await fetch(`./api/cases/${encodeURIComponent(cid)}`);
+        btn.onclick = async () => {
+          const cr = await fetch(`./api/cases/${encodeURIComponent(btn.dataset.openCase)}`);
           const rep = await cr.json();
           if (cr.ok && !rep.error) {
             lastHuntReport = rep;
-            switchView("hunter");
+            switchView("investigate");
             renderHuntReport(rep);
           }
-        });
+        };
       });
     } catch (err) {
-      listEl.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Case Vault API Unreachable (${esc(err.message)})</h3><p style="color:var(--text-2);">Start <code>python3 scripts/server.py --port 8000</code> to browse live saved cases.</p></div>`;
+      listEl.innerHTML = `<div class="card" style="color:#fca5a5;">Could not load cases: ${esc(err.message)}</div>`;
     }
   }
 
@@ -1861,10 +959,7 @@
         body: JSON.stringify({ case_a: ca, case_b: cb }),
       });
       const d = await r.json();
-      outBox.innerHTML = `<div class="collector-card" style="border-color:var(--cyan); margin-top:12px;">
-        <h3 style="margin:0 0 6px;">🔗 Cross-Case Attribution Result: ${d.cases_linked ? "✅ SHARED INFRASTRUCTURE / IDENTITY LINKED" : "⚪ Zero Shared Selectors"}</h3>
-        <div class="code-block">${esc(JSON.stringify(d, null, 2))}</div>
-      </div>`;
+      outBox.innerHTML = `<div class="card"><div class="card-title">${d.cases_linked ? "Shared links found between cases" : "No shared entities found"}</div><div class="pre-box">${esc(JSON.stringify(d, null, 2))}</div></div>`;
     });
 
     document.getElementById("runCaseDiffBtn")?.addEventListener("click", async () => {
@@ -1877,10 +972,7 @@
         body: JSON.stringify({ baseline_case: ca, current_case: cb }),
       });
       const d = await r.json();
-      outBox.innerHTML = `<div class="collector-card" style="border-color:#fbbf24; margin-top:12px;">
-        <h3 style="margin:0 0 6px;">📈 Temporal Attack-Surface Drift: +${esc(d.added_entity_count ?? 0)} New / -${esc(d.removed_entity_count ?? 0)} Retired · Score ${esc(d.exposure_score_before)} → ${esc(d.exposure_score_after)}</h3>
-        <div class="code-block">${esc(JSON.stringify(d, null, 2))}</div>
-      </div>`;
+      outBox.innerHTML = `<div class="card"><div class="card-title">Surface Changes: +${esc(d.added_entity_count ?? 0)} added, -${esc(d.removed_entity_count ?? 0)} removed</div><div class="pre-box">${esc(JSON.stringify(d, null, 2))}</div></div>`;
     });
 
     document.getElementById("runTyposquatBtn")?.addEventListener("click", async () => {
@@ -1889,43 +981,35 @@
       const r = await fetch("./api/typosquats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: dom, limit: 45 }),
+        body: JSON.stringify({ domain: dom, limit: 40 }),
       });
       const d = await r.json();
-      outBox.innerHTML = `<div class="collector-card" style="border-color:#a78bfa; margin-top:12px;">
-        <h3 style="margin:0 0 6px;">🎭 ${esc(d.count || 0)} Offline Typosquat &amp; IDN Homoglyph Permutations for <code>${esc(d.seed_domain || dom)}</code></h3>
-        <div class="code-block">${esc(JSON.stringify(d.permutations || d, null, 2))}</div>
-      </div>`;
+      const list = (d.permutations || []).map((p) => `${p.domain}${p.unicode_lookalike ? ` (${p.unicode_lookalike})` : ""}  —  ${p.fuzzer}`).join("\n");
+      outBox.innerHTML = `<div class="card"><div class="card-title">${esc(d.count || 0)} Lookalike Domains for ${esc(d.seed_domain || dom)}</div><div class="pre-box">${esc(list)}</div></div>`;
     });
 
-    async function refreshWatchlistUi() {
-      const wlArea = document.getElementById("watchlistItemsArea");
-      if (!wlArea) return;
+    async function refreshWatchlist() {
+      const el = document.getElementById("watchlistItemsArea");
+      if (!el) return;
       try {
         const r = await fetch("./api/watchlist");
         const d = await r.json();
         const items = d.watchlist || [];
-        if (!items.length) {
-          wlArea.innerHTML = `<span>No monitored targets yet.</span>`;
-          return;
-        }
-        wlArea.innerHTML = items
+        if (!items.length) { el.textContent = "No targets on watchlist."; return; }
+        el.innerHTML = items
           .map(
             (i) =>
-              `<span class="badge opsec-Passive" style="margin:2px 4px 2px 0; display:inline-flex; align-items:center; gap:5px;">
-                ${esc(i.target)}
-                <button type="button" data-rm-wl="${esc(i.target)}" style="background:none; border:none; color:#fca5a5; cursor:pointer; padding:0; font-weight:700;">✕</button>
-              </span>`
+              `<span class="status-pill" style="margin:2px 4px 2px 0;">${esc(i.target)} <button type="button" data-rm-wl="${esc(i.target)}" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 2px;">✕</button></span>`
           )
           .join("");
-        wlArea.querySelectorAll("[data-rm-wl]").forEach((b) => {
+        el.querySelectorAll("[data-rm-wl]").forEach((b) => {
           b.onclick = async () => {
             await fetch("./api/watchlist/remove", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ target: b.dataset.rmWl }),
             });
-            refreshWatchlistUi();
+            refreshWatchlist();
           };
         });
       } catch (_) {}
@@ -1941,14 +1025,13 @@
         body: JSON.stringify({ target: tgt, depth: 3 }),
       });
       inp.value = "";
-      refreshWatchlistUi();
+      refreshWatchlist();
     });
 
     document.getElementById("runWatchlistSweepBtn")?.addEventListener("click", async (ev) => {
       const btn = ev.currentTarget;
-      if (!outBox) return;
       btn.disabled = true;
-      btn.textContent = "⏳ Sweeping...";
+      btn.textContent = "Running...";
       try {
         const r = await fetch("./api/watchlist/run", {
           method: "POST",
@@ -1956,79 +1039,306 @@
           body: JSON.stringify({}),
         });
         const d = await r.json();
-        outBox.innerHTML = `<div class="collector-card" style="border-color:#34d399; margin-top:12px;">
-          <h3 style="margin:0 0 6px;">📡 Watchlist Sweep Complete (${esc(d.swept_count || 0)} Target(s) Hunted &amp; Diffed)</h3>
-          <div class="code-block">${esc(JSON.stringify(d.results || d, null, 2))}</div>
-        </div>`;
+        outBox.innerHTML = `<div class="card"><div class="card-title">Watchlist Sweep Complete (${esc(d.swept_count || 0)} target(s))</div><div class="pre-box">${esc(JSON.stringify(d.results || d, null, 2))}</div></div>`;
         renderCasesVault();
       } finally {
         btn.disabled = false;
-        btn.textContent = "📡 Sweep All";
+        btn.textContent = "Run All";
       }
     });
 
-    refreshWatchlistUi();
+    refreshWatchlist();
     refreshCasesBadgeCount();
   }
 
+  // ── Unified Directory (Tools, Dorks, Playbooks, Retired) ───────────────────
+  function initDirectoryControls() {
+    const catSel = document.getElementById("categorySelect");
+    DB.categories.forEach((c) => {
+      const o = document.createElement("option");
+      o.value = c.id;
+      o.textContent = c.short_title;
+      catSel.appendChild(o);
+    });
+
+    const inputs = [...new Set(DB.tools.flatMap((t) => t.inputs))].sort();
+    const inSel = document.getElementById("inputSelectorSelect");
+    inputs.forEach((inp) => {
+      const o = document.createElement("option");
+      o.value = inp;
+      o.textContent = `Evidence: ${prettyKey(inp)}`;
+      inSel.appendChild(o);
+    });
+
+    const engines = [...new Set(DB.dorks.map((d) => d.engine))];
+    const engSel = document.getElementById("dorkEngineSelect");
+    engines.forEach((eng) => {
+      const o = document.createElement("option");
+      o.value = eng;
+      o.textContent = eng;
+      engSel.appendChild(o);
+    });
+
+    document.querySelectorAll("#dirSubTabs .seg-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.dirSubview = btn.dataset.subview;
+        document.querySelectorAll("#dirSubTabs .seg-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        ["tools", "dorks", "playbooks", "retired"].forEach((k) => {
+          document.getElementById(`dir-${k}`).style.display = k === state.dirSubview ? "block" : "none";
+        });
+        renderDirectory();
+      });
+    });
+
+    document.getElementById("searchInput").addEventListener("input", (e) => { state.query = e.target.value; renderTools(); });
+    catSel.addEventListener("change", (e) => { state.category = e.target.value; renderTools(); });
+    inSel.addEventListener("change", (e) => { state.inputSelector = e.target.value; renderTools(); });
+
+    const bindChip = (id, key) => {
+      const el = document.getElementById(id);
+      el.addEventListener("click", () => {
+        state[key] = !state[key];
+        el.classList.toggle("active", state[key]);
+        renderTools();
+      });
+    };
+    bindChip("togPassive", "passiveOnly");
+    bindChip("togFree", "freeOnly");
+    bindChip("togNoAuth", "noAuthOnly");
+
+    document.getElementById("dorkTargetInput").addEventListener("input", (e) => { state.dorkTarget = e.target.value; renderDorks(); });
+    engSel.addEventListener("change", (e) => { state.dorkEngine = e.target.value; renderDorks(); });
+    document.getElementById("dorkSearchInput").addEventListener("input", (e) => { state.dorkQuery = e.target.value; renderDorks(); });
+
+    document.getElementById("toolModalBackdrop").addEventListener("click", (e) => {
+      if (e.target.id === "toolModalBackdrop") e.target.classList.remove("open");
+    });
+  }
+
+  function openToolModal(tid) {
+    const t = toolsById.get(tid);
+    if (!t) return;
+    const cat = catsById.get(t.category);
+    const backdrop = document.getElementById("toolModalBackdrop");
+    const box = document.getElementById("toolModalContent");
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;">
+        <div>
+          <h3 style="margin:0; font-size:18px;">${esc(t.name)}</h3>
+          <div style="color:var(--text-muted); font-size:12.5px; margin-top:3px;">${esc(cat ? cat.short_title : t.category)} · ${esc(t.type)} · ${esc(t.pricing)}</div>
+        </div>
+        <button class="btn-ghost" id="closeToolModalBtn">✕</button>
+      </div>
+      <p style="color:var(--text); margin:10px 0 14px;">${esc(t.description)}</p>
+      <div class="kv-list" style="margin-bottom:14px;">
+        <div class="kv-row"><span class="kv-key">OPSEC Mode</span><span class="kv-val">${esc(t.opsec)}</span></div>
+        <div class="kv-row"><span class="kv-key">Takes Input</span><span class="kv-val">${esc(t.inputs.join(", "))}</span></div>
+        <div class="kv-row"><span class="kv-key">Produces</span><span class="kv-val">${esc(t.outputs.join(", "))}</span></div>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">Quick start</div>
+      <div class="pre-box" style="margin-top:0; margin-bottom:16px;">${esc(t.quick_start)}</div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn" id="copyModalCmd">Copy Command</button>
+        <a class="btn" href="${esc(t.url)}" target="_blank" rel="noopener noreferrer" style="background:#f8fafc; color:#090a0f; border:none; font-weight:600;">Open Website ↗</a>
+      </div>
+    `;
+    backdrop.classList.add("open");
+    document.getElementById("closeToolModalBtn").onclick = () => backdrop.classList.remove("open");
+    document.getElementById("copyModalCmd").onclick = function () { copyText(t.quick_start, this); };
+  }
+
+  function renderTools() {
+    const terms = state.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const tierRank = { S: 0, A: 1, B: 2 };
+
+    const list = DB.tools
+      .filter((t) => {
+        if (state.category && t.category !== state.category) return false;
+        if (state.inputSelector && !t.inputs.includes(state.inputSelector)) return false;
+        if (state.passiveOnly && t.opsec !== "Passive") return false;
+        if (state.freeOnly && t.pricing !== "Free / Open Source" && t.pricing !== "Free") return false;
+        if (state.noAuthOnly && t.auth_required) return false;
+        if (terms.length) {
+          const hay = `${t.name} ${t.description} ${t.tags.join(" ")} ${t.inputs.join(" ")} ${t.outputs.join(" ")}`.toLowerCase();
+          if (!terms.every((w) => hay.includes(w))) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => tierRank[a.tier] - tierRank[b.tier] || a.name.localeCompare(b.name));
+
+    document.getElementById("dirSummaryLabel").textContent = `${list.length} of ${DB.tools.length} tools`;
+    const grid = document.getElementById("toolsContainer");
+    grid.innerHTML = list
+      .slice(0, 120)
+      .map(
+        (t) => `
+      <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+            <strong style="font-size:14.5px; cursor:pointer;" data-open-tool="${esc(t.id)}">${esc(t.name)}</strong>
+            <span class="status-pill ${t.opsec === "Passive" ? "green" : t.opsec === "Hybrid" ? "amber" : "red"}">${esc(t.opsec)}</span>
+          </div>
+          <p style="margin:0 0 12px; color:var(--text-muted); font-size:13px;">${esc(t.description)}</p>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding-top:10px; border-top:1px solid var(--border); font-size:12px; color:var(--text-dim);">
+          <span>${esc(t.pricing)}${t.auth_required ? " · Login" : " · No login"}</span>
+          <div style="display:flex; gap:6px;">
+            <button class="btn" data-open-tool="${esc(t.id)}">Details</button>
+            <a class="btn" href="${esc(t.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>
+          </div>
+        </div>
+      </div>`
+      )
+      .join("");
+
+    grid.querySelectorAll("[data-open-tool]").forEach((el) => {
+      el.onclick = () => openToolModal(el.dataset.openTool);
+    });
+  }
+
+  function renderDorks() {
+    const q = state.dorkQuery.trim().toLowerCase();
+    const tgt = state.dorkTarget.trim();
+    const list = DB.dorks.filter((d) => {
+      if (state.dorkEngine && d.engine !== state.dorkEngine) return false;
+      if (q && !`${d.title} ${d.purpose} ${d.query}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    document.getElementById("dirSummaryLabel").textContent = `${list.length} search dorks`;
+    const grid = document.getElementById("dorksGrid");
+    grid.innerHTML = list
+      .map((d) => {
+        const rewritten = tgt
+          ? d.query.replace(/example\.com|Target Corp|Target Company|target-company|target_company|target_org|target_keyword|target_handle|Target Name/gi, tgt)
+          : d.query;
+        const enc = encodeURIComponent(rewritten);
+        const url =
+          d.engine === "Google" ? `https://www.google.com/search?q=${enc}` :
+          d.engine === "Shodan" ? `https://www.shodan.io/search?query=${enc}` :
+          d.engine === "GitHub" ? `https://github.com/search?q=${enc}&type=code` : "";
+        return `
+          <div class="card" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <strong style="font-size:14px;">${esc(d.title)}</strong>
+              <span class="status-pill">${esc(d.engine)}</span>
+            </div>
+            <div style="color:var(--text-muted); font-size:12.5px;">${esc(d.purpose)}</div>
+            <div class="pre-box">${esc(rewritten)}</div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn" data-copy-dork="${esc(rewritten)}">Copy</button>
+              ${url ? `<a class="btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Search ${esc(d.engine)} ↗</a>` : ""}
+            </div>
+          </div>`;
+      })
+      .join("");
+
+    grid.querySelectorAll("[data-copy-dork]").forEach((b) => {
+      b.onclick = function () { copyText(this.dataset.copyDork, this); };
+    });
+  }
+
+  function renderPlaybooks() {
+    document.getElementById("dirSummaryLabel").textContent = `${DB.workflows.length} step-by-step playbooks`;
+    document.getElementById("workflowsGrid").innerHTML = DB.workflows
+      .map(
+        (wf) => `
+        <div class="card" style="margin-bottom:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:15px;">${esc(wf.title)}</strong>
+            <span class="status-pill">${esc(wf.starting_selector)}</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 12px;">${esc(wf.summary)}</p>
+          <div style="display:grid; gap:8px;">
+            ${wf.steps
+              .map(
+                (st) => `
+              <div style="padding:8px 10px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; font-size:12.5px;">
+                <strong>${st.step}. ${esc(st.phase)}</strong>
+                <div style="color:var(--text-muted); margin-top:2px;">${esc(st.action)}</div>
+              </div>`
+              )
+              .join("")}
+          </div>
+        </div>`
+      )
+      .join("");
+  }
+
+  function renderRetired() {
+    document.getElementById("dirSummaryLabel").textContent = `${DB.graveyard.length} retired or unsafe tools`;
+    document.getElementById("graveyardGrid").innerHTML = DB.graveyard
+      .map(
+        (g) => `
+        <div class="card" style="margin-bottom:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="font-size:15px;">${esc(g.dead_tool)}</strong>
+            <span class="status-pill red">${esc(g.status)}</span>
+          </div>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 10px;">${esc(g.what_happened)}</p>
+          <div style="font-size:12px; color:var(--text-dim);">Use instead: ${g.replacements.map((r) => `<strong style="color:var(--text);">${esc(r.name)}</strong>`).join(", ")}</div>
+        </div>`
+      )
+      .join("");
+  }
+
+  function renderDirectory() {
+    if (state.dirSubview === "tools") renderTools();
+    else if (state.dirSubview === "dorks") renderDorks();
+    else if (state.dirSubview === "playbooks") renderPlaybooks();
+    else if (state.dirSubview === "retired") renderRetired();
+  }
+
+  // ── Clean Settings & Doctor ────────────────────────────────────────────────
   async function renderSettingsAndDoctor() {
     const docEl = document.getElementById("doctorStatusArea");
     const byokEl = document.getElementById("byokSettingsArea");
     if (!docEl || !byokEl) return;
-    docEl.innerHTML = `<div class="collector-card">Running local environment &amp; catalog health check...</div>`;
+
     try {
       const r = await fetch("./api/doctor");
       const d = await r.json();
       const ch = d.catalog_health || {};
       const byok = d.byok_providers || [];
-      const activeKeys = byok.filter((p) => p.configured).length;
 
       docEl.innerHTML = `
-        <div class="collector-card" style="border-color:rgba(56,189,248,0.4);">
-          <h3 style="margin:0 0 8px;">🩺 Local Engine &amp; System Health</h3>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; font-size:12.5px;">
-            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
-              <div style="color:var(--cyan); font-weight:700;">🐍 Local Runtime</div>
-              <div>Python: <code>${esc(d.python_version)}</code> (${esc(d.platform)})</div>
-              <div>Zero External Deps: <strong>✅ Verified</strong></div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px;">Local Workspace Status</div>
+          <div class="grid-3" style="margin-bottom:0;">
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">Python</span><span class="kv-val"><code>${esc(d.python_version)}</code></span></div>
+              <div class="kv-row"><span class="kv-key">Platform</span><span class="kv-val">${esc(d.platform)}</span></div>
             </div>
-            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
-              <div style="color:var(--cyan); font-weight:700;">📚 Intelligence Catalog</div>
-              <div><strong>${esc(ch.tools)}</strong> Tools · <strong>${esc(ch.dorks)}</strong> Dorks · <strong>${esc(ch.workflows)}</strong> Playbooks</div>
-              <div>SQLite FTS5 Index: <strong>${ch.sqlite_fts5_present ? "✅ Ready" : "⚪ Missing"}</strong></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">Verified Tools</span><span class="kv-val">${esc(ch.tools)}</span></div>
+              <div class="kv-row"><span class="kv-key">Local Search DB</span><span class="kv-val">${ch.sqlite_fts5_present ? "Ready" : "Missing"}</span></div>
             </div>
-            <div style="background:var(--bg-0); border:1px solid var(--border); border-radius:7px; padding:10px;">
-              <div style="color:var(--cyan); font-weight:700;">📁 Local Storage &amp; Optional Keys</div>
-              <div>Cases Vault: <code>${esc(d.cases_dir)}</code></div>
-              <div>Optional BYOK Keys Active: <strong>${activeKeys} / ${byok.length}</strong></div>
+            <div class="kv-list">
+              <div class="kv-row"><span class="kv-key">Cases Folder</span><span class="kv-val"><code>${esc(d.cases_dir)}</code></span></div>
+              <div class="kv-row"><span class="kv-key">Optional Keys</span><span class="kv-val">${byok.filter((p) => p.configured).length} configured</span></div>
             </div>
           </div>
         </div>`;
 
       byokEl.innerHTML = `
-        <div class="collector-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <div>
-              <h3 style="margin:0;">🔑 Optional Bring-Your-Own-Key (BYOK) Turbo Connectors</h3>
-              <div style="font-size:12px; color:var(--text-2); margin-top:2px;">100% optional—leave blank to run completely keyless. Saved locally to gitignored <code>.osint.env</code>.</div>
-            </div>
-            <span id="byokSaveMsg" style="font-size:12px; color:#34d399; font-weight:700;"></span>
-          </div>
-          <div class="byok-grid">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:4px;">Optional API Keys</div>
+          <div style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">All core features work without keys. Adding keys below unlocks extra data sources and saves them locally to <code>.osint.env</code>.</div>
+          <div class="grid-2" style="margin-bottom:0;">
             ${byok
               .map((p) => {
-                const primaryVar = p.env_vars[0];
+                const vName = p.env_vars[0];
                 return `
-                <div style="background:var(--bg-0); border:1px solid ${p.configured ? "rgba(16,185,129,0.5)" : "var(--border)"}; border-radius:8px; padding:11px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px;">
-                    <strong style="font-size:13px;">${esc(p.title)}</strong>
-                    <span class="badge ${p.configured ? "opsec-Passive" : ""}">${p.configured ? `✅ ${esc(p.masked_preview)}` : "⚪ Keyless"}</span>
+                <div style="padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:9px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <strong style="font-size:13.5px;">${esc(p.title)}</strong>
+                    <span class="status-pill ${p.configured ? "green" : ""}">${p.configured ? esc(p.masked_preview) : "Not set"}</span>
                   </div>
-                  <div style="font-size:11.5px; color:var(--text-2); margin-bottom:8px;"><code>${esc(primaryVar)}</code> — ${esc(p.benefit)}</div>
+                  <div style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">${esc(p.benefit)}</div>
                   <div style="display:flex; gap:6px;">
-                    <input type="password" class="hunter-input" data-byok-input="${esc(primaryVar)}" placeholder="${p.configured ? "Enter new key to replace..." : `Paste ${primaryVar}...`}" style="flex:1; padding:6px 9px; font-size:12px;" autocomplete="off" />
-                    <button type="button" class="btn-sm" data-byok-save="${esc(primaryVar)}" style="border-color:var(--cyan); color:var(--cyan);">Save</button>
-                    ${p.configured ? `<button type="button" class="btn-sm" data-byok-clear="${esc(primaryVar)}" style="color:#fca5a5;">Clear</button>` : ""}
+                    <input type="password" class="ctrl-input" data-byok-input="${esc(vName)}" placeholder="${esc(vName)}" style="flex:1;" autocomplete="off" />
+                    <button class="btn" data-byok-save="${esc(vName)}">Save</button>
+                    ${p.configured ? `<button class="btn" data-byok-clear="${esc(vName)}">Clear</button>` : ""}
                   </div>
                 </div>`;
               })
@@ -2039,8 +1349,7 @@
       byokEl.querySelectorAll("[data-byok-save]").forEach((btn) => {
         btn.onclick = async () => {
           const evName = btn.dataset.byokSave;
-          const inp = byokEl.querySelector(`[data-byok-input="${evName}"]`);
-          const val = inp?.value.trim();
+          const val = byokEl.querySelector(`[data-byok-input="${evName}"]`)?.value.trim();
           if (!val) return;
           await fetch("./api/settings/byok", {
             method: "POST",
@@ -2062,21 +1371,14 @@
         };
       });
     } catch (err) {
-      docEl.innerHTML = `<div class="collector-card" style="border-color:var(--red);"><h3>⚠️ Local Server Unreachable (${esc(err.message)})</h3></div>`;
+      docEl.innerHTML = `<div class="card" style="color:#fca5a5;">Could not reach local server: ${esc(err.message)}</div>`;
     }
   }
 
   document.getElementById("refreshDoctorBtn")?.addEventListener("click", renderSettingsAndDoctor);
 
-  initHeaderTelemetry();
-  initSelectDropdowns();
-  bindGlobalControls();
-  initHunterControls();
-  initCaseVaultControls();
+  initInvestigateControls();
   initDecoderControls();
-  renderArsenal();
-  renderPivotMatrix();
-  renderWorkflows();
-  renderDorks();
-  renderGraveyard();
+  initCaseVaultControls();
+  initDirectoryControls();
 })();
