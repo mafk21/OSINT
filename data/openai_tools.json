@@ -13,12 +13,38 @@
           },
           "depth": {
             "type": "integer",
-            "enum": [1, 2, 3],
-            "default": 2,
-            "description": "Autonomous graph pivot wave depth (default: 2)."
+            "enum": [1, 2, 3, 4, 5, 6],
+            "default": 4,
+            "description": "Exhaustive multi-stage surface expansion depth until 0 new leads remain (default: 4)."
           }
         },
         "required": ["target"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_ingest_and_expand_case",
+      "description": "PASSIVE MULTI-STAGE EXPANSION (ZERO QUESTIONS). Ingest ALL raw findings from a stage (web_search snippets, bios, Linktrees, directories) into an existing case, carve EVERY new clue, and hunt ALL of them across subsequent stages until convergence.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "case_id_or_dir": {
+            "type": "string",
+            "description": "Existing CASE_ID or case directory path."
+          },
+          "ingested_text": {
+            "type": "string",
+            "description": "All raw text, URLs, bios, and contact strings gathered during the stage."
+          },
+          "additional_stages": {
+            "type": "integer",
+            "enum": [1, 2, 3, 4, 5],
+            "default": 3
+          }
+        },
+        "required": ["case_id_or_dir", "ingested_text"]
       }
     }
   },
@@ -73,7 +99,7 @@
     "type": "function",
     "function": {
       "name": "osint_query_arsenal",
-      "description": "Search the 540-tool OSINT Monster Database by input selector, discipline, keyword, or passive/free filters.",
+      "description": "Search the 680-tool OSINT Monster Database (502 Passive + 178 Active/Hybrid) by input selector, discipline, keyword, or passive/free filters.",
       "parameters": {
         "type": "object",
         "properties": {

@@ -512,11 +512,13 @@ def collect_domain_osint(domain: str) -> list[dict]:
                     nv = nv.strip().lower().removeprefix("*.")
                     if nv.endswith(d):
                         subs.add(nv)
+        sub_pivots = [{"type": "domain", "value": s} for s in sorted(subs) if s != d and "*" not in s][:15]
         return _res(
             "crtsh_certificate_transparency",
             "ok",
             f"Discovered {len(subs)} unique CT hostname(s) across {len(issuers)} CA issuer(s)",
             {"subdomains": sorted(subs)[:60], "total_subdomains": len(subs), "issuers": sorted(issuers)[:10]},
+            sub_pivots,
         )
 
     def _rdap():
@@ -842,13 +844,30 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
     if sel_type in ("company", "person_name", "keyword"):
         q_enc = urllib.parse.quote(value)
         out = []
-        st_u, gh_u, _ = _http_json(f"https://api.github.com/search/users?q={q_enc}&per_page=6")
+        st_u, gh_u, _ = _http_json(f"https://api.github.com/search/users?q={q_enc}&per_page=8")
         pivots = []
         if st_u == 200 and isinstance(gh_u, dict) and gh_u.get("items"):
-            accts = [{"login": i.get("login"), "type": i.get("type"), "url": i.get("html_url")} for i in gh_u["items"][:6]]
-            if accts and accts[0].get("login"):
-                pivots.append({"type": "username", "value": accts[0]["login"]})
-            out.append(_res("github_entity_search", "ok", f"Matched {gh_u.get('total_count', 0)} GitHub user/org profile(s) for '{value}'", {"accounts": accts}, pivots))
+            total_u = gh_u.get("total_count", 0)
+            accts = [{"login": i.get("login"), "type": i.get("type"), "url": i.get("html_url")} for i in gh_u["items"][:8]]
+            # If reasonably specific match (<=12 profiles), pivot on ALL matched handles; otherwise top 2
+            pivot_cap = 8 if total_u <= 12 else 2
+            for a in accts[:pivot_cap]:
+                if a.get("login"):
+                    pivots.append({"type": "username", "value": a["login"]})
+            out.append(_res("github_entity_search", "ok", f"Matched {total_u} GitHub user/org profile(s) for '{value}'", {"accounts": accts, "total_count": total_u}, pivots))
+
+        quoted_phrase = urllib.parse.quote(f'"{value}"')
+        st_r, gh_r, _ = _http_json(f"https://api.github.com/search/repositories?q={quoted_phrase}&per_page=6")
+        if st_r == 200 and isinstance(gh_r, dict) and gh_r.get("items"):
+            repo_pivots = []
+            repos = []
+            for r in gh_r["items"][:6]:
+                fn = r.get("full_name")
+                hp = (r.get("homepage") or "").strip()
+                repos.append({"full_name": fn, "homepage": hp or None, "description": (r.get("description") or "")[:120]})
+                if hp and hp.startswith("http"):
+                    repo_pivots.append({"type": "url", "value": hp})
+            out.append(_res("github_entity_repositories", "ok", f"Matched {gh_r.get('total_count', 0)} GitHub repo mention(s) for '{value}'", {"repositories": repos}, repo_pivots))
 
         if sel_type == "company":
             st_l, gleif, _ = _http_json(f"https://api.gleif.org/api/v1/lei-records?filter%5Bentity.legalName%5D={q_enc}&page%5Bsize%5D=5")
@@ -858,11 +877,16 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
                     ent = ((r.get("attributes") or {}).get("entity") or {})
                     recs.append({"lei": r.get("id"), "legal_name": (ent.get("legalName") or {}).get("name"), "jurisdiction": ent.get("jurisdiction")})
                 out.append(_res("gleif_corporate_lei", "ok", f"Matched {len(recs)} global LEI corporate registration(s)", {"lei_records": recs}))
-        return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 540-tool arsenal pivots for '{value}'", {"query": value})]
+        return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 680-tool arsenal pivots for '{value}'", {"query": value})]
 
     if sel_type in ("url", "onion_url"):
         parsed = urllib.parse.urlparse(value if "://" in value else f"http://{value}")
-        return [
+        q_params = dict(urllib.parse.parse_qsl(parsed.query))
+        url_pivots = []
+        for pv in q_params.values():
+            if pv.startswith(("http://", "https://")):
+                url_pivots.append({"type": "url", "value": pv})
+        out = [
             _res(
                 "url_structural_decomposition",
                 "ok",
@@ -872,10 +896,24 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
                     "scheme": parsed.scheme,
                     "hostname": parsed.hostname,
                     "path": parsed.path,
-                    "query_params": dict(urllib.parse.parse_qsl(parsed.query)),
+                    "query_params": q_params,
                     "is_tor_onion": (parsed.hostname or "").endswith(".onion"),
                 },
+                url_pivots,
             )
         ]
+        if sel_type == "url" and not (parsed.hostname or "").endswith(".onion"):
+            st_wb, wb_obj, _ = _http_json(f"https://archive.org/wayback/available?url={urllib.parse.quote(value)}", timeout=5.0)
+            closest = ((wb_obj or {}).get("archived_snapshots") or {}).get("closest") if isinstance(wb_obj, dict) else None
+            if st_wb == 200 and isinstance(closest, dict) and closest.get("available"):
+                out.append(
+                    _res(
+                        "wayback_url_snapshot",
+                        "ok",
+                        f"Wayback snapshot available ({closest.get('timestamp')})",
+                        {"snapshot_url": closest.get("url"), "timestamp": closest.get("timestamp"), "status": closest.get("status")},
+                    )
+                )
+        return out
 
     return []

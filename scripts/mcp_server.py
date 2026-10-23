@@ -26,7 +26,9 @@ from osint_hunter.engine import (  # noqa: E402
     ALL_DORKS,
     ALL_TOOLS,
     ALL_WORKFLOWS,
+    expand_existing_case,
     forge_dorks_for_targets,
+    get_case_active_target_string,
     run_autonomous_hunt,
 )
 
@@ -60,10 +62,14 @@ MCP_TOOLS = [
                 },
                 "depth": {
                     "type": "integer",
-                    "default": 2,
+                    "default": 4,
                     "minimum": 1,
-                    "maximum": 3,
-                    "description": "Recursive autonomous pivot depth (1-3, default 2).",
+                    "maximum": 6,
+                    "description": "Exhaustive multi-stage surface expansion depth until 0 new leads remain (1-6, default 4).",
+                },
+                "ingested_evidence_text": {
+                    "type": "string",
+                    "description": "Optional unstructured text/bios/search snippets to carve & hunt alongside the seed.",
                 },
                 "save_case": {
                     "type": "boolean",
@@ -72,6 +78,42 @@ MCP_TOOLS = [
                 },
             },
             "required": ["target"],
+        },
+    },
+    {
+        "name": "osint_ingest_and_expand_case",
+        "description": (
+            "MULTI-STAGE SURFACE EXPANSION TOOL (PASSIVE, ZERO QUESTIONS). Feed ALL raw findings gathered in "
+            "a stage (e.g. web_search snippets, fetched bio pages, Linktrees, directories) into an existing case. "
+            "Automatically carves EVERY new clue (handles, variants, phones, WhatsApp links, emails, domains, "
+            "names, companies/clinics) and hunts ALL of them across subsequent stages until convergence."
+        ),
+        "annotations": {
+            "title": "Ingest Findings & Expand Multi-Stage Case",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "openWorldHint": True,
+        },
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "case_id_or_dir": {
+                    "type": "string",
+                    "description": "Existing CASE_ID or case directory path returned by `osint_auto_hunt`.",
+                },
+                "ingested_text": {
+                    "type": "string",
+                    "description": "All raw text, URLs, bios, and snippets collected during the current stage.",
+                },
+                "additional_stages": {
+                    "type": "integer",
+                    "default": 3,
+                    "minimum": 1,
+                    "maximum": 5,
+                    "description": "Max additional passive stages to run until 0 new leads appear.",
+                },
+            },
+            "required": ["case_id_or_dir", "ingested_text"],
         },
     },
     {
@@ -198,15 +240,27 @@ def handle_tool_call(name: str, args: dict) -> str:
     if name == "osint_auto_hunt":
         report = run_autonomous_hunt(
             str(args["target"]),
-            depth=int(args.get("depth", 2)),
+            depth=int(args.get("depth", 4)),
+            ingested_evidence_text=args.get("ingested_evidence_text"),
             save_case=bool(args.get("save_case", True)),
             mode="passive",
         )
         return report["dossier_markdown"] + "\n\n<!-- CASE_DIR: " + str(report["meta"].get("case_dir")) + " -->"
 
+    if name == "osint_ingest_and_expand_case":
+        report = expand_existing_case(
+            str(args["case_id_or_dir"]),
+            ingested_text=str(args["ingested_text"]),
+            additional_stages=int(args.get("additional_stages", 3)),
+        )
+        return report["dossier_markdown"] + "\n\n<!-- CASE_DIR: " + str(report["meta"].get("case_dir")) + " -->"
+
     if name == "osint_prepare_active_hunt":
+        raw_tgt = str(args.get("target") or "")
+        if args.get("from_case") and not raw_tgt:
+            raw_tgt = get_case_active_target_string(str(args["from_case"]))
         plan = prepare_active_request(
-            str(args["target"]),
+            raw_tgt,
             requested_modules=args.get("modules"),
             source="mcp_prepare",
         )

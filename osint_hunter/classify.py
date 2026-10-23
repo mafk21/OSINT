@@ -38,29 +38,100 @@ DOMAIN_RE = re.compile(
     re.IGNORECASE,
 )
 HANDLE_AT_RE = re.compile(r"(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_.-]{2,39})\b")
+LABELED_HANDLE_RE = re.compile(
+    r"\b(?:insta(?:gram)?|ig|tiktok|tt|snap(?:chat)?|x|twitter|telegram|tg|threads|youtube|yt|reddit|github|gh|gitlab|linkedin|linktree|username|handle)(?:\s+(?:username|handle|user|account|id|profile))?\s*(?:[:=]|(?<=\susername)\s+|(?<=\shandle)\s+)\s*@?([a-zA-Z0-9_.-]{2,39})\b",
+    re.IGNORECASE,
+)
+WHATSAPP_URL_RE = re.compile(
+    r"(?:https?://)?(?:wa\.me/|api\.whatsapp\.com/send\?(?:[^#\s]*&)?phone=)\+?([1-9]\d{6,14})\b",
+    re.IGNORECASE,
+)
+OBFUSCATED_EMAIL_RE = re.compile(
+    r"\b([a-zA-Z0-9._%+-]{1,64})\s*(?:\[at\]|\(at\)|\sat\s)\s*([a-zA-Z0-9-]+(?:\s*(?:\.|\[dot\]|\(dot\))\s*[a-zA-Z0-9-]+)+)\b",
+    re.IGNORECASE,
+)
 
 SOCIAL_PATH_PATTERNS = [
     (re.compile(r"^https?://(?:www\.)?github\.com/([a-zA-Z0-9-]{1,39})(?:/([a-zA-Z0-9._-]+))?/?$"), "github"),
+    (re.compile(r"^https?://(?:www\.)?gitlab\.com/([a-zA-Z0-9_.-]{2,39})(?:/.*)?$"), "gitlab"),
     (re.compile(r"^https?://(?:www\.)?(?:x\.com|twitter\.com)/([a-zA-Z0-9_]{1,15})(?:/.*)?$"), "x"),
+    (re.compile(r"^https?://(?:www\.)?(?:instagram\.com|instagr\.am)/([a-zA-Z0-9._]{2,30})(?:/.*)?$"), "instagram"),
+    (re.compile(r"^https?://(?:www\.)?tiktok\.com/@([a-zA-Z0-9._]{2,30})(?:/.*)?$"), "tiktok"),
+    (re.compile(r"^https?://(?:www\.)?snapchat\.com/(?:add|t)/([a-zA-Z0-9._-]{2,30})(?:/.*)?$"), "snapchat"),
+    (re.compile(r"^https?://(?:www\.)?threads\.net/@([a-zA-Z0-9._]{2,30})(?:/.*)?$"), "threads"),
+    (re.compile(r"^https?://(?:www\.)?youtube\.com/@([a-zA-Z0-9._-]{2,35})(?:/.*)?$"), "youtube"),
     (re.compile(r"^https?://(?:www\.)?reddit\.com/(?:user|u)/([a-zA-Z0-9_-]{2,25})(?:/.*)?$"), "reddit"),
-    (re.compile(r"^https?://(?:www\.)?t\.me/([a-zA-Z0-9_]{4,32})(?:/.*)?$"), "telegram"),
+    (re.compile(r"^https?://(?:www\.)?t\.me/(?:s/)?([a-zA-Z0-9_]{4,32})(?:/.*)?$"), "telegram"),
+    (re.compile(r"^https?://(?:www\.)?linktr\.ee/([a-zA-Z0-9._-]{2,35})(?:/.*)?$"), "linktree"),
+    (re.compile(r"^https?://(?:www\.)?(?:beacons\.ai|bio\.link|taplink\.cc)/([a-zA-Z0-9._-]{2,35})(?:/.*)?$"), "biolink"),
+    (re.compile(r"^https?://(?:www\.)?medium\.com/@([a-zA-Z0-9._-]{2,35})(?:/.*)?$"), "medium"),
+    (re.compile(r"^https?://(?:www\.)?linkedin\.com/in/([a-zA-Z0-9_-]{2,60})(?:/.*)?$"), "linkedin"),
     (re.compile(r"^https?://(?:www\.)?npmjs\.com/~([a-zA-Z0-9._-]+)$"), "npm"),
     (re.compile(r"^https?://pypi\.org/user/([a-zA-Z0-9._-]+)/?$"), "pypi"),
 ]
+
+SOCIAL_URL_RESERVED = {
+    "orgs", "topics", "search", "explore", "settings", "login", "about", "p", "reel",
+    "reels", "stories", "tv", "direct", "accounts", "share", "intent", "home", "hashtag",
+    "channel", "watch", "playlist", "shorts", "joinchat", "addstickers",
+}
+
+NOISE_DOMAINS = {
+    "github.com", "api.github.com", "raw.githubusercontent.com", "users.noreply.github.com",
+    "gitlab.com", "x.com", "twitter.com", "reddit.com", "t.me", "linkedin.com", "instagram.com",
+    "instagr.am", "tiktok.com", "snapchat.com", "threads.net", "linktr.ee", "beacons.ai",
+    "bio.link", "taplink.cc", "wa.me", "api.whatsapp.com", "medium.com",
+    "facebook.com", "youtube.com", "google.com", "npmjs.com", "pypi.org",
+    "w3.org", "schema.org", "example.com", "localhost",
+}
 
 PROMPT_STOPWORDS = {
     "osint", "hunt", "investigate", "search", "find", "everything", "about", "on", "target",
     "check", "scan", "recon", "whois", "lookup", "please", "do", "an", "for", "this", "guy",
     "person", "company", "domain", "email", "user", "username", "wallet", "ip", "address",
-    "the", "and", "with", "from", "start", "now",
+    "the", "and", "with", "from", "start", "now", "insta", "instagram", "tiktok", "snapchat",
+    "telegram", "twitter", "handle", "account", "profile",
 }
 
-NOISE_DOMAINS = {
-    "github.com", "api.github.com", "raw.githubusercontent.com", "users.noreply.github.com",
-    "x.com", "twitter.com", "reddit.com", "t.me", "linkedin.com", "instagram.com",
-    "facebook.com", "youtube.com", "google.com", "npmjs.com", "pypi.org",
-    "w3.org", "schema.org", "example.com", "localhost",
-}
+
+def generate_handle_variants(handle: str, max_variants: int = 4) -> list[str]:
+    """Generate deterministic cross-platform username mutations (e.g. X/GitHub forbid '.' in handles)."""
+    h = (handle or "").strip().lstrip("@")
+    if len(h) < 3 or " " in h:
+        return []
+    seen = {h.lower()}
+    variants: list[str] = []
+
+    def _push(cand: str) -> None:
+        c = cand.strip("._-")
+        if 3 <= len(c) <= 39 and c.lower() not in seen and not c.isdigit():
+            seen.add(c.lower())
+            variants.append(c)
+
+    if "." in h:
+        _push(h.replace(".", "_"))
+        _push(h.replace(".", "-"))
+        _push(h.replace(".", ""))
+    elif "_" in h:
+        _push(h.replace("_", "."))
+        _push(h.replace("_", "-"))
+        _push(h.replace("_", ""))
+    elif "-" in h:
+        _push(h.replace("-", "_"))
+        _push(h.replace("-", "."))
+        _push(h.replace("-", ""))
+
+    # Strip common professional/social prefixes/suffixes (e.g. dr.abo3tab -> abo3tab, official_foo -> foo)
+    low = h.lower()
+    for pfx in ("dr.", "dr_", "dr-", "eng.", "eng_", "prof.", "prof_", "official.", "official_", "real.", "real_", "its.", "its_", "iam.", "iam_"):
+        if low.startswith(pfx) and len(h) - len(pfx) >= 4:
+            _push(h[len(pfx):])
+    for sfx in (".official", "_official", "-official", ".real", "_real"):
+        if low.endswith(sfx) and len(h) - len(sfx) >= 4:
+            _push(h[: -len(sfx)])
+
+    return variants[:max_variants]
+
 
 VIN_TRANSLITERATION = {
     **{str(i): i for i in range(10)},
@@ -149,11 +220,15 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
         for rx, platform in SOCIAL_PATH_PATTERNS:
             sm = rx.match(clean_url)
             if sm:
-                handle = sm.group(1)
-                if handle.lower() not in {"orgs", "topics", "search", "explore", "settings", "login", "about"}:
+                handle = sm.group(1).rstrip("/")
+                if handle.lower() not in SOCIAL_URL_RESERVED:
                     _add(results, seen, "username", handle, 0.96, f"Extracted from {platform} URL")
                 if platform == "github" and sm.lastindex and sm.lastindex >= 2 and sm.group(2):
                     _add(results, seen, "repo_code", f"{handle}/{sm.group(2)}", 0.97, "GitHub owner/repo")
+
+    # 3b. WhatsApp wa.me / api.whatsapp.com phone links
+    for wa_digits in WHATSAPP_URL_RE.findall(text):
+        _add(results, seen, "phone", f"+{wa_digits}", 0.98, "Phone extracted from WhatsApp link")
 
     # 4. Onion domains standalone
     for onion in ONION_RE.findall(text):
@@ -171,6 +246,13 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
         dom = em.split("@", 1)[1].lower()
         if dom not in freemails and dom not in NOISE_DOMAINS:
             _add(results, seen, "domain", dom, 0.88, "Corporate domain from email")
+    for loc_part, dom_part in OBFUSCATED_EMAIL_RE.findall(text):
+        norm_dom = re.sub(r"\s*(?:\[dot\]|\(dot\)|\.)\s*", ".", dom_part.strip(), flags=re.IGNORECASE).lower()
+        if "." in norm_dom:
+            obf_em = f"{loc_part.lower()}@{norm_dom}"
+            _add(results, seen, "email", obf_em, 0.93, "De-obfuscated email address")
+            if norm_dom not in freemails and norm_dom not in NOISE_DOMAINS:
+                _add(results, seen, "domain", norm_dom, 0.86, "Corporate domain from obfuscated email")
 
     # 6. Crypto addresses (EVM, BTC, TRON)
     for evm in EVM_RE.findall(text):
@@ -260,10 +342,15 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
         elif d_low not in NOISE_DOMAINS:
             _add(results, seen, "domain", d_low, 0.94, "Domain / Hostname")
 
-    # 16. @handles in text
+    # 16. @handles and platform-labeled handles (e.g. "insta username: dr.abo3tab", "tiktok: foo")
     for h in HANDLE_AT_RE.findall(text_no_emails):
-        if h.lower() not in PROMPT_STOPWORDS:
-            _add(results, seen, "username", h, 0.95, "Explicit @handle")
+        h_clean = h.strip(".,;:!?)")
+        if h_clean.lower() not in PROMPT_STOPWORDS and not DOMAIN_RE.fullmatch(h_clean):
+            _add(results, seen, "username", h_clean, 0.95, "Explicit @handle")
+    for lh in LABELED_HANDLE_RE.findall(text_no_emails):
+        lh_clean = lh.strip(".,;:!?)")
+        if lh_clean.lower() not in PROMPT_STOPWORDS and not DOMAIN_RE.fullmatch(lh_clean):
+            _add(results, seen, "username", lh_clean, 0.96, "Labeled platform username/handle")
 
     # 17. Fallback heuristics when the input is a bare handle, owner/repo, person name, or company!
     if not results:

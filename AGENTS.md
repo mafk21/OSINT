@@ -1,8 +1,9 @@
 # AGENTS.md — Autonomous Passive Hunting + Mandatory User-Gated Active OSINT Protocol
 
-> **MANDATORY TWO-LAW DOCTRINE FOR ALL CONNECTED AI AGENTS**:
-> 1. **🟢 LAW 1 (PASSIVE OSINT — ZERO QUESTIONS)**: When given ANY target, selector, file, or OSINT task, **immediately execute Passive OSINT (`python3 scripts/hunt.py "<target>" --depth 2` or MCP `osint_auto_hunt`) on Turn 1 WITHOUT asking any clarifying questions.**
-> 2. **🔴 LAW 2 (ACTIVE OSINT — ALWAYS ASK THE USER FIRST)**: **NEVER start Active OSINT (or any active third-party probe touching target servers directly) without asking the user and receiving explicit permission FIRST — EVERY SINGLE TIME.** Even if the user asks for an "active", "deep", or "full" scan in their prompt, you MUST first generate the OPSEC disclosure plan (`--prepare-active` / `osint_prepare_active_hunt`), ask the user to confirm, and wait for their reply before executing Active Mode!
+> **MANDATORY THREE-LAW DOCTRINE FOR ALL CONNECTED AI AGENTS**:
+> 1. **🟢 LAW 1 (PASSIVE OSINT — ZERO QUESTIONS)**: When given ANY target, selector, file, or OSINT task, **immediately execute Passive OSINT (`python3 scripts/hunt.py "<target>" --depth 4` or MCP `osint_auto_hunt`) on Turn 1 WITHOUT asking any clarifying questions.**
+> 2. **🔄 LAW 2 (EXHAUSTIVE MULTI-STAGE SURFACE EXPANSION — NEVER STOP AFTER ONE HIT)**: **Never stop a stage as soon as you find 1 clue!** In every stage, exhaust **all** passive collectors and **all** `web_search` / `fetch_page` dork angles first, then feed **everything** discovered back into the Stage Analyzer (`python3 scripts/hunt.py --resume-case <CASE_ID> --ingest-file <findings.txt>` or MCP `osint_ingest_and_expand_case`) so **every single newly carved clue** (handle variants, WhatsApp phones, Linktrees, domains, subdomains, emails, real names, companies/clinics) is hunted in Stage 2 → Stage 3 → Stage N until **0 new unvisited target leads remain (`converged: true`)**.
+> 3. **🔴 LAW 3 (ACTIVE OSINT — ALWAYS ASK THE USER FIRST)**: **NEVER start Active OSINT (or any active third-party probe touching target servers directly) without asking the user and receiving explicit permission FIRST — EVERY SINGLE TIME.** Even if the user asks for an "active", "deep", or "full" scan in their prompt, you MUST first complete exhaustive Passive stages, generate the full-surface OPSEC disclosure plan (`--prepare-active --from-case <CASE_ID>` / `osint_prepare_active_hunt`), ask the user to confirm, and wait for their reply before executing Active Mode!
 
 ---
 
@@ -17,24 +18,33 @@
 
 ## 2. Turn-by-Turn Autonomous Execution Flow
 
-### Turn 1 — Immediate Passive Multi-Wave Hunt (Zero Questions)
-1. Run Passive OSINT immediately:
-   ```bash
-   python3 scripts/hunt.py "<USER_INPUT_VERBATIM>" --depth 2
-   ```
-   *(Or call MCP tool `osint_auto_hunt`.)*
-2. Amplify with `web_search` / `fetch_page` (if available) using the auto-forged dorks (`python3 scripts/osint.py dorks --target "<target>"`) — strictly querying search engines/archives, **not** probing target servers directly unless passive.
-3. Deliver the complete **Passive Intelligence Dossier** (`cases/<CASE_ID>/dossier.md`, `stix2_bundle.json`, `manifest.sha256`).
-4. **Optional Escalation Offer (or When Active Recon Is Needed)**:
-   - If live domains, URLs, or IPs were found (or if the user requested active/deep probing), prepare a zero-packet Active Authorization Request:
+### Turn 1 — Exhaustive Multi-Stage Passive Loop (Zero Questions · Hunt Every Clue Until Convergence)
+1. **Stage 1 — Seed Collection (Never Stop at One Hit!)**:
+   - Run the multi-stage passive engine immediately:
      ```bash
-     python3 scripts/hunt.py "<TARGET>" --prepare-active
+     python3 scripts/hunt.py "<USER_INPUT_VERBATIM>" --depth 4
+     ```
+     *(Or call MCP tool `osint_auto_hunt`.)*
+   - Execute **ALL** Stage-1 forged dorks (`report["forged_dorks"]`) via `web_search` / `fetch_page` — covering social profiles/bios, cross-platform handle reuse & variants (`dr.x` → `dr_x`, `drx`, `x`), Linktree/bio-links, WhatsApp `wa.me` links, emails, clinics/companies, and archives. Do **not** stop after finding a single profile or link; collect **every** available clue in Stage 1.
+2. **Stage 2 → Stage N — Analyze Findings, Carve Every Lead & Re-Hunt Exhaustively**:
+   - Save or pass **all** raw snippets, bios, URLs, and contact strings gathered from `web_search` / `fetch_page` into the Stage Analyzer to expand the case:
+     ```bash
+     python3 scripts/hunt.py --resume-case <CASE_ID> --ingest-file <stage_web_findings.txt>
+     ```
+     *(Or call MCP tool `osint_ingest_and_expand_case`.)*
+   - The Stage Analyzer (`osint_hunter/stage_analyzer.py`) carves **every** newly discovered handle, handle mutation, phone (`+E.164` / `wa.me`), email (including obfuscated `[at]`), domain, subdomain, URL, real name, and organization/clinic, filters out generic CDN/CA noise, hunts **all** new leads across collectors, and forges new `web_search` dorks for every newly discovered clue.
+   - Run `web_search` on the newly forged Stage-2/3 dorks and repeat `--resume-case` until a stage yields **0 new unvisited target leads** (`converged: true`).
+3. **Deliver the Unified Multi-Stage Passive Dossier** (`cases/<CASE_ID>/dossier.md`, `stix2_bundle.json`, `manifest.sha256`).
+4. **Full-Surface Active Escalation Offer (When Live Surface Exists or User Requested Full/Active Recon)**:
+   - Prepare a zero-packet Active Authorization Request covering **every** domain, URL, IP, email, and handle discovered across **all** passive stages:
+     ```bash
+     python3 scripts/hunt.py --prepare-active --from-case <CASE_ID>
      ```
      *(Or call MCP tool `osint_prepare_active_hunt`.)*
    - **STOP AND ASK THE USER FOR PERMISSION** (using `ask_user` if your harness provides it, otherwise asking clearly in chat), displaying:
      - Single-use Request ID (`ACT-XXXXXXXX`)
-     - Exact target host(s) / IP(s) / URL(s) that will receive direct packets
-     - Planned Active Modules (`active_tls_cert_inspector`, `active_http_fingerprint_and_headers`, `active_wellknown_and_robots_harvester`, `active_favicon_hash_extractor`, `active_tcp_service_banner_probe`, `active_dns_live_resolver`, `active_url_jsonld_opengraph`)
+     - Every target host / IP / URL / handle across the discovered surface that will receive direct packets
+     - Planned Active Modules (22 live probes in `osint_hunter/active_collectors.py`)
      - **OPSEC Warning**: Target logs/firewalls will record this environment's egress IP, TLS handshake, and HTTP requests.
 
 ### Turn 2 — Execute Active OSINT (ONLY If the User Explicitly Approves!)
