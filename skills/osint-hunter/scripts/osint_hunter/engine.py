@@ -28,7 +28,7 @@ from .exporters import (
     render_neo4j_cypher,
     write_obsidian_vault,
 )
-from .offline_intel import INTEL_TABLES
+from .offline_intel import INTEL_TABLES, analyze_local_file
 from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
 from .persona import enrich_graph_confidence_and_personas
 from .providers import get_byok_status
@@ -529,9 +529,15 @@ def _execute_stage_loop(
 
         def _exec_one(item: tuple[str, str]):
             st, sv = item
-            outs = collect_for_selector(st, sv)
+            try:
+                outs = collect_for_selector(st, sv)
+            except Exception as exc:
+                outs = [{"module": "passive_collector_guard", "opsec": "Passive", "status": "restricted_or_offline", "summary": f"Collector skipped ({exc})", "data": {}, "pivots": []}]
             if is_active:
-                outs = outs + collect_active_for_selector(st, sv, enabled_active_mods)
+                try:
+                    outs = outs + collect_active_for_selector(st, sv, enabled_active_mods)
+                except Exception as exc:
+                    outs = outs + [{"module": "active_collector_guard", "opsec": "Active", "status": "restricted_or_offline", "status_code": 0, "summary": f"Active probe skipped ({exc})", "data": {}, "pivots": []}]
             return st, sv, outs
 
         stage_items: list[dict] = []
@@ -621,6 +627,7 @@ def run_autonomous_hunt(
     active_modules: list[str] | None = None,
     enforce_turn_delay: bool = True,
     diff_last: bool = False,
+    display_label: str | None = None,
 ) -> dict:
     """Execute an exhaustive multi-stage OSINT hunt until surface convergence.
 
@@ -653,15 +660,71 @@ def run_autonomous_hunt(
     if not seeds:
         seeds = [{"type": "keyword", "value": raw_input.strip()[:100], "confidence": 0.5, "note": "Fallback keyword"}]
 
+    source_file_info: dict | None = None
+    pre_wave_results: list[dict] = []
+    if len(seeds) == 1 and seeds[0]["type"] == "local_file":
+        fpath_str = seeds[0]["value"]
+        f_dec = analyze_local_file(fpath_str)
+        fname_clean = f_dec["file_name"]
+        content_sels = f_dec.get("content_selectors") or []
+        txt_sample = (f_dec.get("extracted_text_sample") or "").strip()
+        if txt_sample:
+            ingested_evidence_text = f"{ingested_evidence_text}\n{txt_sample}".strip() if ingested_evidence_text else txt_sample
+
+        source_file_info = {
+            "file_name": fname_clean,
+            "detected_format": f_dec["detected_format"],
+            "size_bytes": f_dec["size_bytes"],
+            "hashes": f_dec["hashes"],
+            "extracted_metadata": f_dec["extracted_metadata"],
+            "extracted_selector_count": len(content_sels),
+        }
+        if not display_label:
+            display_label = f"File: {fname_clean}"
+
+        if content_sels:
+            seeds = [
+                {
+                    "type": pv["type"],
+                    "value": pv["value"],
+                    "confidence": 0.96,
+                    "note": f"Extracted inside {fname_clean}",
+                }
+                for pv in content_sels
+            ]
+        else:
+            # File had no embedded accounts/domains/phones/GPS — record clean file inspection without temp paths
+            clean_fdec = {k: v for k, v in f_dec.items() if k not in ("absolute_path", "extracted_text_sample")}
+            seeds = []
+            pre_wave_results.append(
+                {
+                    "wave": 1,
+                    "type": "document",
+                    "value": fname_clean,
+                    "collector_outputs": [
+                        {
+                            "module": "local_binary_forensics",
+                            "opsec": "Passive",
+                            "status": "ok",
+                            "summary": f"{f_dec['detected_format']} ({f_dec['size_bytes']} B) · SHA256={f_dec['hashes']['sha256'][:16]}... · 0 target selectors found inside file",
+                            "data": clean_fdec,
+                            "pivots": [],
+                        }
+                    ],
+                }
+            )
+
+    effective_label = (display_label or raw_input).strip()
     ts = datetime.now(timezone.utc)
-    case_slug = _slugify(seeds[0]["value"])
+    slug_source = source_file_info["file_name"] if source_file_info else (seeds[0]["value"] if seeds else effective_label)
+    case_slug = _slugify(Path(slug_source).stem if source_file_info else slug_source)
     prefix_tag = "ACTIVE_" if is_active else ""
     case_id = f"{prefix_tag}{ts.strftime('%Y%m%dT%H%M%SZ')}_{case_slug}"
 
     visited: set[str] = set()
     nodes: list[dict] = []
     edges: list[dict] = []
-    wave_results: list[dict] = []
+    wave_results: list[dict] = list(pre_wave_results)
     stage_analyses: list[dict] = []
     values_by_type: dict[str, list[str]] = {}
 
@@ -674,8 +737,9 @@ def run_autonomous_hunt(
             values_by_type.setdefault(s["type"], []).append(s["value"])
             current_queue.append((s["type"], s["value"]))
 
+    ev_src_id = f"{seeds[0]['type']}:{seeds[0]['value'].lower()}" if seeds else f"document:{case_slug}"
     ev_blocks = (
-        [{"source_id": f"{seeds[0]['type']}:{seeds[0]['value'].lower()}", "label": "ingested_evidence", "text": ingested_evidence_text}]
+        [{"source_id": ev_src_id, "label": "ingested_evidence", "text": ingested_evidence_text}]
         if ingested_evidence_text and ingested_evidence_text.strip()
         else None
     )
@@ -707,7 +771,7 @@ def run_autonomous_hunt(
         "meta": {
             "case_id": case_id,
             "timestamp_utc": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "raw_input": raw_input,
+            "raw_input": effective_label,
             "depth": depth,
             "stages_executed": stages_executed,
             "converged": converged,
@@ -716,6 +780,7 @@ def run_autonomous_hunt(
             "approval_request_id": approved_record["request_id"] if approved_record else None,
             "user_confirmation": approved_record.get("user_confirmation") if approved_record else None,
             "active_modules_executed": enabled_active_mods if is_active else [],
+            "source_file": source_file_info,
             "case_dir": None,
         },
         "initial_selectors": seeds,
@@ -731,11 +796,11 @@ def run_autonomous_hunt(
     report["persona_and_confidence"] = enrich_graph_confidence_and_personas(report)
     report["byok_providers_active"] = [p["provider"] for p in get_byok_status() if p["configured"]]
     if diff_last:
-        prev = find_latest_case_for_target(raw_input, cases_dir=cases_dir, exclude_case_id=case_id)
+        prev = find_latest_case_for_target(effective_label, cases_dir=cases_dir, exclude_case_id=case_id)
         report["surface_delta"] = compute_case_delta(prev[1], report) if prev else None
 
     dossier_md = render_markdown_dossier(report)
-    stix_bundle = build_stix2_bundle(case_id, raw_input, nodes, edges)
+    stix_bundle = build_stix2_bundle(case_id, effective_label, nodes, edges)
 
     if save_case:
         base_cases_dir = get_cases_dir(cases_dir)

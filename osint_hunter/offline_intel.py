@@ -3,17 +3,31 @@
 from __future__ import annotations
 
 import base64
+import email
 import hashlib
 import ipaddress
 import json
 import re
 import struct
 import zipfile
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from .classify import EMAIL_RE, EVM_RE, IPV4_RE, URL_RE, VIN_TRANSLITERATION, VIN_WEIGHTS, is_valid_imo
+from .classify import (
+    DOMAIN_RE,
+    EMAIL_RE,
+    EVM_RE,
+    IPV4_RE,
+    NOISE_DOMAINS,
+    PROMPT_STOPWORDS,
+    URL_RE,
+    VIN_TRANSLITERATION,
+    VIN_WEIGHTS,
+    extract_selectors,
+    is_valid_imo,
+)
 from .paths import DATA_DIR
 
 with (DATA_DIR / "intel_tables.json").open("r", encoding="utf-8") as _fh:
@@ -484,6 +498,99 @@ def _parse_jpeg_exif(data: bytes) -> dict:
     return exif_out
 
 
+_NON_DOMAIN_FILE_EXTS = {
+    "txt", "csv", "tsv", "json", "xml", "html", "htm", "pdf", "doc", "docx", "xls", "xlsx",
+    "ppt", "pptx", "png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "mov", "mp3", "wav",
+    "zip", "rar", "7z", "tar", "gz", "exe", "dll", "apk", "ipa", "eml", "pcap", "har", "py", "js", "css",
+}
+
+_LIST_HEADER_WORDS = PROMPT_STOPWORDS | {
+    "id", "name", "email", "emails", "phone", "phones", "mobile", "number", "url", "urls",
+    "link", "links", "domain", "domains", "host", "ip", "ips", "wallet", "notes", "note",
+    "status", "date", "time", "type", "value", "source", "description", "title", "subject",
+    "true", "false", "null", "none", "yes", "no",
+}
+
+
+def _decode_smart_text(raw: bytes, limit: int = 524_288) -> str:
+    chunk = raw[:limit]
+    if not chunk:
+        return ""
+    if chunk.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return chunk.decode("utf-16", errors="ignore")
+    if chunk.startswith(b"\xef\xbb\xbf"):
+        return chunk[3:].decode("utf-8", errors="ignore")
+    probe = chunk[:200]
+    if len(probe) >= 8 and probe[1::2].count(0) > len(probe) // 3:
+        return chunk.decode("utf-16-le", errors="ignore")
+    try:
+        return chunk.decode("utf-8")
+    except UnicodeDecodeError:
+        return chunk.decode("cp1256", errors="ignore")
+
+
+def _extract_pdf_text_and_links(data: bytes) -> tuple[str, list[str]]:
+    """Decompress PDF FlateDecode streams and carve visible text literals + /URI annotations."""
+    text_chunks: list[str] = []
+    uris: list[str] = []
+
+    raw_latin = data[:524_288].decode("latin-1", errors="ignore")
+    for um in re.findall(r"/URI\s*\(([^)]{4,300})\)", raw_latin):
+        uris.append(um.replace(r"\(", "(").replace(r"\)", ")"))
+
+    streams = re.findall(rb"stream\r?\n(.*?)\r?\nendstream", data, flags=re.DOTALL)[:80]
+    for st_bytes in streams:
+        decomp = None
+        for wbits in (zlib.MAX_WBITS, -zlib.MAX_WBITS):
+            try:
+                decomp = zlib.decompress(st_bytes.strip(b"\r\n"), wbits)
+                break
+            except Exception:
+                continue
+        buf = decomp if decomp is not None else st_bytes[:32_768]
+        s_lat = buf.decode("latin-1", errors="ignore")
+        for um in re.findall(r"/URI\s*\(([^)]{4,300})\)", s_lat):
+            uris.append(um.replace(r"\(", "(").replace(r"\)", ")"))
+        # Literal PDF strings (...) inside text blocks
+        lits = []
+        for lit in re.findall(r"\(([^()\\]*(?:\\.[^()\\]*)*)\)", s_lat):
+            cleaned = (
+                lit.replace(r"\n", "\n")
+                .replace(r"\r", " ")
+                .replace(r"\t", " ")
+                .replace(r"\(", "(")
+                .replace(r"\)", ")")
+                .replace("\\\\", "\\")
+            )
+            raw_b = cleaned.encode("latin-1", errors="ignore")
+            if raw_b.startswith((b"\xfe\xff", b"\xff\xfe")):
+                cleaned = raw_b.decode("utf-16", errors="ignore")
+            if cleaned.strip():
+                lits.append(cleaned)
+        if lits:
+            text_chunks.append(" ".join(lits))
+
+    if uris:
+        text_chunks.append("\n".join(uris))
+    return "\n".join(text_chunks), sorted(set(uris))[:30]
+
+
+def _html_to_searchable_text(txt: str) -> str:
+    if "<" not in txt or ">" not in txt:
+        return txt
+    # Keep href/mailto/tel values visible before stripping HTML tags
+    expanded = re.sub(
+        r"""href\s*=\s*["']([^"']{4,300})["']""",
+        lambda m: f" {m.group(1)} ",
+        txt,
+        flags=re.IGNORECASE,
+    )
+    expanded = re.sub(r"\b(?:mailto|tel):", " ", expanded, flags=re.IGNORECASE)
+    expanded = re.sub(r"<(?:script|style)[^>]*>.*?</(?:script|style)>", " ", expanded, flags=re.IGNORECASE | re.DOTALL)
+    expanded = re.sub(r"<br\s*/?>|</(?:p|div|li|tr|h[1-6])>", "\n", expanded, flags=re.IGNORECASE)
+    return re.sub(r"<[^>]+>", " ", expanded)
+
+
 def analyze_local_file(file_path: str) -> dict:
     p = Path(file_path)
     data = p.read_bytes()
@@ -511,9 +618,28 @@ def analyze_local_file(file_path: str) -> dict:
         magic = "RFC 5322 Email (.eml)"
     elif ext_low == ".har":
         magic = "W3C Browser HTTP Archive (.har)"
+    elif b"\x00" not in data[:4096] or data.startswith((b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf")):
+        magic = "Plain / Structured Text"
 
     metadata: dict = {}
-    pivots: list[dict] = [{"type": "file_hash", "value": sha256}]
+    content_pivots: list[dict] = []
+    seen_pivots: set[tuple[str, str]] = set()
+    extracted_text_parts: list[str] = []
+
+    def _push_pivot(ptype: str, pval: str) -> None:
+        v = (pval or "").strip()
+        if not v:
+            return
+        if ptype == "domain":
+            v_low = v.lower().rstrip(".").removeprefix("www.")
+            ext_part = v_low.rsplit(".", 1)[-1] if "." in v_low else ""
+            if v_low in NOISE_DOMAINS or ext_part in _NON_DOMAIN_FILE_EXTS or not DOMAIN_RE.fullmatch(v_low):
+                return
+            v = v_low
+        key = (ptype, v.lower())
+        if key not in seen_pivots:
+            seen_pivots.add(key)
+            content_pivots.append({"type": ptype, "value": v})
 
     from .dfir_forensics import (
         analyze_eml_bytes,
@@ -530,35 +656,55 @@ def analyze_local_file(file_path: str) -> dict:
         if c2pa_info.get("c2pa_content_credentials_detected") or c2pa_info.get("ai_or_camera_signatures"):
             metadata["c2pa_and_ai_provenance"] = c2pa_info
         if "gps_coordinates" in metadata["exif"]:
-            pivots.append({"type": "coordinates", "value": metadata["exif"]["gps_coordinates"]})
+            _push_pivot("coordinates", metadata["exif"]["gps_coordinates"])
+        artist = (metadata["exif"].get("artist") or "").strip()
+        if artist and len(artist) <= 60:
+            extracted_text_parts.append(f"Author: {artist}")
+        xmp_m = re.search(rb"<x:xmpmeta[^>]*>.*?</x:xmpmeta>", data[:262_144], flags=re.DOTALL)
+        if xmp_m:
+            extracted_text_parts.append(_html_to_searchable_text(xmp_m.group(0).decode("utf-8", errors="ignore")))
 
     elif magic in ("PNG Image", "WebP Image"):
-        metadata["image_forensics_and_c2pa"] = analyze_png_webp_c2pa_bytes(data)
+        img_f = analyze_png_webp_c2pa_bytes(data)
+        metadata["image_forensics_and_c2pa"] = img_f
+        for tk, tv in (img_f.get("text_chunks") or {}).items():
+            if isinstance(tv, str) and len(tv) <= 4000:
+                extracted_text_parts.append(f"{tk}: {tv}")
 
     elif magic == "MP4 / MOV QuickTime Video":
         mp4_res = analyze_mp4_mov_bytes(data)
         metadata["video_container_forensics"] = mp4_res
         for pv in mp4_res.get("discovered_pivots", []):
-            pivots.append({"type": pv["type"], "value": pv["value"]})
+            _push_pivot(pv["type"], pv["value"])
 
     elif magic == "RFC 5322 Email (.eml)":
         eml_res = analyze_eml_bytes(data)
         metadata["eml_forensics"] = eml_res
         for pv in eml_res.get("discovered_pivots", []):
-            pivots.append({"type": pv["type"], "value": pv["value"]})
+            _push_pivot(pv["type"], pv["value"])
+        try:
+            msg = email.message_from_bytes(data)
+            for part in msg.walk():
+                ctype = part.get_content_type()
+                if ctype in ("text/plain", "text/html"):
+                    payload_b = part.get_payload(decode=True)
+                    if payload_b:
+                        extracted_text_parts.append(_html_to_searchable_text(_decode_smart_text(payload_b, 200_000)))
+        except Exception:
+            pass
 
     elif magic == "PCAP / PCAPNG Packet Capture":
         pcap_res = analyze_pcap_bytes(data)
         metadata["pcap_forensics"] = pcap_res
         for pv in pcap_res.get("discovered_pivots", []):
-            pivots.append({"type": pv["type"], "value": pv["value"]})
+            _push_pivot(pv["type"], pv["value"])
 
     elif magic == "W3C Browser HTTP Archive (.har)":
         try:
             har_res = analyze_har_bytes(data)
             metadata["har_forensics"] = har_res
             for pv in har_res.get("discovered_pivots", []):
-                pivots.append({"type": pv["type"], "value": pv["value"]})
+                _push_pivot(pv["type"], pv["value"])
         except Exception as exc:
             metadata["har_parse_error"] = str(exc)
 
@@ -567,40 +713,153 @@ def analyze_local_file(file_path: str) -> dict:
             names = zf.namelist()
             metadata["archive_file_count"] = len(names)
             if "docProps/core.xml" in names:
-                xml_bytes = zf.read("docProps/core.xml")
-                root = ET.fromstring(xml_bytes)
-                office_meta = {}
-                for elem in root.iter():
-                    tag_short = elem.tag.split("}")[-1]
-                    if elem.text and elem.text.strip():
-                        office_meta[tag_short] = elem.text.strip()
-                metadata["office_core_properties"] = office_meta
-                for k in ("creator", "lastModifiedBy"):
-                    val = office_meta.get(k)
-                    if val and len(val) <= 39 and " " not in val:
-                        pivots.append({"type": "username", "value": val})
+                try:
+                    root = ET.fromstring(zf.read("docProps/core.xml"))
+                    office_meta = {}
+                    for elem in root.iter():
+                        tag_short = elem.tag.split("}")[-1]
+                        if elem.text and elem.text.strip():
+                            office_meta[tag_short] = elem.text.strip()
+                    metadata["office_core_properties"] = office_meta
+                    for k in ("creator", "lastModifiedBy"):
+                        val = office_meta.get(k)
+                        if val and len(val) <= 39 and " " not in val:
+                            _push_pivot("username", val)
+                        elif val and 2 <= len(val.split()) <= 4:
+                            _push_pivot("person_name", val)
+                except Exception:
+                    pass
+            if "docProps/app.xml" in names:
+                try:
+                    aroot = ET.fromstring(zf.read("docProps/app.xml"))
+                    for elem in aroot.iter():
+                        if elem.tag.split("}")[-1] == "Company" and elem.text and elem.text.strip():
+                            comp = elem.text.strip()
+                            metadata["office_company"] = comp
+                            _push_pivot("company", comp)
+                except Exception:
+                    pass
+
+            for member in names[:60]:
+                m_low = member.lower()
+                try:
+                    info = zf.getinfo(member)
+                    if info.file_size > 2_000_000:
+                        continue
+                    if (
+                        m_low.startswith(("word/document", "word/header", "word/footer", "xl/sharedstrings", "xl/worksheets/sheet", "ppt/slides/slide"))
+                        and m_low.endswith(".xml")
+                    ) or m_low == "content.xml":
+                        xroot = ET.fromstring(zf.read(member))
+                        txt_vals = [el.text.strip() for el in xroot.iter() if el.text and el.text.strip()]
+                        if txt_vals:
+                            extracted_text_parts.append("\n".join(txt_vals))
+                    elif m_low.endswith(".rels"):
+                        rels_txt = zf.read(member).decode("utf-8", errors="ignore")
+                        for tgt in re.findall(r'Target="((?:https?://|mailto:|tel:)[^"]{4,300})"', rels_txt, flags=re.IGNORECASE):
+                            extracted_text_parts.append(tgt.removeprefix("mailto:").removeprefix("tel:"))
+                    elif m_low.endswith((".txt", ".csv", ".tsv", ".json", ".md", ".html", ".htm", ".vcf", ".eml")):
+                        extracted_text_parts.append(_html_to_searchable_text(_decode_smart_text(zf.read(member), 250_000)))
+                except Exception:
+                    continue
 
     elif magic == "PDF Document":
         head_str = data[:65536].decode("latin-1", errors="ignore")
-        for key in ("Author", "Creator", "Producer", "Title", "CreationDate", "ModDate"):
+        for key in ("Author", "Creator", "Producer", "Title", "Subject", "CreationDate", "ModDate"):
             m = re.search(rf"/{key}\s*\(([^)]{{1,200}})\)", head_str)
             if m:
-                metadata[f"pdf_{key.lower()}"] = m.group(1)
+                val_clean = m.group(1).strip()
+                metadata[f"pdf_{key.lower()}"] = val_clean
+                if key == "Author" and val_clean:
+                    if "@" in val_clean or " " not in val_clean:
+                        extracted_text_parts.append(val_clean)
+                    elif 2 <= len(val_clean.split()) <= 4:
+                        _push_pivot("person_name", val_clean)
+        pdf_txt, pdf_uris = _extract_pdf_text_and_links(data)
+        if pdf_uris:
+            metadata["pdf_embedded_links"] = pdf_uris
+        if pdf_txt:
+            extracted_text_parts.append(pdf_txt)
 
-    # Carve embedded emails, URLs, IPv4s, and EVM wallets from readable strings
-    sample_str = data[:524288].decode("utf-8", errors="ignore")
+    elif magic == "Plain / Structured Text":
+        raw_txt = _decode_smart_text(data, 524_288)
+        extracted_text_parts.append(_html_to_searchable_text(raw_txt))
+
+    # Carve embedded emails, URLs, IPv4s, SSH/PEM keys, and all 24 OSINT selectors from readable content
+    sample_str = "\n".join(extracted_text_parts) if extracted_text_parts else _decode_smart_text(data, 524_288)
     ssh_pem_info = decode_ssh_pubkey_or_pem(sample_str)
     if ssh_pem_info:
         metadata["key_or_cert_forensics"] = ssh_pem_info
-    carved_emails = sorted(set(e.lower() for e in EMAIL_RE.findall(sample_str)))[:15]
-    carved_urls = sorted(set(URL_RE.findall(sample_str)))[:15]
-    carved_wallets = sorted(set(EVM_RE.findall(sample_str)))[:10]
-    carved_ips = sorted(set(IPV4_RE.findall(sample_str)))[:10]
 
-    for em in carved_emails[:5]:
-        pivots.append({"type": "email", "value": em})
-    for w in carved_wallets[:5]:
-        pivots.append({"type": "crypto_address", "value": w})
+    for sel in extract_selectors(sample_str, check_local_file=False):
+        if sel["type"] != "keyword":
+            _push_pivot(sel["type"], sel["value"])
+
+    # For structured/text lists (.txt, .csv, .tsv, .vcf, .docx, .xlsx, .pdf), also inspect clean single-token lines/cells
+    # so bare target lists (e.g. one username or phone per line without '@') are captured accurately.
+    if magic in ("Plain / Structured Text", "ZIP / Office OpenXML (DOCX/XLSX/PPTX/APK/JAR)", "PDF Document"):
+        is_list_ext = ext_low in (".txt", ".csv", ".tsv", ".vcf", ".list")
+        checked = 0
+        for raw_ln in sample_str.splitlines():
+            if checked >= 150:
+                break
+            cells = [c.strip(" \"'`,;\t\r") for c in (raw_ln.split(",") if ext_low == ".csv" else [raw_ln])]
+            for cell in cells:
+                if not cell or len(cell) < 3 or len(cell) > 90:
+                    continue
+                if cell.lower() in _LIST_HEADER_WORDS:
+                    continue
+                checked += 1
+                # Label: Value pairs (e.g. "Name: ...", "Clinic: ...", "Phone: +966 55 ...")
+                if cell.count(":") == 1 and not cell.lower().startswith(("http:", "https:")):
+                    k_part, v_part = [x.strip() for x in cell.split(":", 1)]
+                    kl = k_part.lower()
+                    if kl in ("phone", "mobile", "tel", "whatsapp", "number"):
+                        digs = re.sub(r"\D", "", v_part)
+                        if digs.startswith("00"):
+                            digs = digs[2:]
+                        if 9 <= len(digs) <= 15 and digs[0] != "0":
+                            _push_pivot("phone", f"+{digs}")
+                        continue
+                    if kl in ("name", "full name", "person", "owner", "doctor", "author") and 2 <= len(v_part.split()) <= 5:
+                        _push_pivot("person_name", v_part)
+                        continue
+                    if kl in ("company", "organization", "org", "clinic", "business", "employer") and len(v_part) >= 3:
+                        _push_pivot("company", v_part)
+                        continue
+                # Bare single-token handles / phones on target-list lines
+                if " " not in cell:
+                    ext_sfx = cell.rsplit(".", 1)[-1].lower() if "." in cell else ""
+                    if ext_sfx in _NON_DOMAIN_FILE_EXTS:
+                        continue
+                    if re.fullmatch(r"\+?[1-9][\d\s().-]{8,18}\d", cell):
+                        digs = re.sub(r"\D", "", cell)
+                        if 10 <= len(digs) <= 15:
+                            _push_pivot("phone", f"+{digs}")
+                        continue
+                    if is_list_ext and re.fullmatch(r"[a-zA-Z0-9_.-]{3,39}", cell) and not cell.isdigit():
+                        if not re.fullmatch(r"\d+(?:\.\d+)+", cell):
+                            for s2 in extract_selectors(cell, check_local_file=False):
+                                if s2["type"] != "keyword":
+                                    _push_pivot(s2["type"], s2["value"])
+                    elif re.fullmatch(r"[a-zA-Z][a-zA-Z0-9]*(?:[._-][a-zA-Z0-9]+)+", cell) and not DOMAIN_RE.fullmatch(cell.lower()):
+                        # Distinct handle with separators (e.g. dr.abo3tab, user_name) inside docs
+                        _push_pivot("username", cell)
+
+    carved_emails = [pv["value"] for pv in content_pivots if pv["type"] == "email"][:20] or sorted(set(e.lower() for e in EMAIL_RE.findall(sample_str)))[:15]
+    carved_urls = [pv["value"] for pv in content_pivots if pv["type"] == "url"][:20] or sorted(set(URL_RE.findall(sample_str)))[:15]
+    carved_wallets = [pv["value"] for pv in content_pivots if pv["type"] == "crypto_address"][:15] or sorted(set(EVM_RE.findall(sample_str)))[:10]
+    carved_ips = [pv["value"] for pv in content_pivots if pv["type"] == "ip"][:15] or sorted(set(IPV4_RE.findall(sample_str)))[:10]
+
+    for em in carved_emails[:10]:
+        _push_pivot("email", em)
+    for w in carved_wallets[:10]:
+        _push_pivot("crypto_address", w)
+
+    # Include content selectors first; append file_hash for non-text binary triage
+    pivots: list[dict] = list(content_pivots[:45])
+    if magic != "Plain / Structured Text" or not pivots:
+        pivots.append({"type": "file_hash", "value": sha256})
 
     return {
         "file_name": p.name,
@@ -615,6 +874,8 @@ def analyze_local_file(file_path: str) -> dict:
             "evm_wallets": carved_wallets,
             "ipv4s": carved_ips,
         },
+        "content_selectors": content_pivots[:45],
+        "extracted_text_sample": sample_str[:16_384],
         "discovered_pivots": pivots,
     }
 

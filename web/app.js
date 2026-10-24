@@ -321,7 +321,11 @@
       lastHuntReport = report;
       renderHuntReport(report);
     } catch (err) {
-      outArea.innerHTML = `<div class="card"><div class="card-title" style="color:#fca5a5;">Local server not running</div><p style="color:var(--text-muted); margin:6px 0 0;">Double-click <code>Start-Web-UI.bat</code> (Windows), <code>Start-Web-UI.command</code> (macOS), or run <code>./start-web-ui.sh</code>.</p></div>`;
+      const msg = String(err?.message || err);
+      const isOffline = /failed to fetch|networkerror|load failed/i.test(msg);
+      outArea.innerHTML = isOffline
+        ? `<div class="card"><div class="card-title" style="color:#fca5a5;">Local server not running</div><p style="color:var(--text-muted); margin:6px 0 0;">Double-click <code>Start-Web-UI.bat</code> (Windows), <code>Start-Web-UI.command</code> (macOS), or run <code>./start-web-ui.sh</code>.</p></div>`
+        : `<div class="card"><div class="card-title" style="color:#fca5a5;">Investigation error</div><p style="color:var(--text-muted); margin:6px 0 0;">${esc(msg)}</p></div>`;
     } finally {
       btn.disabled = false;
       btn.textContent = "Investigate";
@@ -426,6 +430,34 @@
           </div>
         </div>
       </div>
+
+      ${
+        m.source_file
+          ? `<div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <span class="status-pill green">File Intake</span>
+                  <strong style="margin-left:8px; font-size:14px;">${esc(m.source_file.file_name)}</strong>
+                  <span style="color:var(--text-muted); font-size:12.5px; margin-left:6px;">
+                    ${esc(m.source_file.detected_format)} · ${
+                      m.source_file.extracted_selector_count > 0
+                        ? `Extracted ${m.source_file.extracted_selector_count} lead(s) from inside file and investigated them below`
+                        : `0 target handles, emails, phones, domains, URLs, or GPS coordinates found inside file`
+                    }
+                  </span>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-dim);">SHA-256: <code>${esc((m.source_file.hashes?.sha256 || "").slice(0, 16))}…</code></span>
+              </div>
+              ${
+                m.source_file.extracted_metadata && Object.keys(m.source_file.extracted_metadata).length
+                  ? `<details style="margin-top:8px;"><summary style="cursor:pointer; font-size:12px; color:var(--text-dim);">File metadata &amp; forensic headers</summary><div class="pre-box">${esc(
+                      JSON.stringify(m.source_file.extracted_metadata, null, 2)
+                    )}</div></details>`
+                  : ""
+              }
+            </div>`
+          : ""
+      }
 
       ${
         report.surface_delta
@@ -730,9 +762,10 @@
     async function handleFileHunt(file) {
       if (!file) return;
       const outArea = document.getElementById("huntResultsArea");
+      const modeVal = document.getElementById("huntModeSelect")?.value || "passive";
       const depth = parseInt(document.getElementById("huntDepthSelect")?.value || "4", 10);
       const diffLast = Boolean(document.getElementById("huntDiffLastCheck")?.checked);
-      outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Extracting leads from <code>${esc(file.name)}</code> and investigating...</div>`;
+      outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Reading <code>${esc(file.name)}</code> and investigating extracted leads...</div>`;
       try {
         const b64 = await fileToBase64(file);
         const r = await fetch("./api/hunt/file", {
@@ -744,13 +777,23 @@
         if (!r.ok || rep.error) throw new Error(rep.error || `HTTP ${r.status}`);
         lastHuntReport = rep;
         renderHuntReport(rep);
+        const hasActiveTargets = (rep.graph?.nodes || []).some((n) =>
+          ["domain", "url", "ip", "email", "username", "onion_url"].includes(n.type)
+        );
+        if (modeVal === "active" && hasActiveTargets && rep.meta?.case_id) {
+          await openActiveAuthorizationModal("", rep.meta.case_id);
+        }
       } catch (err) {
         outArea.innerHTML = `<div class="card"><div class="card-title" style="color:#fca5a5;">Could not analyze file</div><p style="color:var(--text-muted);">${esc(err.message)}</p></div>`;
       }
     }
 
     document.getElementById("pickHuntFileBtn")?.addEventListener("click", () => fileIn.click());
-    fileIn?.addEventListener("change", () => { if (fileIn.files?.[0]) handleFileHunt(fileIn.files[0]); });
+    fileIn?.addEventListener("change", () => {
+      const f = fileIn.files?.[0];
+      fileIn.value = "";
+      if (f) handleFileHunt(f);
+    });
     shell?.addEventListener("dragover", (e) => { e.preventDefault(); shell.classList.add("drag-over"); });
     shell?.addEventListener("dragleave", () => shell.classList.remove("drag-over"));
     shell?.addEventListener("drop", (e) => {
@@ -862,7 +905,11 @@
     });
 
     document.getElementById("pickDecodeFileBtn")?.addEventListener("click", () => fileIn.click());
-    fileIn?.addEventListener("change", () => { if (fileIn.files?.[0]) runFileDecode(fileIn.files[0]); });
+    fileIn?.addEventListener("change", () => {
+      const f = fileIn.files?.[0];
+      fileIn.value = "";
+      if (f) runFileDecode(f);
+    });
     shell?.addEventListener("dragover", (e) => { e.preventDefault(); shell.classList.add("drag-over"); });
     shell?.addEventListener("dragleave", () => shell.classList.remove("drag-over"));
     shell?.addEventListener("drop", (e) => {

@@ -542,6 +542,46 @@ def main() -> int:
     rpc_typo = process_rpc({"jsonrpc": "2.0", "id": 101, "method": "tools/call", "params": {"name": "osint_typosquat_permutations", "arguments": {"domain": "github.com", "limit": 15}}})
     assert "idn-homoglyph-punycode" in rpc_typo["result"]["content"][0]["text"]
 
+    # Regression checks: IPv6 URL bracketing in Active probes, bare phone normalization & inside-file hunting
+    from osint_hunter.active_collectors import _normalize_url_ipv6, _raw_http_request, _target_url
+    assert _normalize_url_ipv6("https://2606:4700:4403::ac40:9045/test") == "https://[2606:4700:4403::ac40:9045]/test"
+    assert _target_url("ip", "2606:4700:4403::ac40:9045") == "https://[2606:4700:4403::ac40:9045]/"
+    _hops6, _st6, _, _, _err6 = _raw_http_request("https://2606:4700:4403::ac40:9045/", max_hops=1, max_bytes=512)
+    assert isinstance(_st6, int)  # Must never raise ValueError on bare IPv6 URLs
+
+    bare_ph = extract_selectors("966559106068")
+    assert any(s["type"] == "phone" and s["value"] == "+966559106068" for s in bare_ph), f"Bare phone failed: {bare_ph}"
+
+    import zlib as _zlib
+    with tempfile.TemporaryDirectory(prefix="osint_filehunt_") as fhtmp:
+        fhd = Path(fhtmp)
+        # 1. Multi-line target file (.txt)
+        t_txt = fhd / "targets.txt"
+        t_txt.write_text("dr.abo3tab\n966559106068\nsec@horizon-demo.io\n", encoding="utf-8")
+        rep_txt = run_autonomous_hunt(str(t_txt), depth=1, cases_dir=fhd)
+        node_ids = {n["id"] for n in rep_txt["graph"]["nodes"]}
+        assert "username:dr.abo3tab" in node_ids and "phone:+966559106068" in node_ids and "email:sec@horizon-demo.io" in node_ids
+        assert not any(n["type"] == "local_file" for n in rep_txt["graph"]["nodes"])
+        assert rep_txt["meta"]["source_file"]["extracted_selector_count"] >= 3
+
+        # 2. Word .docx with body XML + .rels hyperlink
+        docx_p = fhd / "brief.docx"
+        with zipfile.ZipFile(docx_p, "w") as zf:
+            zf.writestr("word/document.xml", '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:t>Contact +971501234567 or @lead_analyst</w:t></w:p></w:body></w:document>')
+            zf.writestr("word/_rels/document.xml.rels", '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="https://portal.alpha-target.org/login"/></Relationships>')
+        docx_dec = analyze_local_file(str(docx_p))
+        docx_sels = {(s["type"], s["value"]) for s in docx_dec["content_selectors"]}
+        assert ("phone", "+971501234567") in docx_sels and ("username", "lead_analyst") in docx_sels and ("domain", "portal.alpha-target.org") in docx_sels
+        assert all("openxmlformats.org" not in v for _, v in docx_sels)
+
+        # 3. PDF with FlateDecode compressed text stream
+        pdf_stream = _zlib.compress(b"BT (Reach ops@delta-labs.io or +966509998877) Tj ET")
+        pdf_p = fhd / "intel.pdf"
+        pdf_p.write_bytes(b"%PDF-1.7\n1 0 obj\n<< /Length " + str(len(pdf_stream)).encode() + b" /Filter /FlateDecode >>\nstream\n" + pdf_stream + b"\nendstream\nendobj\n%%EOF")
+        pdf_dec = analyze_local_file(str(pdf_p))
+        pdf_sels = {(s["type"], s["value"]) for s in pdf_dec["content_selectors"]}
+        assert ("email", "ops@delta-labs.io") in pdf_sels and ("phone", "+966509998877") in pdf_sels
+
     print("SELFTEST PASS: 760-Tool Catalog + All 8 Next-Level Upgrades (Temporal, DFIR 2.0, Modern Collectors, Persona, BYOK, Watchlist/Diff, Graph Studio & Gephi/Neo4j/Obsidian) verified.")
     return 0
 

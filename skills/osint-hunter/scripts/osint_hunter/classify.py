@@ -32,6 +32,8 @@ MMSI_EXPLICIT_RE = re.compile(r"\b(?:MMSI[\s:#-]*)(\d{9})\b", re.IGNORECASE)
 ICAO_EXPLICIT_RE = re.compile(r"\b(?:ICAO(?:24)?|HEX|MODE-?S|AIRCRAFT)[\s:#-]*([0-9A-Fa-f]{6})\b", re.IGNORECASE)
 VIN_EXPLICIT_RE = re.compile(r"\bVIN[\s:#-]*([A-HJ-NPR-Z0-9]{17})\b", re.IGNORECASE)
 PHONE_INTL_RE = re.compile(r"(?<!\w)\+[1-9]\d{6,14}\b")
+PHONE_00_INTL_RE = re.compile(r"\b00([1-9]\d{6,14})\b")
+PHONE_BARE_GCC_MENA_RE = re.compile(r"\b((?:9665\d|9715\d|965[569]|974[3567]|9733|968[79]|201[0125]\d)\d{7})\b")
 PHONE_FMT_RE = re.compile(r"(?<!\w)\+[1-9][\d\s().-]{7,20}\d\b")
 DOMAIN_RE = re.compile(
     r"\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:com|org|net|io|co|ai|gov|edu|mil|int|app|dev|xyz|info|biz|me|tv|cc|sh|gg|ru|cn|de|uk|fr|nl|se|ch|jp|kr|in|br|au|ca|sa|ae|qa|kw|bh|om|il|ir|tr|ua|pl|es|it|eu|onion|cloud|tech|security|online|site|store|pro|finance|crypto|eth)\b",
@@ -84,7 +86,11 @@ NOISE_DOMAINS = {
     "instagr.am", "tiktok.com", "snapchat.com", "threads.net", "linktr.ee", "beacons.ai",
     "bio.link", "taplink.cc", "wa.me", "api.whatsapp.com", "medium.com",
     "facebook.com", "youtube.com", "google.com", "npmjs.com", "pypi.org",
-    "w3.org", "schema.org", "example.com", "localhost",
+    "w3.org", "www.w3.org", "schema.org", "example.com", "localhost",
+    "schemas.openxmlformats.org", "openxmlformats.org", "schemas.microsoft.com",
+    "purl.org", "ns.adobe.com", "adobe.com", "iptc.org", "useplus.org", "ns.useplus.org",
+    "c2pa.org", "xml.org", "oasis-open.org", "openoffice.org", "libreoffice.org",
+    "iec.ch", "color.org", "xmp.org", "pdfa.org", "npes.org", "pkware.com",
 }
 
 PROMPT_STOPWORDS = {
@@ -185,7 +191,7 @@ def _add(results: list[dict], seen: set[tuple[str, str]], sel_type: str, value: 
     )
 
 
-def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
+def extract_selectors(raw_input: str, cwd: str | None = None, *, check_local_file: bool = True) -> list[dict]:
     """Extract and rank all OSINT selectors from an arbitrary string or prompt."""
     text = (raw_input or "").strip()
     if not text:
@@ -195,14 +201,18 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
     seen: set[tuple[str, str]] = set()
 
     # 1. Check if the input (or token) points to an existing local file for forensic extraction
-    base_dir = Path(cwd) if cwd else Path.cwd()
-    candidate_path = Path(text)
-    resolved = candidate_path if candidate_path.is_absolute() else (base_dir / candidate_path)
-    if len(text) < 400 and resolved.exists() and resolved.is_file():
-        ext = resolved.suffix.lower()
-        sub = "image" if ext in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".heic"} else "document"
-        _add(results, seen, "local_file", str(resolved.resolve()), 1.0, f"Local {sub} file on disk")
-        return results
+    if check_local_file and "\n" not in text and len(text) < 400:
+        base_dir = Path(cwd) if cwd else Path.cwd()
+        candidate_path = Path(text)
+        try:
+            resolved = candidate_path if candidate_path.is_absolute() else (base_dir / candidate_path)
+            if resolved.exists() and resolved.is_file():
+                ext = resolved.suffix.lower()
+                sub = "image" if ext in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".heic"} else "document"
+                _add(results, seen, "local_file", str(resolved.resolve()), 1.0, f"Local {sub} file on disk")
+                return results
+        except OSError:
+            pass
 
     # 2. JWT tokens
     for m in JWT_RE.findall(text):
@@ -212,8 +222,11 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
     for url in URL_RE.findall(text):
         clean_url = url.rstrip(".,;:!?)")
         _add(results, seen, "url", clean_url, 0.98, "Direct URL")
-        parsed = urlparse(clean_url)
-        host = (parsed.hostname or "").lower()
+        try:
+            parsed = urlparse(clean_url)
+            host = (parsed.hostname or "").lower()
+        except ValueError:
+            host = ""
         if host.endswith(".onion"):
             _add(results, seen, "onion_url", host, 0.99, "Tor v3/v2 hidden service")
         elif host and host not in NOISE_DOMAINS:
@@ -280,11 +293,13 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
                 _add(results, seen, "ip", str(ip_obj), 0.98, "IPv4 address")
         except ValueError:
             pass
-    # Direct single-token IPv6 check
-    if ":" in text and " " not in text and not URL_RE.match(text):
+    for ip6_cand in re.findall(r"(?<![0-9a-fA-F:])(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}(?![0-9a-fA-F:])", text):
+        if MAC_RE.fullmatch(ip6_cand):
+            continue
         try:
-            ip6 = ipaddress.ip_address(text)
-            _add(results, seen, "ip", str(ip6), 0.99, "IPv6 address")
+            ip6 = ipaddress.IPv6Address(ip6_cand)
+            if not (ip6.is_loopback or ip6.is_unspecified):
+                _add(results, seen, "ip", str(ip6), 0.98, "IPv6 address")
         except ValueError:
             pass
 
@@ -327,13 +342,17 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
         if is_valid_vin(vin_cand):
             _add(results, seen, "vin", vin_cand, 0.96, "17-character Vehicle Identification Number")
 
-    # 14. Phone numbers (E.164 international format)
+    # 14. Phone numbers (E.164 international format, 00-prefixed, and unprefixed GCC/MENA mobile)
     for ph in PHONE_FMT_RE.findall(text):
         digits = "+" + re.sub(r"\D", "", ph)
         if 8 <= len(digits) <= 16:
             _add(results, seen, "phone", digits, 0.96, "E.164 international phone number")
     for ph in PHONE_INTL_RE.findall(text):
         _add(results, seen, "phone", ph, 0.97, "E.164 phone number")
+    for ph00 in PHONE_00_INTL_RE.findall(text):
+        _add(results, seen, "phone", f"+{ph00}", 0.95, "00-prefixed international phone number")
+    for ph_gcc in PHONE_BARE_GCC_MENA_RE.findall(text):
+        _add(results, seen, "phone", f"+{ph_gcc}", 0.94, "International mobile number")
 
     # 15. Domains (not part of email addresses or noise social hosts)
     text_no_emails = EMAIL_RE.sub(" ", text)
@@ -370,6 +389,8 @@ def extract_selectors(raw_input: str, cwd: str | None = None) -> list[dict]:
             owner, _ = cleaned.split("/", 1)
             _add(results, seen, "repo_code", cleaned, 0.97, "owner/repo slug")
             _add(results, seen, "username", owner, 0.88, "Repository owner handle")
+        elif re.fullmatch(r"[1-9]\d{9,14}", cleaned):
+            _add(results, seen, "phone", f"+{cleaned}", 0.90, "Unprefixed international phone number")
         elif re.fullmatch(r"[a-zA-Z0-9_.-]{2,39}", cleaned) and " " not in cleaned:
             _add(results, seen, "username", cleaned, 0.92, "Single-token username / package handle")
         elif 2 <= len(cleaned.split()) <= 5:
