@@ -582,6 +582,96 @@ def main() -> int:
         pdf_sels = {(s["type"], s["value"]) for s in pdf_dec["content_selectors"]}
         assert ("email", "ops@delta-labs.io") in pdf_sels and ("phone", "+966509998877") in pdf_sels
 
+    # Deep Open-Web Search, Social/Bio-Link Parsers, Webpage Carver, Phone Variants & Launchpad Verification
+    from osint_hunter.cli_runner import get_local_cli_status
+    from osint_hunter.social_deep import (
+        parse_instagram_meta_html,
+        parse_linktree_html,
+        parse_snapchat_html,
+        parse_telegram_html,
+        parse_tiktok_html,
+    )
+    from osint_hunter.web_search_intel import (
+        carve_webpage_intelligence,
+        classify_social_profile_url,
+        generate_phone_search_variants,
+        parse_duckduckgo_html,
+        parse_rss_search_xml,
+        parse_yahoo_search_html,
+    )
+
+    assert len(get_local_cli_status()) >= 8
+    ph_vars = generate_phone_search_variants("+966559106068")
+    assert "0559106068" in ph_vars["local_formats"] and ph_vars["whatsapp_direct_url"] == "https://wa.me/966559106068"
+
+    soc_ig = classify_social_profile_url("https://www.instagram.com/dr.abo3tab/?hl=en", title="Dr. Abo 3tab")
+    assert soc_ig and soc_ig["platform"] == "Instagram" and soc_ig["handle"] == "dr.abo3tab"
+    soc_wa = classify_social_profile_url("https://wa.me/966559106068")
+    assert soc_wa and soc_wa["pivot_type"] == "phone" and soc_wa["pivot_value"] == "+966559106068"
+    assert classify_social_profile_url("https://www.instagram.com/p/C12345/") is None  # Must ignore post URLs
+
+    ddg_sample = (
+        '<div class="result results_links"><div class="links_main">'
+        '<a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.tiktok.com%2F%40dr.abo3tab">Dr Abo 3tab (@dr.abo3tab) | TikTok</a>'
+        '<a class="result__snippet">Bookings: +966559106068 · info@abo3tab-clinic.sa</a></div></div>'
+    )
+    ddg_rows = parse_duckduckgo_html(ddg_sample)
+    assert len(ddg_rows) == 1 and ddg_rows[0]["url"] == "https://www.tiktok.com/@dr.abo3tab"
+
+    yh_sample = (
+        '<li><div class="dd algo"><div class="compTitle"><a href="https://r.search.yahoo.com/_ylt=A/RU=https%3A%2F%2Flinktr.ee%2Fdr.abo3tab/RK=2/RS=x">Dr Abo3tab Linktree</a></div>'
+        '<div class="compText"><p>Official links and clinic booking.</p></div></div></li>'
+    )
+    yh_rows = parse_yahoo_search_html(yh_sample)
+    assert len(yh_rows) == 1 and yh_rows[0]["url"] == "https://linktr.ee/dr.abo3tab"
+
+    rss_rows = parse_rss_search_xml(
+        '<rss><channel><item><title>Clinic Feature</title><link>https://news.example-clinic.sa/post</link><description>Contact +966559106068</description></item></channel></rss>',
+        "Bing",
+    )
+    assert len(rss_rows) == 1 and rss_rows[0]["engine"] == "Bing"
+
+    lt_parsed = parse_linktree_html(
+        '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"account":{"username":"dr.abo3tab","pageTitle":"Dr. Abo 3tab Clinic","description":"Riyadh & Khobar","links":[{"title":"WhatsApp","url":"https://wa.me/966559106068"}],"socialLinks":[{"type":"INSTAGRAM","url":"https://instagram.com/dr.abo3tab"}]}}}}</script>',
+        "dr.abo3tab",
+    )
+    assert lt_parsed and lt_parsed["display_name"] == "Dr. Abo 3tab Clinic" and len(lt_parsed["external_links"]) == 2
+
+    tg_parsed = parse_telegram_html(
+        '<div class="tgme_page_title"><span>Dr. Abo 3tab</span></div><div class="tgme_page_extra">14 200 subscribers</div><div class="tgme_page_description">Clinic site: <a href="https://abo3tab-clinic.sa">abo3tab-clinic.sa</a></div>',
+        "dr_abo3tab",
+        '<div class="tgme_widget_message_text">Call +966559106068 for appointments</div>',
+    )
+    assert tg_parsed and tg_parsed["display_name"] == "Dr. Abo 3tab" and len(tg_parsed["recent_channel_posts"]) == 1
+
+    sc_parsed = parse_snapchat_html(
+        '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"userProfile":{"publicProfileInfo":{"username":"dr.abo3tab","title":"Dr. Abo 3tab","bio":"Consultant","websiteUrl":"https://abo3tab-clinic.sa","subscriberCount":"45000"}}}}}</script>',
+        "dr.abo3tab",
+    )
+    assert sc_parsed and sc_parsed["display_name"] == "Dr. Abo 3tab" and sc_parsed["subscribers"] == "45000"
+
+    tt_parsed = parse_tiktok_html(
+        '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">{"__DEFAULT_SCOPE__":{"webapp.user-detail":{"userInfo":{"user":{"uniqueId":"dr.abo3tab","nickname":"Dr Abo 3tab","signature":"Khobar Clinic","region":"SA","bioLink":{"link":"https://abo3tab-clinic.sa"}},"stats":{"followerCount":89000,"heartCount":1200000,"videoCount":140}}}}}</script>',
+        "dr.abo3tab",
+    )
+    assert tt_parsed and tt_parsed["followers"] == 89000 and tt_parsed["region"] == "SA"
+
+    ig_parsed = parse_instagram_meta_html(
+        '<meta property="og:title" content="Dr. Abo 3tab (@dr.abo3tab) • Instagram photos and videos"/><meta property="og:description" content="52K Followers, 120 Following, 310 Posts"/>',
+        "dr.abo3tab",
+    )
+    assert ig_parsed and ig_parsed["display_name"] == "Dr. Abo 3tab"
+
+    carved_page = carve_webpage_intelligence(
+        '<html><head><title>Horizon Medical</title><script type="application/ld+json">{"@type":"MedicalClinic","name":"Horizon Medical Center","telephone":"+966559106068","geo":{"latitude":26.2794,"longitude":50.2083},"sameAs":["https://www.instagram.com/horizon_med"]}</script></head>'
+        '<body><a href="mailto:care@horizon-med.sa">Email</a><a href="https://wa.me/966559106068">WA</a><a href="/contact-us">Contact</a><script>gtag("config","G-ABCD1234EF")</script></body></html>',
+        base_url="https://horizon-med.sa/",
+    )
+    assert "care@horizon-med.sa" in carved_page["emails"] and "+966559106068" in carved_page["phones"]
+    assert any(s["platform"] == "Instagram" for s in carved_page["social_profiles"])
+    assert "G-ABCD1234EF" in carved_page["tracking_ids"]["ga4_ids"]
+    assert "https://horizon-med.sa/contact-us" in carved_page["contact_subpages"]
+
     print("SELFTEST PASS: 760-Tool Catalog + All 8 Next-Level Upgrades (Temporal, DFIR 2.0, Modern Collectors, Persona, BYOK, Watchlist/Diff, Graph Studio & Gephi/Neo4j/Obsidian) verified.")
     return 0
 

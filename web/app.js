@@ -332,6 +332,159 @@
     }
   }
 
+  function renderCollectorHighlights(c) {
+    const d = c.data;
+    if (!d || typeof d !== "object") return "";
+    const parts = [];
+
+    // 1. Rich platform profiles (username_platform_sweep)
+    if (Array.isArray(d.hits) && d.hits.length) {
+      parts.push(
+        `<div style="display:grid; gap:6px; margin-top:8px;">` +
+          d.hits
+            .slice(0, 14)
+            .map((h) => {
+              const metaBits = [h.display_name, h.followers ? `${h.followers} followers/subs` : "", h.location].filter(Boolean).join(" · ");
+              const extLinks = Array.isArray(h.external_links)
+                ? h.external_links
+                    .slice(0, 6)
+                    .map((lk) => {
+                      const u = typeof lk === "string" ? lk : lk?.url;
+                      const lbl = typeof lk === "object" && lk?.title ? lk.title : u;
+                      return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" style="font-size:11.5px;">${esc(String(lbl).slice(0, 38))} ↗</a>` : "";
+                    })
+                    .filter(Boolean)
+                    .join(" · ")
+                : "";
+              return `<div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:7px; padding:7px 10px; font-size:12.5px;">
+                <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                  <div><a href="${esc(h.probe_url)}" target="_blank" rel="noopener"><strong>${esc(h.site)}</strong> ↗</a>${metaBits ? ` <span style="color:var(--text-muted);">— ${esc(metaBits)}</span>` : ""}</div>
+                  <span style="color:var(--text-dim); font-size:11.5px;">${esc(h.category || "")}</span>
+                </div>
+                ${h.bio ? `<div style="color:var(--text-muted); margin-top:3px;">${esc(String(h.bio).slice(0, 220))}</div>` : ""}
+                ${extLinks ? `<div style="margin-top:4px;">Links: ${extLinks}</div>` : ""}
+              </div>`;
+            })
+            .join("") +
+          `</div>`
+      );
+    }
+
+    // 2. Discovered social profiles from web/site carving
+    if (Array.isArray(d.social_profiles) && d.social_profiles.length) {
+      parts.push(
+        `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">` +
+          d.social_profiles
+            .slice(0, 14)
+            .map(
+              (s) =>
+                `<a class="btn" style="padding:4px 9px; font-size:12px;" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.platform)}: <code>${esc(
+                  s.handle
+                )}</code> ↗</a>`
+            )
+            .join("") +
+          `</div>`
+      );
+    }
+
+    // 3. Web & News search results
+    if (Array.isArray(d.web_results) && d.web_results.length) {
+      parts.push(
+        `<div style="display:grid; gap:6px; margin-top:8px;">` +
+          d.web_results
+            .slice(0, 8)
+            .map(
+              (r) =>
+                `<div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:7px; padding:7px 10px; font-size:12.5px;">
+                  <a href="${esc(r.url)}" target="_blank" rel="noopener"><strong>${esc(r.title || r.url)}</strong> ↗</a>
+                  <span style="color:var(--text-dim); font-size:11px; margin-left:6px;">${esc(r.engine || "")}</span>
+                  ${r.snippet ? `<div style="color:var(--text-muted); margin-top:2px;">${esc(r.snippet)}</div>` : ""}
+                </div>`
+            )
+            .join("") +
+          `</div>`
+      );
+    }
+
+    // 4. Data breaches & infostealers
+    if (Array.isArray(d.breaches) && d.breaches.length) {
+      parts.push(
+        `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">` +
+          d.breaches
+            .slice(0, 12)
+            .map(
+              (b) =>
+                `<span class="status-pill red">${esc(b.breach || "Breach")}${b.date ? ` (${esc(b.date)})` : ""}${
+                  b.exposed_data ? ` · ${esc(String(b.exposed_data).slice(0, 45))}` : ""
+                }</span>`
+            )
+            .join("") +
+          `</div>`
+      );
+    }
+
+    // 5. Phone variants & WhatsApp link
+    if (d.whatsapp_direct_url && Array.isArray(d.all_variants)) {
+      parts.push(
+        `<div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; font-size:12.5px;">
+          <a class="btn" style="padding:4px 10px; font-size:12px;" href="${esc(d.whatsapp_direct_url)}" target="_blank" rel="noopener">Open in WhatsApp ↗</a>
+          <span style="color:var(--text-muted);">Formats: <code>${esc(d.all_variants.join(" · "))}</code></span>
+        </div>`
+      );
+    }
+
+    // 6. Subdomains, emails, phones, open ports, places & academic records
+    if (Array.isArray(d.subdomains) && d.subdomains.length) {
+      parts.push(
+        `<div style="margin-top:6px; font-size:12px; color:var(--text-muted);">Subdomains (${d.subdomains.length}): <code>${esc(
+          d.subdomains.slice(0, 14).join(", ")
+        )}</code>${d.subdomains.length > 14 ? "…" : ""}</div>`
+      );
+    }
+    const emList = d.carved_commit_emails || d.emails || d.extracted_emails || d.corporate_emails;
+    if (Array.isArray(emList) && emList.length) {
+      parts.push(`<div style="margin-top:5px; font-size:12px; color:var(--text-muted);">Emails: <code>${esc(emList.slice(0, 8).join(", "))}</code></div>`);
+    }
+    const phList = d.phones || d.extracted_phones;
+    if (Array.isArray(phList) && phList.length) {
+      parts.push(`<div style="margin-top:5px; font-size:12px; color:var(--text-muted);">Phones: <code>${esc(phList.slice(0, 8).join(", "))}</code></div>`);
+    }
+    if (Array.isArray(d.places) && d.places.length) {
+      parts.push(
+        `<div style="margin-top:6px; font-size:12.5px; color:var(--text-muted);">` +
+          d.places
+            .slice(0, 4)
+            .map((p) => `<div>📍 <strong>${esc(p.name || "Location")}</strong> — ${esc(p.address || "")}${p.phone ? ` · <code>${esc(p.phone)}</code>` : ""}</div>`)
+            .join("") +
+          `</div>`
+      );
+    }
+    if (Array.isArray(d.records) && d.records.length) {
+      parts.push(
+        `<div style="margin-top:6px; font-size:12.5px; color:var(--text-muted);">` +
+          d.records
+            .slice(0, 4)
+            .map(
+              (r) =>
+                `<div>🎓 <strong>${esc(r.display_name || "")}</strong>${
+                  Array.isArray(r.affiliations) && r.affiliations.length ? ` — ${esc(r.affiliations.join(", "))}` : ""
+                }${r.works_count ? ` (${esc(r.works_count)} publications)` : ""}</div>`
+            )
+            .join("") +
+          `</div>`
+      );
+    }
+    if (Array.isArray(d.open_ports) && d.open_ports.length) {
+      parts.push(
+        `<div style="margin-top:6px; font-size:12px; color:var(--text-muted);">Open TCP Ports: <code>${esc(
+          d.open_ports.map((p) => `${p.port}/${p.service}${p.banner ? ` (${p.banner.slice(0, 28)})` : ""}`).join(", ")
+        )}</code></div>`
+      );
+    }
+
+    return parts.join("");
+  }
+
   function renderHuntReport(report) {
     const outArea = document.getElementById("huntResultsArea");
     const m = report.meta || {};
@@ -354,12 +507,39 @@
       .map((n) => `<option value="${esc(n.id)}">${esc(n.type)}: ${esc(n.value.slice(0, 34))}</option>`)
       .join("");
 
-    // Group findings cleanly: show positive matches prominently, collapse empty checks
-    const findingsHtml = (report.wave_results || [])
-      .map((w) => {
-        const hits = (w.collector_outputs || []).filter((c) => c.status === "ok");
-        const emptyCnt = (w.collector_outputs || []).length - hits.length;
-        return `
+    const socialProfiles = idC.social_profiles_detailed || [];
+    const webMentions = syn.web_and_news_mentions || [];
+    const exposures = syn.security_and_opsec_exposures || [];
+    const launchpad = syn.launchpad_links || [];
+    const forgedDorks = report.forged_dorks || [];
+
+    const phonesFormatted = (idC.phones || [])
+      .slice(0, 4)
+      .map((p) => {
+        if (typeof p === "string") return esc(p);
+        const sub = [p.country, p.carrier].filter(Boolean).join(" · ");
+        return `${esc(p.e164)}${sub ? ` <span style="color:var(--text-muted); font-family:inherit;">(${esc(sub)})</span>` : ""}`;
+      })
+      .join(", ");
+
+    // Separate waves with matches from 0-match secondary pivots so the screen stays high-signal
+    const waveItems = report.wave_results || [];
+    const matchedWaves = [];
+    const zeroMatchSecondary = [];
+    waveItems.forEach((w) => {
+      const hits = (w.collector_outputs || []).filter((c) => c.status === "ok");
+      if (hits.length > 0 || w.wave === 1) {
+        matchedWaves.push({ w, hits });
+      } else {
+        zeroMatchSecondary.push(w);
+      }
+    });
+
+    const findingsHtml =
+      matchedWaves
+        .map(({ w, hits }) => {
+          const emptyCnt = (w.collector_outputs || []).length - hits.length;
+          return `
           <div class="card">
             <div class="card-header" style="margin-bottom:${hits.length ? "8px" : "0"};">
               <div>
@@ -376,15 +556,16 @@
                       (c) => `
                   <div class="finding-row">
                     <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
-                      <div>
+                      <div style="width:100%;">
                         <strong style="font-size:13px;">${esc(prettyKey(c.module))}</strong>
                         ${c.opsec === "Active" ? `<span class="status-pill red" style="margin-left:6px;">Active</span>` : ""}
                         <div style="color:var(--text-muted); font-size:13px; margin-top:2px;">${esc(c.summary)}</div>
+                        ${renderCollectorHighlights(c)}
                       </div>
                     </div>
                     ${
                       c.data && Object.keys(c.data).length
-                        ? `<details style="margin-top:6px;"><summary style="cursor:pointer; font-size:12px; color:var(--text-dim);">Details</summary><div class="pre-box">${esc(
+                        ? `<details style="margin-top:6px;"><summary style="cursor:pointer; font-size:11.5px; color:var(--text-dim);">Raw JSON</summary><div class="pre-box">${esc(
                             JSON.stringify(c.data, null, 2)
                           )}</div></details>`
                         : ""
@@ -392,11 +573,23 @@
                   </div>`
                     )
                     .join("")
-                : `<div style="font-size:13px; color:var(--text-dim); margin-top:6px;">No public records matched for this selector.</div>`
+                : `<div style="font-size:13px; color:var(--text-dim); margin-top:6px;">No direct API records matched — use the 1-Click Investigation Launchpad below to inspect search engines &amp; gated social apps.</div>`
             }
           </div>`;
-      })
-      .join("");
+        })
+        .join("") +
+      (zeroMatchSecondary.length
+        ? `<div class="card" style="padding:11px 16px;">
+            <details>
+              <summary style="cursor:pointer; font-size:12.5px; color:var(--text-muted);">
+                Also checked ${zeroMatchSecondary.length} secondary variant/pivot selector(s) with 0 direct public matches
+              </summary>
+              <div style="margin-top:8px; font-size:12px; color:var(--text-dim);">
+                ${zeroMatchSecondary.map((z) => `<code>${esc(z.type)}:${esc(z.value)}</code>`).join(" · ")}
+              </div>
+            </details>
+          </div>`
+        : "");
 
     outArea.innerHTML = `
       <!-- Clean Header Bar -->
@@ -478,7 +671,7 @@
             <div class="kv-row"><span class="kv-key">Names / Orgs</span><span class="kv-val">${esc([...(idC.person_names || []), ...(idC.organizations || [])].slice(0, 4).join(", ") || "—")}</span></div>
             <div class="kv-row"><span class="kv-key">Handles</span><span class="kv-val">${esc((idC.usernames_and_variants || []).slice(0, 6).join(", ") || "—")}</span></div>
             <div class="kv-row"><span class="kv-key">Emails</span><span class="kv-val">${esc((idC.emails || []).slice(0, 4).join(", ") || "—")}</span></div>
-            <div class="kv-row"><span class="kv-key">Phones</span><span class="kv-val">${esc((idC.phones || []).map((p) => p.e164 || p).slice(0, 3).join(", ") || "—")}</span></div>
+            <div class="kv-row"><span class="kv-key">Phones</span><span class="kv-val">${phonesFormatted || "—"}</span></div>
           </div>
         </div>
 
@@ -494,12 +687,125 @@
         <div class="card" style="margin-bottom:0;">
           <div class="card-title" style="margin-bottom:10px;">Signals &amp; Activity</div>
           <div class="kv-list">
+            <div class="kv-row"><span class="kv-key">Profiles Found</span><span class="kv-val">${esc(String(socialProfiles.length))}</span></div>
+            <div class="kv-row"><span class="kv-key">Web Mentions</span><span class="kv-val">${esc(String(webMentions.length))}</span></div>
             <div class="kv-row"><span class="kv-key">Timezone</span><span class="kv-val">${esc(tzKeys.join(", ") || (sleepWin ? `Quiet ${sleepWin}` : "—"))}</span></div>
-            <div class="kv-row"><span class="kv-key">Key Links</span><span class="kv-val">${esc(String((pconf.attribution_chains || []).length || (syn.cross_entity_attribution_bridges || []).length || 0))}</span></div>
-            <div class="kv-row"><span class="kv-key">Security Notes</span><span class="kv-val">${esc((syn.security_and_opsec_exposures || [])[0] || "None flagged")}</span></div>
+            <div class="kv-row"><span class="kv-key">Alerts</span><span class="kv-val">${esc(exposures[0] || "None flagged")}</span></div>
           </div>
         </div>
       </div>
+
+      ${
+        exposures.length > 0
+          ? `<div class="card" style="border-color:rgba(239,68,68,0.35);">
+              <div class="card-title" style="color:#fca5a5; margin-bottom:8px;">Exposure &amp; Breach Alerts (${exposures.length})</div>
+              <div style="display:grid; gap:5px; font-size:13px; color:var(--text);">
+                ${exposures.slice(0, 10).map((ex) => `<div>⚠️ ${esc(ex)}</div>`).join("")}
+              </div>
+            </div>`
+          : ""
+      }
+
+      ${
+        socialProfiles.length > 0
+          ? `<div class="card">
+              <div class="card-header">
+                <span class="card-title">Discovered Accounts &amp; Profiles (${socialProfiles.length})</span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:8px;">
+                ${socialProfiles
+                  .slice(0, 18)
+                  .map(
+                    (p) => `
+                  <a href="${esc(p.url)}" target="_blank" rel="noopener" style="display:block; text-decoration:none; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:9px 11px;">
+                    <div style="display:flex; justify-content:space-between; gap:6px; align-items:baseline;">
+                      <strong style="color:var(--text); font-size:13px;">${esc(p.platform)}</strong>
+                      <span style="font-size:11.5px; color:var(--accent);"><code>${esc(p.handle)}</code> ↗</span>
+                    </div>
+                    ${p.display_name ? `<div style="font-size:12.5px; color:var(--text); margin-top:2px;">${esc(p.display_name)}${p.followers ? ` · <span style="color:var(--text-muted);">${esc(String(p.followers))}</span>` : ""}</div>` : ""}
+                    ${p.bio ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${esc(String(p.bio).slice(0, 110))}</div>` : ""}
+                  </a>`
+                  )
+                  .join("")}
+              </div>
+            </div>`
+          : ""
+      }
+
+      ${
+        webMentions.length > 0
+          ? `<div class="card">
+              <div class="card-header">
+                <span class="card-title">Open-Web &amp; News Mentions (${webMentions.length})</span>
+              </div>
+              <div style="display:grid; gap:7px;">
+                ${webMentions
+                  .slice(0, 10)
+                  .map(
+                    (w) => `
+                  <div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:8px 11px; font-size:12.5px;">
+                    <a href="${esc(w.url)}" target="_blank" rel="noopener"><strong>${esc(w.title || w.url)}</strong> ↗</a>
+                    <span style="color:var(--text-dim); font-size:11px; margin-left:6px;">${esc(w.engine || "")}</span>
+                    ${w.snippet ? `<div style="color:var(--text-muted); margin-top:3px;">${esc(w.snippet)}</div>` : ""}
+                  </div>`
+                  )
+                  .join("")}
+              </div>
+            </div>`
+          : ""
+      }
+
+      ${
+        launchpad.length > 0 || forgedDorks.length > 0
+          ? `<div class="card">
+              <div class="card-header" style="margin-bottom:8px;">
+                <div>
+                  <span class="card-title">1-Click Deep Investigation Launchpad</span>
+                  <span style="color:var(--text-dim); font-size:12px; margin-left:8px;">Preloaded with your target's phones, handles, emails &amp; domains</span>
+                </div>
+              </div>
+              ${
+                launchpad.length
+                  ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+                      ${launchpad
+                        .map(
+                          (lk) =>
+                            `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(lk.url)}" target="_blank" rel="noopener">${esc(lk.label)} ↗</a>`
+                        )
+                        .join("")}
+                    </div>`
+                  : ""
+              }
+              ${
+                forgedDorks.length
+                  ? `<details style="margin-top:10px;">
+                      <summary style="cursor:pointer; font-size:12.5px; color:var(--text-muted);">Targeted Search Engine Dorks (${forgedDorks.length})</summary>
+                      <div style="display:grid; gap:6px; margin-top:8px;">
+                        ${forgedDorks
+                          .slice(0, 16)
+                          .map((dk) => {
+                            const gUrl = `https://www.google.com/search?q=${encodeURIComponent(dk.query)}`;
+                            const ddgUrl = `https://duckduckgo.com/?q=${encodeURIComponent(dk.query)}`;
+                            return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; background:var(--bg-elev); border:1px solid var(--border); border-radius:7px; padding:6px 10px; font-size:12px;">
+                              <div style="min-width:0; flex:1;">
+                                <strong>${esc(dk.title)}</strong>
+                                <div style="color:var(--text-muted); font-family:monospace; font-size:11.5px; margin-top:2px; word-break:break-all;">${esc(dk.query)}</div>
+                              </div>
+                              <div style="display:flex; gap:5px; flex-shrink:0;">
+                                <a class="btn" style="padding:3px 8px; font-size:11.5px;" href="${esc(gUrl)}" target="_blank" rel="noopener">Google ↗</a>
+                                <a class="btn" style="padding:3px 8px; font-size:11.5px;" href="${esc(ddgUrl)}" target="_blank" rel="noopener">DDG ↗</a>
+                                <button class="btn copy-dork-btn" style="padding:3px 8px; font-size:11.5px;" data-dork="${esc(dk.query)}">Copy</button>
+                              </div>
+                            </div>`;
+                          })
+                          .join("")}
+                      </div>
+                    </details>`
+                  : ""
+              }
+            </div>`
+          : ""
+      }
 
       <!-- Clean Graph Card -->
       <div class="card">
@@ -557,7 +863,10 @@
       }
     `;
 
-    // Bind Export dropdown
+    // Bind Export dropdown & Copy Dork buttons
+    outArea.querySelectorAll(".copy-dork-btn").forEach((b) => {
+      b.addEventListener("click", () => copyText(b.dataset.dork || "", b));
+    });
     const expDd = document.getElementById("exportDropdown");
     document.getElementById("exportMenuBtn")?.addEventListener("click", (e) => {
       e.stopPropagation();

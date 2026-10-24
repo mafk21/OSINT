@@ -8,7 +8,77 @@ import io
 import json
 import math
 import re
+import urllib.parse
 from pathlib import Path
+
+
+def _build_launchpad_links(by_type: dict[str, list[str]], phones_decoded: list[dict]) -> list[dict[str, str]]:
+    """Build 1-click target-preloaded OSINT investigation URLs for every discovered entity class."""
+    links: list[dict[str, str]] = []
+
+    def _add(cat: str, label: str, url: str, target: str) -> None:
+        links.append({"category": cat, "label": label, "url": url, "target": target})
+
+    for ph in (by_type.get("phone") or [])[:3]:
+        digits = re.sub(r"\D", "", ph)
+        local0 = f"0{digits[3:]}" if digits.startswith(("966", "971", "962", "970", "212")) and len(digits) == 12 else ""
+        q_ph = f'"{ph}" OR "{digits}"' + (f' OR "{local0}"' if local0 else "")
+        _add("Phone", f"WhatsApp Direct ({ph})", f"https://wa.me/{digits}", ph)
+        _add("Phone", "Google Exact Phone Dork", f"https://www.google.com/search?q={urllib.parse.quote(q_ph)}", ph)
+        _add(
+            "Phone",
+            "Social Bios Phone Sweep",
+            f"https://www.google.com/search?q={urllib.parse.quote(f'({q_ph}) (site:instagram.com OR site:tiktok.com OR site:snapchat.com OR site:x.com OR site:linktr.ee OR site:taplink.cc)')}",
+            ph,
+        )
+        _add("Phone", "Truecaller Lookup", f"https://www.truecaller.com/search/global/{digits}", ph)
+        _add("Phone", "Sync.me Caller ID", f"https://sync.me/search/?number={digits}", ph)
+
+    for u in (by_type.get("username") or [])[:4]:
+        uq = urllib.parse.quote(u)
+        uq_exact = urllib.parse.quote(f'"{u}"')
+        _add("Username", f"Google Cross-Platform (@{u})", f"https://www.google.com/search?q={uq_exact}", u)
+        _add("Username", f"Instagram (@{u})", f"https://www.instagram.com/{uq}/", u)
+        _add("Username", f"TikTok (@{u})", f"https://www.tiktok.com/@{uq}", u)
+        _add("Username", f"Snapchat (@{u})", f"https://www.snapchat.com/add/{uq}", u)
+        _add("Username", f"X / Twitter (@{u})", f"https://x.com/{uq}", u)
+        _add("Username", f"Telegram (@{u})", f"https://t.me/{uq}", u)
+        _add("Username", f"WhatsMyName Web (@{u})", f"https://whatsmyname.app/?q={uq}", u)
+
+    for em in (by_type.get("email") or [])[:3]:
+        eq = urllib.parse.quote(em)
+        eq_exact = urllib.parse.quote(f'"{em}"')
+        _add("Email", f"EPIEOS Google/Holehe ({em})", f"https://epieos.com/?q={eq}&t=email", em)
+        _add("Email", f"Have I Been Pwned ({em})", f"https://haveibeenpwned.com/account/{eq}", em)
+        _add("Email", f"HudsonRock Stealer Check", f"https://www.hudsonrock.com/threat-intelligence-cybercrime-tools", em)
+        _add("Email", f"IntelX Leak Search ({em})", f"https://intelx.io/?s={eq}", em)
+        _add("Email", f"Google Exact Email Dork", f"https://www.google.com/search?q={eq_exact}", em)
+
+    for dom in (by_type.get("domain") or [])[:3]:
+        dq = urllib.parse.quote(dom)
+        doc_dork = urllib.parse.quote(f"site:{dom} (filetype:pdf OR filetype:docx OR filetype:xlsx OR filetype:csv)")
+        _add("Domain", f"URLScan.io ({dom})", f"https://urlscan.io/search/#domain%3A{dq}", dom)
+        _add("Domain", f"Shodan ({dom})", f"https://www.shodan.io/search?query=hostname%3A{dq}", dom)
+        _add("Domain", f"Censys ({dom})", f"https://search.censys.io/search?resource=hosts&q={dq}", dom)
+        _add("Domain", f"crt.sh Subdomains ({dom})", f"https://crt.sh/?q=%25.{dq}", dom)
+        _add("Domain", f"Wayback Archive ({dom})", f"https://web.archive.org/web/*/{dq}/*", dom)
+        _add("Domain", f"Exposed Docs PDF/DOCX/XLSX ({dom})", f"https://www.google.com/search?q={doc_dork}", dom)
+
+    for ip in (by_type.get("ip") or [])[:3]:
+        iq = urllib.parse.quote(ip)
+        _add("IP", f"Shodan Host ({ip})", f"https://www.shodan.io/host/{iq}", ip)
+        _add("IP", f"BGP.he.net ({ip})", f"https://bgp.he.net/ip/{iq}", ip)
+        _add("IP", f"AbuseIPDB ({ip})", f"https://www.abuseipdb.com/check/{iq}", ip)
+
+    for ent in ((by_type.get("person_name") or []) + (by_type.get("company") or []))[:3]:
+        ent_exact = urllib.parse.quote(f'"{ent}"')
+        ent_li = urllib.parse.quote(f'site:linkedin.com "{ent}"')
+        _add("Entity", f"Google Deep Profile ({ent})", f"https://www.google.com/search?q={ent_exact}", ent)
+        _add("Entity", f"LinkedIn Search ({ent})", f"https://www.google.com/search?q={ent_li}", ent)
+        _add("Entity", f"Google Maps ({ent})", f"https://www.google.com/maps/search/{urllib.parse.quote(ent)}", ent)
+        _add("Entity", f"OpenCorporates ({ent})", f"https://opencorporates.com/companies?q={urllib.parse.quote(ent)}", ent)
+
+    return links[:36]
 
 
 def synthesize_intelligence(report: dict) -> dict:
@@ -23,7 +93,13 @@ def synthesize_intelligence(report: dict) -> dict:
         if n["value"] not in by_type[n["type"]]:
             by_type[n["type"]].append(n["value"])
 
-    verified_profiles: list[dict] = []
+    verified_profiles: list[dict | str] = []
+    social_profiles_detailed: list[dict] = []
+    seen_prof_map: dict[str, dict] = {}
+    web_mentions: list[dict] = []
+    seen_web_urls: set[str] = set()
+    breach_records: list[dict] = []
+    business_and_academic: list[dict] = []
     locations: set[str] = set()
     phones_decoded: list[dict] = []
     jarm_hashes: list[str] = []
@@ -31,6 +107,31 @@ def synthesize_intelligence(report: dict) -> dict:
     analytics_ids: set[str] = set()
     security_exposures: list[str] = []
     open_ports_summary: dict[str, list[int]] = {}
+
+    def _add_social_detail(platform: str, handle: str, url: str, display_name: str | None = None, bio: str | None = None, followers: object = None) -> None:
+        if not url or not url.startswith("http"):
+            return
+        u_key = url.rstrip("/").lower()
+        if u_key in seen_prof_map:
+            existing = seen_prof_map[u_key]
+            if followers and not existing.get("followers"):
+                existing["followers"] = followers
+            if bio and not existing.get("bio"):
+                existing["bio"] = str(bio)[:220]
+            if display_name and not existing.get("display_name"):
+                existing["display_name"] = display_name
+            return
+        rec = {
+            "platform": platform,
+            "handle": handle,
+            "url": url,
+            "display_name": display_name,
+            "bio": (str(bio)[:220] if bio else None),
+            "followers": followers,
+        }
+        seen_prof_map[u_key] = rec
+        social_profiles_detailed.append(rec)
+        verified_profiles.append({"platform": platform, "entity": handle, "url": url})
 
     for item in wave_results:
         sval = item["value"]
@@ -42,22 +143,78 @@ def synthesize_intelligence(report: dict) -> dict:
             if not isinstance(data, dict):
                 continue
 
-            # Profile URLs & Locations
+            # Profile URLs & Rich Social Profiles
+            if mname == "github_user_osint" and data.get("login"):
+                _add_social_detail(
+                    "GitHub",
+                    data["login"],
+                    f"https://github.com/{data['login']}",
+                    display_name=data.get("name"),
+                    bio=data.get("bio"),
+                    followers=data.get("followers"),
+                )
             for url_k in ("profile_url", "html_url", "web_url"):
                 if isinstance(data.get(url_k), str) and data[url_k].startswith("http"):
-                    verified_profiles.append({"platform": mname, "entity": sval, "url": data[url_k]})
+                    _add_social_detail(mname, sval, data[url_k], display_name=data.get("name") or data.get("display_name"), bio=data.get("bio"))
+            if mname == "username_platform_sweep":
+                for hit in data.get("hits") or []:
+                    if isinstance(hit, dict) and hit.get("probe_url"):
+                        _add_social_detail(
+                            hit.get("site", "Platform"),
+                            sval,
+                            hit["probe_url"],
+                            display_name=hit.get("display_name"),
+                            bio=hit.get("bio"),
+                            followers=hit.get("followers"),
+                        )
+                        if hit.get("location"):
+                            locations.add(str(hit["location"]).strip())
             if mname == "active_username_live_platform_probe":
-                for hit in data.get("confirmed_profiles") or []:
+                for hit in (data.get("confirmed_accounts") or data.get("confirmed_profiles") or []):
                     if isinstance(hit, dict) and hit.get("url"):
-                        verified_profiles.append({"platform": hit.get("platform", "web"), "entity": sval, "url": hit["url"]})
+                        _add_social_detail(hit.get("platform", "web"), sval, hit["url"])
+            for sp in data.get("social_profiles") or []:
+                if isinstance(sp, dict) and sp.get("url"):
+                    _add_social_detail(
+                        sp.get("platform", "Social"),
+                        sp.get("handle", sval),
+                        sp["url"],
+                        display_name=sp.get("title"),
+                        bio=sp.get("snippet"),
+                    )
+
+            # Open-Web & News Search Results
+            for wr in data.get("web_results") or []:
+                if isinstance(wr, dict) and wr.get("url"):
+                    wu = wr["url"].rstrip("/")
+                    if wu not in seen_web_urls:
+                        seen_web_urls.add(wu)
+                        web_mentions.append(wr)
+
+            # Physical Places & Academic/Medical Records
+            for pl in data.get("places") or []:
+                if isinstance(pl, dict) and pl.get("address"):
+                    locations.add(str(pl["address"])[:120])
+                    business_and_academic.append({"kind": "Location / POI", "title": pl.get("name"), "detail": pl.get("address"), "phone": pl.get("phone"), "website": pl.get("website")})
+            if mname == "openalex_academic_and_medical_registry":
+                for rec in data.get("records") or []:
+                    if isinstance(rec, dict):
+                        business_and_academic.append(
+                            {
+                                "kind": "Academic / Medical Registry",
+                                "title": rec.get("display_name"),
+                                "detail": ", ".join(rec.get("affiliations") or []) or rec.get("type") or "",
+                                "website": rec.get("orcid") or rec.get("homepage_url"),
+                            }
+                        )
 
             for loc_k in ("location", "country", "registration_country", "flag_state"):
                 lv = data.get(loc_k)
                 if isinstance(lv, str) and lv.strip() and "Unknown" not in lv:
                     locations.add(lv.strip())
 
-            # Phone decoding
-            if mname == "phone_itu_decoder" and data.get("e164"):
+            # Phone decoding (matches both phone_itu_e164_decoder & phone_itu_decoder)
+            if mname in ("phone_itu_e164_decoder", "phone_itu_decoder") and data.get("e164"):
                 phones_decoded.append(
                     {
                         "e164": data["e164"],
@@ -65,6 +222,19 @@ def synthesize_intelligence(report: dict) -> dict:
                         "carrier": data.get("carrier_or_region_hint"),
                     }
                 )
+
+            # Breaches & Infostealer Logs
+            if mname == "xposedornot_breach_intelligence" and data.get("breach_count", 0) > 0:
+                b_names = [b.get("breach") for b in (data.get("breaches") or [])[:6] if isinstance(b, dict) and b.get("breach")]
+                security_exposures.append(f"XposedOrNot flagged {data['breach_count']} public data breach(es) for {sval}: {', '.join(b_names)}")
+                breach_records.extend((data.get("breaches") or [])[:15])
+            if mname.startswith("hudsonrock_") and (data.get("stealers") or data.get("employees") or data.get("users")):
+                security_exposures.append(f"CRITICAL: HudsonRock infostealer telemetry matched {sval} ({mod.get('summary')})")
+                for st_rec in (data.get("stealers") or [])[:8]:
+                    if isinstance(st_rec, dict):
+                        breach_records.append({"breach": "Infostealer Malware Log", "domain": sval, "date": st_rec.get("date_compromised"), "exposed_data": st_rec.get("operating_system")})
+            if mname == "emailrep_reputation_and_profiles" and data.get("profiles"):
+                security_exposures.append(f"EmailRep linked {sval} to {len(data['profiles'])} platform(s): {', '.join(data['profiles'][:8])}")
 
             # Active/Passive Technical Fingerprints & Exposures
             if data.get("tls_stack_hash"):
@@ -159,6 +329,9 @@ def synthesize_intelligence(report: dict) -> dict:
     if len(nodes) > 1 and score == 0:
         _add_pts(10, f"Multi-entity surface graph ({len(nodes)} nodes)")
 
+    if mname_check := (len(web_mentions) > 0):
+        _add_pts(min(12, 3 + len(web_mentions)), f"{len(web_mentions)} public web/news mention(s) indexed")
+
     score = min(100, score)
     if score >= 75:
         rating = "CRITICAL SURFACE EXPOSURE"
@@ -180,7 +353,9 @@ def synthesize_intelligence(report: dict) -> dict:
             "emails": by_type.get("email", []),
             "phones": phones_decoded or [{"e164": p} for p in by_type.get("phone", [])],
             "locations": sorted(locations),
-            "verified_profiles": verified_profiles[:25],
+            "verified_profiles": verified_profiles[:30],
+            "social_profiles_detailed": social_profiles_detailed[:30],
+            "business_and_academic_records": business_and_academic[:15],
         },
         "infrastructure_cluster": {
             "domains_and_subdomains": by_type.get("domain", []),
@@ -192,6 +367,9 @@ def synthesize_intelligence(report: dict) -> dict:
             "analytics_and_ad_ids": sorted(analytics_ids),
             "crypto_wallets": by_type.get("crypto_address", []),
         },
+        "web_and_news_mentions": web_mentions[:25],
+        "breach_records": breach_records[:20],
+        "launchpad_links": _build_launchpad_links(by_type, phones_decoded),
         "security_and_opsec_exposures": security_exposures,
         "cross_entity_attribution_bridges": attribution_bridges[:25],
     }
