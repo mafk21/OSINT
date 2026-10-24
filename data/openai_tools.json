@@ -16,6 +16,11 @@
             "enum": [1, 2, 3, 4, 5, 6],
             "default": 4,
             "description": "Exhaustive multi-stage surface expansion depth until 0 new leads remain (default: 4)."
+          },
+          "diff_last": {
+            "type": "boolean",
+            "default": false,
+            "description": "Compare against the latest historical case for this target and compute surface drift."
           }
         },
         "required": ["target"]
@@ -101,14 +106,52 @@
   {
     "type": "function",
     "function": {
+      "name": "osint_extract_selectors",
+      "description": "Extract, normalize, and checksum-validate all 24 OSINT selector types from arbitrary text.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Unstructured text, paste, email, or prompt."
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_run_collector",
+      "description": "Run passive live and offline collectors for one specific typed selector.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "selector_type": {
+            "type": "string",
+            "description": "Selector type (username, email, domain, ip, asn, crypto_address, phone, vin, aircraft_hex, vessel_imo, mac_bssid, coordinates, file_hash, jwt_token, local_file, repo_code, company, person_name)."
+          },
+          "value": {
+            "type": "string",
+            "description": "Selector value."
+          }
+        },
+        "required": ["selector_type", "value"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "osint_forensic_decode",
-      "description": "ZERO-NETWORK FORENSIC & CHRONOLOCATION DECODER. Decodes TikTok video/post IDs & URLs (upload UTC), Discord/X Snowflakes, UUIDv1 (MAC + 100ns time), UUIDv6/v7, ULIDs, MongoDB ObjectIds, ISO 13616 IBANs (SAMA), E.164 phones (US/UK/GCC/MENA), VINs, ICAO24, IMO/MMSI, MAC/BSSIDs, JWTs, and local files.",
+      "description": "ZERO-NETWORK FORENSIC & DFIR DECODER. Decodes TikTok video/post IDs & URLs (upload UTC), Google Search `ei=` URLs, Discord/X Snowflakes, UUIDv1 (MAC + 100ns time), UUIDv6/v7, ULIDs, MongoDB ObjectIds, OpenSSH/PEM keys, ISO 13616 IBANs (SAMA), E.164 phones, VINs, ICAO24, IMO/MMSI, MAC/BSSIDs, JWTs, and local `.eml`, `.pcap`/`.pcapng`, `.har`, `.mp4`/`.mov`, PNG/WebP/C2PA/ComfyUI, JPEG EXIF, DOCX, and PDF files.",
       "parameters": {
         "type": "object",
         "properties": {
           "payload": {
             "type": "string",
-            "description": "Token, ID, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local file path."
+            "description": "Token, ID, SSH key, Google ei= URL, IBAN, phone, VIN, MAC, TikTok/Snowflake URL, UUID/ULID/ObjectId, or local DFIR file path."
           }
         },
         "required": ["payload"]
@@ -127,28 +170,6 @@
           "case_b": { "type": "string" }
         },
         "required": ["case_a", "case_b"]
-      }
-    }
-  },
-  {
-    "type": "function",
-    "function": {
-      "name": "osint_query_arsenal",
-      "description": "Search the 760-tool OSINT Monster Database (559 Passive + 201 Active/Hybrid) by input selector, discipline, keyword, or passive/free filters.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "input_selector": {
-            "type": "string"
-          },
-          "query": {
-            "type": "string"
-          },
-          "passive_only": {
-            "type": "boolean",
-            "default": true
-          }
-        }
       }
     }
   },
@@ -185,19 +206,46 @@
   {
     "type": "function",
     "function": {
+      "name": "osint_query_arsenal",
+      "description": "Search the 760-tool OSINT Monster Database (559 Passive + 201 Active/Hybrid) by input selector, discipline, keyword, or passive/free filters.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_selector": { "type": "string" },
+          "query": { "type": "string" },
+          "category": { "type": "string" },
+          "passive_only": { "type": "boolean", "default": true },
+          "free_only": { "type": "boolean", "default": false },
+          "limit": { "type": "integer", "default": 15 }
+        }
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
       "name": "osint_forge_dorks",
       "description": "Generate target-substituted Google, Shodan, Censys, FOFA, ZoomEye, URLScan, and GitHub dorks (105 templates).",
       "parameters": {
         "type": "object",
         "properties": {
-          "target": {
-            "type": "string"
-          },
-          "engine": {
-            "type": "string"
-          }
+          "target": { "type": "string" },
+          "engine": { "type": "string" }
         },
         "required": ["target"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "osint_get_playbook",
+      "description": "Retrieve one or all of the 20 multi-phase OSINT investigation workflows.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workflow_id": { "type": "string", "description": "Optional workflow ID; omit to list all 20 playbooks." }
+        }
       }
     }
   }

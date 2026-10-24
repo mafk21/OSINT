@@ -2,7 +2,7 @@
 
 # 🗺️ End-to-End OSINT Investigation Playbooks
 
-12 battle-tested operational workflows chaining multiple disciplines from initial seed selector to verified intelligence dossier. Query any playbook from the terminal via `python3 scripts/osint.py workflows <id>`.
+20 battle-tested operational workflows chaining multiple disciplines from initial seed selector to verified intelligence dossier. Query any playbook from the terminal via `python3 scripts/osint.py workflows <id>`.
 
 ## Playbook Index
 

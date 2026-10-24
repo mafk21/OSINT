@@ -8,7 +8,7 @@
 
 ![Verified Tools](https://img.shields.io/badge/Verified_Tools-760-00e5ff?style=flat-square) ![Passive Safe](https://img.shields.io/badge/Passive_Safe-559-00e676?style=flat-square) ![Active & Hybrid](https://img.shields.io/badge/Active_%26_Hybrid-201-ff5252?style=flat-square) ![Free & OSS](https://img.shields.io/badge/Free_%26_OSS-630-10b981?style=flat-square) ![No-Auth Ready](https://img.shields.io/badge/Keyless_No--Auth-646-38bdf8?style=flat-square) ![GitHub Repos](https://img.shields.io/badge/GitHub_Backed-475-ffab00?style=flat-square) ![Search Dorks](https://img.shields.io/badge/Search_Dorks-105-a855f7?style=flat-square) ![Playbooks](https://img.shields.io/badge/Playbooks-20-ec4899?style=flat-square)
 
-[**⚡ Quick Start**](#quick-start) · [**🤖 Agent Skills & MCP**](#agent-skills-mcp) · [**🧬 Collectors & Forensic Decoders**](#collectors-decoders) · [**🖥️ Web Command Center**](#web-command-center) · [**📚 20 Disciplines**](#disciplines) · [**🧭 24-Selector Pivot Matrix**](#pivot-matrix)
+[**⚡ Quick Start**](#quick-start) · [**🤖 Agent Skills & MCP**](#agent-skills-mcp) · [**🧬 Collectors & Forensic Decoders**](#collectors-decoders) · [**🖥️ Local Web Workspace**](#web-command-center) · [**📚 20 Disciplines**](#disciplines) · [**🧭 24-Selector Pivot Matrix**](#pivot-matrix)
 
 [**📜 Three-Law Agent Protocol (`AGENTS.md`)**](./AGENTS.md) · [**🧩 Skills Setup**](./docs/SKILLS_SETUP.md) · [**🗂️ Master 760-Tool Index**](./docs/FULL_INDEX.md) · [**🗺️ 20 Playbooks**](./docs/WORKFLOWS.md) · [**🎯 105 Dorks**](./docs/DORKS_ARSENAL.md) · [**🪦 25 Graveyard Alerts**](./docs/GRAVEYARD_2026.md) · [**🛡️ OPSEC Guide**](./docs/OPSEC_TRADECRAFT.md)
 
@@ -26,17 +26,17 @@ Most OSINT repositories are unmaintained Markdown walls full of dead URLs and hi
 | **🧬 Zero-Network DFIR & Chronolocation** | [`dfir_forensics.py`](./osint_hunter/dfir_forensics.py) · [`offline_intel.py`](./osint_hunter/offline_intel.py) | **100% offline (`0` packets)**: `.eml` hop/SPF/DMARC forensics, `.pcap`/`.pcapng` DNS/SNI/HTTP carver, `.har`, `.mp4`/`.mov` `mvhd`+GPS, **PNG/WebP C2PA & ComfyUI/SD AI detection**, Google `ei=`, SSH/PEM, TikTok/Snowflake UTC, UUIDv1 MAC, IBAN & E.164 |
 | **🕒 Pattern-of-Life & Attribution Engine** | [`temporal.py`](./osint_hunter/temporal.py) · [`persona.py`](./osint_hunter/persona.py) | 24h UTC circadian activity & sleep-window inference, explicit UTC timezone leaks, **0–100% edge confidence & shortest attribution paths**, sockpuppet heuristics & offline **IDN Punycode typosquat** generator (`--typosquats`) |
 | **🔴 22-Probe Hard-Gated Active Recon** | [`active_collectors.py`](./osint_hunter/active_collectors.py) · [`approval.py`](./osint_hunter/approval.py) | Cryptographically gated (`ACT-XXXXXXXX` single-use tokens): DNS AXFR, SRV/M365, CNAME takeover, TLS 1.0–1.3, **62-char Salesforce JARM**, CORS/WAF, OpenAPI/GraphQL, `.git/HEAD`, JS bundle carver, S3/GCS/Azure buckets, 20-port TCP, SSH/SMTP & 16-site handle checks |
-| **📦 12-Target Forensic Case & Graph Vault** | [`exporters.py`](./osint_hunter/exporters.py) · `cases/<CASE_ID>/` | Emits `dossier.md`, `report.html`, `report.json`, `entities.csv`, **Gephi `graph.gexf`**, **`graph.graphml`**, **Neo4j `neo4j.cypher`**, **Obsidian `obsidian/` `[[WikiLink]]` vault**, **OASIS STIX 2.1**, `manifest.sha256`, `--compare-cases` & `--watchlist-run` |
-| **🖥️ Interactive Graph Studio, Skills & MCP** | [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) · [`skills/`](./skills/) | 9-tab dark-mode Analyst UI (Interactive **Pan/Zoom/Shortest-Path Graph Studio**, **Case Vault & Diff**, Forensic Decoder, 760-Tool Explorer) + **13-tool JSON-RPC 2.0 MCP Server** + portable Skills + SQLite **FTS5** |
+| **📦 11-Artifact Forensic Case & Graph Vault** | [`exporters.py`](./osint_hunter/exporters.py) · `cases/<CASE_ID>/` | Emits `dossier.md`, `report.html`, `report.json`, `entities.csv`, **Gephi `graph.gexf`**, **`graph.graphml`**, **Neo4j `neo4j.cypher`**, **Obsidian `obsidian/` `[[WikiLink]]` vault**, **OASIS STIX 2.1**, `manifest.sha256`, `--compare-cases` & `--watchlist-run` |
+| **🖥️ Local Web Workspace, Skills & MCP** | [`Start-Web-UI.*`](./start-web-ui.sh) · [`scripts/server.py`](./scripts/server.py) · [`web/`](./web/) | Clean, uncluttered **5-tab Local Browser Workspace** (`Investigate` · `Decode` · `Cases` · `Directory` · `Settings`) with 1-click desktop launchers, drag-and-drop file analysis, interactive entity graph, Watchlist & optional `.osint.env` API keys + **13-tool MCP Server** + portable Skills + SQLite **FTS5** |
 
 ```mermaid
 flowchart LR
     A["🎯 Raw Input / File / Prompt<br/>(24 Selector Types)"] --> B["🧠 Selector & Checksum Classifier<br/>(osint_hunter/classify.py)"]
-    B --> C["🟢 Stage 1..N Passive Sweep<br/>35+ Public APIs + 13 Offline Decoders<br/>(0 Packets to Target)"]
+    B --> C["🟢 Stage 1..N Passive Sweep<br/>45+ Public APIs + 18 Offline DFIR Decoders<br/>(0 Packets to Target)"]
     C --> D["🔄 Exhaustive Stage Analyzer<br/>Carves Handles, Variants, Phones,<br/>Emails, Domains, Names & Orgs"]
     D -- "New Unvisited Leads Found" --> C
-    D -- "Converged (0 New Leads)" --> E["📊 Cross-Stage Correlator<br/>Identity/Infra Clusters +<br/>0-100 Exposure Score"]
-    E --> F["📦 8-File Forensic Bundle<br/>dossier.md · report.html · CSV<br/>Mermaid · STIX 2.1 · SHA-256"]
+    D -- "Converged (0 New Leads)" --> E["📊 Cross-Stage Correlator<br/>Identity/Infra + Pattern-of-Life +<br/>Confidence & 0-100 Exposure Score"]
+    E --> F["📦 11-Artifact Case & Graph Bundle<br/>HTML · MD · CSV · GEXF · GraphML<br/>Cypher · Obsidian · STIX 2.1 · SHA-256"]
     E -. "Explicit User Approval<br/>Single-Use ACT-XXXXXXXX" .-> G["🔴 22 Live Active Probes<br/>JARM · TLS · AXFR · Buckets<br/>CORS/WAF · TCP · SSH/SMTP"]
     G --> F
 ```
@@ -48,13 +48,14 @@ flowchart LR
 
 *Runs out of the box on **Python 3.9+ standard library** — **zero `pip install` required** (optional `pip install -e .` provides `osint-hunt`, `osint-arsenal`, `osint-server`, and `osint-mcp` commands).* 
 
-### 🖥️ Option 0 — Zero-Terminal Local Desktop Web App (Double-Click Launch)
-Prefer a full visual workspace instead of the terminal? Double-click the launcher for your OS—it starts the local server on `127.0.0.1` and opens your default browser automatically (including Drag-and-Drop DFIR file analysis, Graph Studio, Watchlist, and optional API Key settings):
+### 🖥️ Option 0 — Clean Local Desktop Web Workspace (Double-Click Launch)
+Prefer a calm, simple visual workspace instead of the terminal? Double-click the launcher for your OS to start the local server on `127.0.0.1` and open the **5-tab Local Web Workspace** (`Investigate` · `Decode` · `Cases` · `Directory` · `Settings`) in your browser:
 - **Windows**: Double-click **`Start-Web-UI.bat`**
 - **macOS**: Double-click **`Start-Web-UI.command`**
 - **Linux / Any OS**: Run `./start-web-ui.sh` *(or `python3 scripts/server.py --open --auto-port`)*
+- **Inside the Browser**: Spotlight target search + drag-and-drop file hunting & offline DFIR inspection, clean 3-card overview, interactive pan/zoom relationship graph, matched findings shown first, a single **`Export ▾`** menu (`HTML`, `.md`, `.csv`, `.gexf`, `.graphml`, `.cypher`, `Obsidian .zip`, `STIX 2.1`, `.json`), case diff/watchlist, unified `760`-tool / `105`-dork / `20`-playbook directory, and optional `.osint.env` API key settings.
 
-### 1️⃣ Exhaustive Multi-Stage Passive Hunting & Case Link Analysis
+### 1️⃣ Exhaustive Multi-Stage Passive Hunting, Watchlist & Case Link Analysis
 ```bash
 # Instant Turn-1 Passive Hunt across multiple selector types (0 questions · 0 packets sent to target servers)
 python3 scripts/hunt.py "@torvalds, +966501234567, aircraft AE01D5, MMSI 613123456, VIN 5YJ3E1EA7KF317000" --depth 4
@@ -62,10 +63,11 @@ python3 scripts/hunt.py "@torvalds, +966501234567, aircraft AE01D5, MMSI 6131234
 # Feed external Stage-1 findings (bios, Linktrees, search snippets) back in to carve & hunt Stage 2..N
 python3 scripts/hunt.py --resume-case CASE-XXXX --ingest-file stage1_findings.txt
 
-# List saved cases, run Cross-Case Link Analysis, compute Surface Drift (--diff-last), or generate IDN typosquats
+# Saved cases, Cross-Case Link Analysis, Surface Drift (--diff-last), Watchlist & IDN Typosquats
 python3 scripts/hunt.py --list-cases
 python3 scripts/hunt.py --compare-cases CASE-AAAA CASE-BBBB
 python3 scripts/hunt.py "example.com" --diff-last
+python3 scripts/hunt.py --watchlist-add "example.com" && python3 scripts/hunt.py --watchlist-run
 python3 scripts/hunt.py "example.com" --typosquats
 ```
 
@@ -126,7 +128,7 @@ $skill-installer install https://github.com/mafk21/OSINT/tree/main/skills/osint-
 # 4. Zero-Node Pure-Python Installer (installs to ~/.claude, ~/.codex, ~/.cursor, ~/.agents)
 python3 scripts/install_skills.py --all
 
-# 5. Native Global MCP Server Registration (exposes all 10 OSINT MCP tools)
+# 5. Native Global MCP Server Registration (exposes all 13 OSINT MCP tools)
 claude mcp add --scope user osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py
 codex mcp add osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_server.py
 ```
@@ -139,7 +141,7 @@ Every agent entry file ([`AGENTS.md`](./AGENTS.md), [`CLAUDE.md`](./CLAUDE.md), 
 
 | Law | Mandatory Agent Behavior | Technical Enforcement |
 | :--- | :--- | :--- |
-| **`Law 1 · 🟢 Turn-1 Passive Start`** | **Start passive hunting immediately on Turn 1 with zero clarifying questions.** | Runs 35+ passive public-cache/registry collectors + 13 offline decoders. **Zero packets touch target infrastructure.** |
+| **`Law 1 · 🟢 Turn-1 Passive Start`** | **Start passive hunting immediately on Turn 1 with zero clarifying questions.** | Runs 45+ passive public-cache/registry collectors + 18 offline DFIR & chronolocation decoders. **Zero packets touch target infrastructure.** |
 | **`Law 2 · 🔄 Exhaustive Multi-Stage Loop`** | **Never stop after finding 1 clue.** Collect everything in Stage 1, analyze all findings, and hunt every newly carved lead in Stage 2..N. | [`stage_analyzer.py`](./osint_hunter/stage_analyzer.py) carves handles, handle mutations, `wa.me`/E.164 phones, emails, domains, names & orgs until `converged: true`. |
 | **`Law 3 · 🔴 Hard-Gated Active Recon`** | **ALWAYS ask explicit human permission before EVERY active run** — even if the prompt asked for "full" or "active" recon. | [`approval.py`](./osint_hunter/approval.py) enforces **single-use, target-bound, 15-min `ACT-XXXXXXXX` tokens** + append-only audit trail (`cases/active_audit.jsonl`). |
 
@@ -249,22 +251,26 @@ Every hunt creates a tamper-evident, gitignored directory under `cases/<UTC_TIME
 ---
 
 <a id="web-command-center"></a>
-## 🖥️ Interactive Web Command Center & REST API
+## 🖥️ Clean Local Web Workspace & REST API
 
-Start the zero-dependency server with `python3 scripts/server.py --port 8000` to launch both the **8-Tab Dark-Mode Analyst UI** (`http://0.0.0.0:8000`) and the **JSON/HTML REST API**:
+Double-click **`Start-Web-UI.bat`** (Windows), **`Start-Web-UI.command`** (macOS), or run **`./start-web-ui.sh`** / `python3 scripts/server.py --port 8000` to launch the **clean 5-tab Local Browser Workspace** (`Investigate` · `Decode` · `Cases` · `Directory` · `Settings`) and the **JSON/HTML/Graph REST API**:
 
 | Method & Endpoint | Description |
 | :--- | :--- |
-| `GET  /api/health` | Engine version, catalog counts (`760` tools, `105` dorks, `20` workflows), and active probe inventory |
-| `POST /api/detect` | Real-time selector extraction & checksum validation (`{"input": "..."}`) |
-| `POST /api/decode` | Zero-network forensic & chronolocation decoder (`{"payload": "..."}`) |
-| `POST /api/hunt` | Execute exhaustive multi-stage passive hunt (`{"target": "...", "depth": 4}`) returning JSON + STIX 2.1 + CSV |
+| `GET  /api/health` · `/api/doctor` | Engine version (`2026.10.5`), catalog health, local CLI binary detection & configured BYOK providers |
+| `POST /api/detect` | Real-time 24-selector extraction & checksum validation (`{"input": "..."}`) |
+| `POST /api/decode` · `/api/decode/file` | Zero-network forensic & chronolocation decoding for text/URLs or uploaded binary DFIR files |
+| `POST /api/hunt` · `/api/hunt/file` | Exhaustive multi-stage passive hunt on any target string or uploaded file (`diff_last` supported) |
 | `POST /api/cases/expand` | Ingest external bios/snippets into a saved `case_id` and recursively hunt all newly carved leads |
-| `POST /api/cases/compare` | Cross-case link analysis between `case_a` and `case_b` |
-| `GET  /api/cases` · `/api/cases/<ID>` | List recent investigations (with Exposure Scores) or fetch a full saved case bundle |
-| `GET  /api/cases/<ID>/html` | Render the standalone dark-mode executive HTML report (`report.html`) directly in browser |
-| `POST /api/hunt/active/prepare` | Generate single-use `ACT-XXXXXXXX` approval request (supports `from_case` full-surface scoping; sends `0` packets) |
-| `POST /api/hunt/active` | Execute user-authorized Active+Passive hunt (enforces `X-Human-Modal-Confirmed: 1` + valid single-use token) |
+| `POST /api/cases/compare` · `/api/cases/diff` | Cross-case shared-entity link analysis or temporal attack-surface drift between two cases |
+| `GET  /api/cases` · `/api/cases/<ID>` | List recent investigations (with Exposure Scores) or load a complete saved case bundle |
+| `GET  /api/cases/<ID>/html` · `obsidian.zip` | Printable standalone HTML report or 1-click downloadable Obsidian `[[WikiLink]]` vault `.zip` |
+| `GET  /api/cases/<ID>/{gexf,graphml,cypher}` | Direct graph exports for Gephi (`.gexf`), yEd/Cytoscape (`.graphml`), and Neo4j (`.cypher`) |
+| `POST /api/typosquats` · `/api/graph/path` | Offline IDN Punycode lookalike domain generator & confidence-weighted shortest graph path tracer |
+| `GET  /api/watchlist` · `POST /api/watchlist/*` | Add, remove, or batch-sweep recurring watchlist targets with automatic drift calculation |
+| `POST /api/settings/byok` | Save or clear optional API keys locally in gitignored `.osint.env` with live hot-reload |
+| `POST /api/hunt/active/prepare` | Generate single-use `ACT-XXXXXXXX` approval request (supports `from_case` full-surface scoping; `0` packets) |
+| `POST /api/hunt/active` | Execute user-authorized Active+Passive hunt (enforces `X-Human-Modal-Confirmed: 1` + single-use token) |
 
 ---
 
@@ -364,31 +370,34 @@ Full interactive chains in [**`docs/PIVOT_MATRIX.md`**](./docs/PIVOT_MATRIX.md) 
 
 ```text
 OSINT/
-├── osint_hunter/                                  # Zero-Dependency Python 3 Recon & Correlation Engine
+├── Start-Web-UI.bat · Start-Web-UI.command · start-web-ui.sh  # 1-Click Local Desktop Web Launchers
+├── osint_hunter/                                  # Zero-Dependency Python 3 Recon, DFIR & Graph Engine
 │   ├── classify.py                                # 24-selector regex + ISO/MOD-97/MOD-11 checksum classifier
-│   ├── offline_intel.py                           # Zero-network decoders (TikTok, Snowflake, UUID, IBAN, E.164, VIN, EXIF...)
-│   ├── collectors.py                              # 35+ passive collectors (GitHub .patch/.gpg, DoH, crt.sh, RDAP, InternetDB...)
+│   ├── offline_intel.py & dfir_forensics.py       # 18 offline decoders (.eml, .pcap, .har, .mp4, C2PA, TikTok, UUID, IBAN...)
+│   ├── collectors.py & modern_collectors.py       # 45+ passive collectors (GitHub, ATProto PLC, Mastodon, Entra M365, DoH, CT...)
+│   ├── providers.py                               # Optional BYOK connectors (Shodan, VT, urlscan, HIBP, SecurityTrails, AbuseIPDB)
 │   ├── stage_analyzer.py                          # Exhaustive multi-stage clue & handle-variant carver + noise filter
-│   ├── correlator.py                              # Cross-stage synthesis, 0-100 Exposure Score, HTML/SVG/CSV/Mermaid & case diff
-│   ├── active_collectors.py                       # 22 direct active probes (AXFR, JARM, TLS, Buckets, CORS/WAF, TCP, SSH/SMTP)
-│   ├── approval.py                                # Single-use ACT-XXXXXXXX cryptographic human permission gate & audit log
-│   └── engine.py                                  # Orchestrator, STIX 2.1 builder & 8-artifact case writer
+│   ├── temporal.py & persona.py                   # 24h circadian timezone, shortest attribution paths, confidence & IDN typosquats
+│   ├── correlator.py & exporters.py               # Cross-stage synthesis, 0-100 Score, HTML/CSV/GEXF/GraphML/Cypher/Obsidian
+│   ├── watchlist.py                               # Recurring target watchlist & --diff-last attack-surface drift engine
+│   ├── active_collectors.py & approval.py         # 22 direct active probes + single-use ACT-XXXXXXXX cryptographic gate
+│   └── engine.py                                  # Orchestrator, STIX 2.1 builder & 11-artifact tamper-evident case writer
 ├── scripts/                                       # CLI, Servers, Builder & CI Test Suite
-│   ├── hunt.py                                    # Autonomous hunter CLI (--depth, --resume-case, --decode, --compare-cases)
+│   ├── hunt.py                                    # Autonomous hunter CLI (--depth, --resume-case, --decode, --diff-last, --typosquats)
 │   ├── osint.py                                   # Arsenal CLI (search, pivot, dorks, workflows, graveyard, decode, doctor)
-│   ├── server.py                                  # Unified Web Command Center + JSON/HTML REST API server
-│   ├── mcp_server.py                              # 10-tool stdio JSON-RPC 2.0 Model Context Protocol server
+│   ├── server.py                                  # Local Web Workspace + 21-route JSON/HTML/Graph REST API server
+│   ├── mcp_server.py                              # 13-tool stdio JSON-RPC 2.0 Model Context Protocol server
 │   ├── install_skills.py                          # Zero-Node installer for Claude, Codex, Cursor & 75+ agents
 │   └── build.py / validate.py / selftest.py       # Deterministic multi-target generator, schema validator & integration tests
+├── web/                                           # Clean, minimal 5-tab Local Browser Workspace (Investigate, Decode, Cases, Directory, Settings)
 ├── skills/osint-hunter & skills/osint-arsenal     # Portable standalone Agent Skills (work from any folder without repo)
 ├── releases/*-skill.zip                           # Pre-built deterministic skill archives for Claude.ai & Claude Desktop
 ├── .claude-plugin/ · .codex-plugin/ · .agents/    # Native Claude Code & OpenAI Codex plugin marketplace manifests
 ├── AGENTS.md · CLAUDE.md · .cursorrules · .mcp.json # Three-Law autonomous agent protocols & auto-discovered MCP config
-├── data/                                          # tools.json (760), dorks (105), workflows (20), graveyard (25), osint.sqlite (FTS5)
+├── data/                                          # tools (760), dorks (105), workflows (20), graveyard (25), openai_tools (13), osint.sqlite
 ├── categories/01-*.md .. 20-*.md                  # 20 discipline field manuals with CLI quick-starts & OPSEC notes
-├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026, OPSEC
-├── web/                                           # Zero-build 8-tab Analyst Command Center SPA (index.html, app.js, styles.css)
-└── pyproject.toml                                 # Optional pip install -e . entrypoints (osint-hunt, osint-arsenal, osint-server)
+├── docs/                                          # FULL_INDEX, PIVOT_MATRIX, WORKFLOWS, DORKS_ARSENAL, GRAVEYARD_2026, SKILLS_SETUP, OPSEC
+└── pyproject.toml                                 # Optional pip install -e . entrypoints (osint-hunt, osint-arsenal, osint-server, osint-mcp)
 ```
 
 ---

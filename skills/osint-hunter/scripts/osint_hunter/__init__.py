@@ -4,4 +4,4 @@ Zero-dependency, passive-by-default OSINT execution engine designed for AI Agent
 MCP hosts, CLI operators, and automated CTI/SOC pipelines.
 """
 
-__version__ = "2026.10.1"
+__version__ = "2026.10.5"

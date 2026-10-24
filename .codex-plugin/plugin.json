@@ -1,7 +1,7 @@
 {
   "name": "osint-monster",
-  "version": "1.2.0",
-  "description": "Autonomous Multi-Stage Passive OSINT Hunter (zero questions on Turn 1) + Zero-Network Forensic Decoders + 22-Probe Mandatory User-Gated Active Recon + 760-Tool Intelligence Arsenal (201 Active/Hybrid), 105 Dorks & 20 Playbooks.",
+  "version": "1.3.0",
+  "description": "Autonomous Multi-Stage Passive OSINT Hunter (45+ collectors, zero questions on Turn 1) + Offline DFIR/Chronolocation Decoders + 22-Probe User-Gated Active Recon + Local Web Workspace + 760-Tool Arsenal, 105 Dorks & 20 Playbooks.",
   "author": {
     "name": "mafk21",
     "url": "https://github.com/mafk21/OSINT"
@@ -26,7 +26,7 @@
   "interface": {
     "displayName": "OSINT Monster Database",
     "shortDescription": "Multi-Stage Passive & 22-Probe Gated Active OSINT Hunter + 760-Tool Arsenal",
-    "longDescription": "Equip Codex with an exhaustive multi-stage Autonomous Passive OSINT Hunter (35+ passive collectors + zero-network TikTok/Snowflake/UUID/IBAN/Phone/VIN/ICAO/MAC forensic decoders, HTML/CSV/Mermaid/STIX 2.1 dossiers), a 22-module hard-gated Active Recon engine, and a 760-tool OSINT catalog (559 Passive + 201 Active/Hybrid), 105 search dorks, and 20 playbooks.",
+    "longDescription": "Equip Codex with an exhaustive multi-stage Autonomous Passive OSINT Hunter (45+ passive collectors + 18 offline DFIR & chronolocation decoders for .eml/.pcap/.har/.mp4/C2PA/TikTok/Snowflake/UUID/IBAN/Phone/VIN, HTML/CSV/Gephi/Neo4j/Obsidian/STIX 2.1 dossiers), a 22-module hard-gated Active Recon engine, and a 760-tool OSINT catalog (559 Passive + 201 Active/Hybrid), 105 search dorks, and 20 playbooks.",
     "developerName": "mafk21",
     "category": "Developer Tools",
     "capabilities": [

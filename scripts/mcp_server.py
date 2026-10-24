@@ -39,7 +39,7 @@ from osint_hunter.watchlist import compute_case_delta  # noqa: E402
 
 SERVER_INFO = {
     "name": "osint-monster-hunter",
-    "version": "2026.10.4",
+    "version": "2026.10.5",
 }
 
 MCP_TOOLS = [

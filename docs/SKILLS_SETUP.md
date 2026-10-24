@@ -10,7 +10,7 @@ You do **not** need to clone or work inside this repository to use **OSINT Monst
 
 | Skill | Folder & Zip | What It Gives Your Agent |
 | :--- | :--- | :--- |
-| **`osint-hunter`** | [`skills/osint-hunter/`](../skills/osint-hunter/) · [`osint-hunter-skill.zip`](../releases/osint-hunter-skill.zip) | **Autonomous Recon Engine**: Runs 35+ passive collectors & offline decoders immediately on Turn 1 (zero questions), writes STIX 2.1 + SHA-256 dossiers, and enforces a mandatory human permission gate (`ACT-XXXXXXXX`) before Active OSINT probing. |
+| **`osint-hunter`** | [`skills/osint-hunter/`](../skills/osint-hunter/) · [`osint-hunter-skill.zip`](../releases/osint-hunter-skill.zip) | **Autonomous Recon & DFIR Engine**: Runs 45+ passive collectors & 18 offline DFIR/chronolocation decoders immediately on Turn 1 (zero questions), writes HTML/CSV/Gephi/Neo4j/Obsidian/STIX 2.1 + SHA-256 dossiers, and enforces a mandatory human permission gate (`ACT-XXXXXXXX`) before Active OSINT probing. |
 | **`osint-arsenal`** | [`skills/osint-arsenal/`](../skills/osint-arsenal/) · [`osint-arsenal-skill.zip`](../releases/osint-arsenal-skill.zip) | **760-Tool Tradecraft & Dork Forge**: Searches all 760 verified tools, maps 24 `Input → Output` selector pivots, runs 20 playbooks, forges 105 Google/Shodan/Censys/FOFA/GitHub dorks, and flags 2026 hijacked/dead tools. |
 
 ---
@@ -102,9 +102,9 @@ python3 scripts/install_skills.py --uninstall --all
 
 ---
 
-## 6️⃣ Alternative: Global MCP Server Registration
+## 6️⃣ Alternative: Global MCP Server Registration (13 Tools)
 
-If you also want native Model Context Protocol tools (`osint_passive_hunt`, `osint_prepare_active_hunt`, `osint_execute_active_hunt`, `osint_search_arsenal`, `osint_forge_dorks`) exposed directly to your agent:
+If you also want all 13 native Model Context Protocol tools (`osint_auto_hunt`, `osint_ingest_and_expand_case`, `osint_forensic_decode`, `osint_compare_cases`, `osint_diff_cases`, `osint_typosquat_permutations`, `osint_prepare_active_hunt`, `osint_execute_active_hunt`, `osint_query_arsenal`, `osint_forge_dorks`, etc.) exposed directly to your agent:
 
 ```bash
 # Claude Code global MCP registration
@@ -116,7 +116,8 @@ codex mcp add osint-monster -- python3 /absolute/path/to/OSINT/scripts/mcp_serve
 
 ---
 
-## 🛡️ How the Two-Law Safety Doctrine Works Inside Skills
+## 🛡️ How the Three-Law Safety Doctrine Works Inside Skills
 
-- **`🟢 Passive Mode` (Default — Zero Questions)**: Give Claude or Codex any target (`"Investigate @torvalds and +966501234567"`). The `osint-hunter` skill immediately runs passive collection on Turn 1 without asking clarifying questions and writes a forensic bundle into `./cases/<case_id>/`.
-- **`🔴 Active Mode` (Hard-Gated — Always Asks First)**: Even if you say `"Run active recon on example.com"`, the skill **cannot** send direct packets until it first runs `--prepare-active`, shows you the exact hosts + OPSEC exposure, waits for your explicit approval, and consumes a single-use `ACT-XXXXXXXX` token.
+- **`Law 1 · 🟢 Passive Mode` (Default — Zero Questions)**: Give Claude or Codex any target or file (`"Investigate @torvalds and +966501234567"`). The `osint-hunter` skill immediately runs passive collection on Turn 1 without asking clarifying questions and writes an 11-artifact forensic bundle into `./cases/<case_id>/`.
+- **`Law 2 · 🔄 Exhaustive Multi-Stage Loop` (Never Stop After One Hit)**: Collects all findings in Stage 1, feeds search/bio leads back via `--resume-case <CASE_ID> --ingest-file`, and hunts every newly carved clue across Stage 2..N until `converged: true`.
+- **`Law 3 · 🔴 Active Mode` (Hard-Gated — Always Asks First)**: Even if you say `"Run active recon on example.com"`, the skill **cannot** send direct packets until it first runs `--prepare-active`, shows you the exact hosts + OPSEC exposure, waits for your explicit approval, and consumes a single-use `ACT-XXXXXXXX` token.

@@ -1,6 +1,6 @@
 ---
 name: osint-hunter
-description: Autonomous multi-stage OSINT recon and investigation engine. Use whenever the user provides a username, handle, email, phone number, domain, IP, ASN, URL, crypto wallet, 17-char VIN, aircraft ICAO hex, vessel IMO or MMSI, Wi-Fi BSSID, file hash, JWT, or local file to investigate. Executes 35+ passive collectors immediately on Turn 1 with zero clarifying questions, analyzes every stage to recursively hunt all newly discovered clues until surface convergence, and enforces a mandatory human permission gate before running 22 Active OSINT probes.
+description: Autonomous multi-stage OSINT recon, DFIR forensics, and investigation engine. Use whenever the user provides a username, handle, email, phone number, domain, IP, ASN, URL, crypto wallet, 17-char VIN, aircraft ICAO hex, vessel IMO or MMSI, Wi-Fi BSSID, file hash, JWT, or local file (.eml, .pcap, .har, .mp4, .png, .jpg, .pdf, .docx) to investigate. Executes 45+ passive collectors and 18 offline decoders immediately on Turn 1 with zero clarifying questions, analyzes every stage to recursively hunt all newly discovered clues until surface convergence, and enforces a mandatory human permission gate before running 22 Active OSINT probes.
 license: MIT
 compatibility: Python 3.9+ standard library only (zero pip dependencies). Works standalone from any working directory in Claude Code, Codex, Cursor, Claude.ai, and 75+ agents.
 ---
@@ -40,8 +40,9 @@ When the user supplies **any target** (handle, email, phone, domain, IP, ASN, UR
      python3 "$HUNT_PY" --resume-case <CASE_ID> --ingest-file <stage_findings.txt>
      ```
    - Repeat for any newly forged Stage-2/3 dorks until a stage yields **0 new unvisited target leads (`converged: true`)**.
-   - Need zero-network chronolocation or checksum decoding (TikTok URL/ID, Discord/X Snowflake, UUIDv1/v6/v7, ULID, MongoDB ObjectId, IBAN, phone, VIN, ICAO24, IMO/MMSI, MAC)? Run `python3 "$HUNT_PY" --decode "<token_or_url>"`.
-4. Present the unified **Multi-Stage Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.html`, `report.json`, `entities.csv`, `graph.json`, `graph.mermaid`, `stix2_bundle.json`, `manifest.sha256`).
+   - Need zero-network DFIR, media provenance, or chronolocation decoding (`.eml`, `.pcap`/`.pcapng`, `.har`, `.mp4`/`.mov`, PNG/WebP C2PA & ComfyUI/SD, Google `ei=`, SSH/PEM, TikTok URL/ID, Discord/X Snowflake, UUIDv1/v6/v7, ULID, MongoDB ObjectId, IBAN, phone, VIN, ICAO24, IMO/MMSI, MAC)? Run `python3 "$HUNT_PY" --decode "<file_or_token>"`.
+   - Need attack-surface drift, cross-case link analysis, or IDN Punycode typosquats? Run `--diff-last`, `--compare-cases <A> <B>`, or `--typosquats`.
+4. Present the unified **Multi-Stage Intelligence Dossier** citing `./cases/<case_id>/` (`dossier.md`, `report.html`, `report.json`, `entities.csv`, `graph.gexf`, `graph.graphml`, `neo4j.cypher`, `obsidian/`, `stix2_bundle.json`, `manifest.sha256`).
 
 ---
 
