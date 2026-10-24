@@ -319,6 +319,16 @@ def render_markdown_dossier(report: dict) -> str:
         lines.append(f"- **Geographic Indicators**: `{', '.join(id_c['locations'][:8])}`")
     if inf_c["domains_and_subdomains"] or inf_c["ip_addresses"]:
         lines.append(f"- **Domains & Hosts**: `{', '.join((inf_c['domains_and_subdomains'] + inf_c['ip_addresses'])[:12])}`")
+    if id_c.get("social_profiles_detailed"):
+        lines.append("- **Discovered Accounts & Social Profiles**:")
+        for sp in id_c["social_profiles_detailed"][:12]:
+            dn_part = f" ({sp['display_name']})" if sp.get("display_name") else ""
+            bio_part = f" — *{sp['bio'][:90]}*" if sp.get("bio") else ""
+            lines.append(f"  - **[{sp['platform']}: `{sp['handle']}`]({sp['url']})**{dn_part}{bio_part}")
+    if syn.get("web_and_news_mentions"):
+        lines.append("- **Open-Web & News Mentions**:")
+        for wm in syn["web_and_news_mentions"][:8]:
+            lines.append(f"  - **[{wm.get('title') or wm['url']}]({wm['url']})** *({wm.get('engine', 'Web')})* — {(wm.get('snippet') or '')[:140]}")
     if syn["cross_entity_attribution_bridges"]:
         lines.append("- **High-Confidence Attribution Bridges**:")
         for b in syn["cross_entity_attribution_bridges"][:8]:

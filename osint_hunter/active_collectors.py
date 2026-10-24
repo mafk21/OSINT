@@ -22,6 +22,7 @@ from html.parser import HTMLParser
 from xml.etree import ElementTree as ET
 
 from .classify import DOMAIN_RE, EMAIL_RE, NOISE_DOMAINS
+from .web_search_intel import carve_webpage_intelligence
 
 ACTIVE_USER_AGENT = "Mozilla/5.0 (compatible; OSINT-Active-Inspector/2026.10)"
 SOCKET_TIMEOUT = 3.5
@@ -1230,33 +1231,57 @@ def active_url_jsonld_opengraph(selector_type: str, value: str) -> dict:
     if st == 0:
         return _res("active_url_jsonld_opengraph", "restricted_or_offline", f"Live HTML fetch unreachable ({err})", {"url": url})
 
-    parser = _MetaAndJsonLdParser()
-    try:
-        parser.feed(raw.decode("utf-8", errors="replace"))
-    except Exception:
-        pass
+    home_html = raw.decode("utf-8", errors="replace")
+    carved = carve_webpage_intelligence(home_html, base_url=url)
 
-    same_as: list[str] = []
-    for blk in parser.jsonld_blocks[:6]:
-        try:
-            obj = json.loads(blk)
-            items = obj if isinstance(obj, list) else (obj.get("@graph") if isinstance(obj, dict) and isinstance(obj.get("@graph"), list) else [obj])
-            for it in items:
-                if isinstance(it, dict) and it.get("sameAs"):
-                    sa = it["sameAs"]
-                    same_as.extend(sa if isinstance(sa, list) else [sa])
-        except Exception:
-            pass
+    # Also spider up to 3 same-host /contact, /about, /team, /doctors subpages when authorized!
+    crawled_subpages: list[str] = []
+    sub_candidates = list(carved.get("contact_subpages") or [])
+    if not sub_candidates and selector_type == "domain":
+        sub_candidates = [_target_url(selector_type, value, path="/contact"), _target_url(selector_type, value, path="/about")]
 
-    pivots = [{"type": "url", "value": u} for u in same_as[:8] if isinstance(u, str) and u.startswith("http")]
-    og_subset = {k: v for k, v in parser.meta.items() if k.startswith(("og:", "twitter:", "author", "generator"))}
+    all_emails = set(carved["emails"])
+    all_phones = set(carved["phones"])
+    social_by_key = {f"{s['platform']}:{s['handle'].lower()}": s for s in carved["social_profiles"]}
+    same_as = list(carved["schema_same_as_links"])
+    schema_entities = list(carved["schema_entities"])
+    pivots = list(carved["pivots"])
+
+    for sub_u in sub_candidates[:3]:
+        _, sub_st, _, sub_raw, _ = _raw_http_request(sub_u, max_hops=2, max_bytes=200_000)
+        if sub_st == 200 and sub_raw:
+            crawled_subpages.append(sub_u)
+            sub_carved = carve_webpage_intelligence(sub_raw.decode("utf-8", errors="replace"), base_url=sub_u)
+            all_emails.update(sub_carved["emails"])
+            all_phones.update(sub_carved["phones"])
+            for s in sub_carved["social_profiles"]:
+                social_by_key.setdefault(f"{s['platform']}:{s['handle'].lower()}", s)
+            for u_sa in sub_carved["schema_same_as_links"]:
+                if u_sa not in same_as:
+                    same_as.append(u_sa)
+            schema_entities.extend(sub_carved["schema_entities"])
+            pivots.extend(sub_carved["pivots"])
+
+    og_subset = carved["meta_tags"]
+    social_list = list(social_by_key.values())[:30]
 
     return _res(
         "active_url_jsonld_opengraph",
         "ok",
-        f"Extracted {len(og_subset)} OpenGraph/meta tag(s) & {len(same_as)} JSON-LD sameAs social link(s)",
-        {"meta_tags": og_subset, "schema_same_as_links": same_as[:20]},
-        pivots,
+        f"Crawled {1 + len(crawled_subpages)} page(s) · {len(all_emails)} email(s) · {len(all_phones)} phone(s) · {len(social_list)} social profile(s) · {len(schema_entities)} schema record(s)",
+        {
+            "title": carved.get("title"),
+            "description": carved.get("description"),
+            "crawled_pages": [url] + crawled_subpages,
+            "meta_tags": og_subset,
+            "emails": sorted(all_emails)[:25],
+            "phones": sorted(all_phones)[:25],
+            "social_profiles": social_list,
+            "schema_same_as_links": same_as[:25],
+            "schema_entities": schema_entities[:15],
+            "tracking_ids": carved["tracking_ids"],
+        },
+        pivots[:25],
     )
 
 

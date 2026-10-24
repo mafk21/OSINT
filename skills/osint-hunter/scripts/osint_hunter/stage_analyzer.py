@@ -50,6 +50,18 @@ INFRA_NOISE_EXACT_DOMAINS = NOISE_DOMAINS | {
     "iana.org", "icann.org", "arin.net", "ripe.net", "apnic.net", "lacnic.net", "afrinic.net",
     "rdap.org", "crt.sh", "archive.org", "waybackmachine.org", "shodan.io", "censys.io",
     "circl.lu", "gleif.org", "gravatar.com", "wp.com", "wordpress.org", "shields.io",
+    # Major social, messaging, bio-link & directory platforms (keep profile URLs/handles, never pivot onto platform infra!)
+    "instagram.com", "tiktok.com", "snapchat.com", "x.com", "twitter.com", "linkedin.com",
+    "facebook.com", "threads.net", "threads.com", "youtube.com", "t.me", "telegram.org",
+    "telegram.me", "wa.me", "whatsapp.com", "linktr.ee", "taplink.cc", "beacons.ai",
+    "bio.link", "solo.to", "carrd.co", "bento.me", "pinterest.com", "soundcloud.com",
+    "medium.com", "substack.com", "patreon.com", "behance.net", "dribbble.com", "vimeo.com",
+    "twitch.tv", "reddit.com", "quora.com", "discord.gg", "discord.com", "bsky.app",
+    "mastodon.social", "keybase.io", "gitlab.com", "github.com", "huggingface.co",
+    "truecaller.com", "sync.me", "crunchbase.com", "zoominfo.com", "rocketreach.co",
+    "apollo.io", "yelp.com", "trustpilot.com", "haraj.com.sa", "opensooq.com", "maroof.sa",
+    "vezeeta.com", "altibbi.com", "practo.com", "researchgate.net", "academia.edu",
+    "orcid.org", "openalex.org", "wikipedia.org", "wikidata.org", "ncbi.nlm.nih.gov",
 }
 
 INFRA_NOISE_DOMAIN_SUFFIXES = (

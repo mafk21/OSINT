@@ -66,6 +66,7 @@ from osint_hunter.persona import (  # noqa: E402
     find_shortest_attribution_path,
     generate_domain_typosquats,
 )
+from osint_hunter.cli_runner import get_local_cli_status
 from osint_hunter.providers import get_byok_status, update_byok_dotenv  # noqa: E402
 from osint_hunter.watchlist import (  # noqa: E402
     add_to_watchlist,
@@ -167,7 +168,8 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
             cli_probes = [
                 "nmap", "rustscan", "naabu", "httpx", "subfinder", "nuclei", "dnsx", "tlsx", "katana",
                 "ffuf", "feroxbuster", "gobuster", "amass", "bbot", "maigret", "sherlock", "holehe",
-                "exiftool", "binwalk", "qpdf", "tshark", "yt-dlp", "instaloader", "tor", "whois", "dig",
+                "ignorant", "dnstwist", "exiftool", "binwalk", "qpdf", "tshark", "yt-dlp", "instaloader",
+                "tor", "whois", "dig",
             ]
             installed = [b for b in cli_probes if shutil.which(b)]
             self._send_json(
@@ -182,6 +184,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                         "sqlite_fts5_present": (DATA_DIR / "osint.sqlite").is_file(),
                     },
                     "byok_providers": get_byok_status(),
+                    "auto_integrated_cli_tools": get_local_cli_status(),
                     "local_recon_binaries_detected": installed,
                     "optional_binaries_not_installed": [b for b in cli_probes if b not in installed],
                 }

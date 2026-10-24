@@ -40,6 +40,16 @@ from .providers import (
     collect_byok_for_ip,
     get_api_key,
 )
+from .cli_runner import run_installed_passive_clis
+from .social_deep import collect_deep_social_footprint
+from .web_search_intel import (
+    carve_webpage_intelligence,
+    classify_social_profile_url,
+    collect_domain_deep_passive,
+    collect_email_deep_intel,
+    collect_entity_deep_osint,
+    collect_phone_deep_osint,
+)
 
 USER_AGENT = "OSINT-Monster-Hunter/2026.10 (Passive-Research; +https://github.com/mafk21/OSINT)"
 DEFAULT_TIMEOUT = 5.5
@@ -660,6 +670,42 @@ def collect_ip_osint(ip_str: str) -> list[dict]:
                     {"nickname": r0.get("nickname"), "flags": r0.get("flags"), "contact": r0.get("contact"), "as_name": r0.get("as_name")},
                 )
             )
+
+    # URLScan passive reverse-IP host history
+    st_u, us_obj, _ = _http_json(f"https://urlscan.io/api/v1/search/?q=ip:{urllib.parse.quote(ip_str)}&size=15")
+    if st_u == 200 and isinstance(us_obj, dict) and us_obj.get("results"):
+        hosted_domains = sorted(
+            {
+                (r.get("page") or {}).get("domain", "").lower()
+                for r in us_obj["results"]
+                if isinstance(r, dict) and (r.get("page") or {}).get("domain")
+            }
+        )
+        hosted_domains = [d for d in hosted_domains if d and d not in NOISE_DOMAINS]
+        if hosted_domains:
+            results.append(
+                _res(
+                    "urlscan_reverse_ip_domains",
+                    "ok",
+                    f"URLScan historical reverse-IP matched {len(hosted_domains)} hosted domain(s): {', '.join(hosted_domains[:5])}",
+                    {"domains": hosted_domains[:25]},
+                    [{"type": "domain", "value": d} for d in hosted_domains[:8]],
+                )
+            )
+
+    # HudsonRock IP infostealer check
+    st_hr, hr_obj, _ = _http_json(
+        f"https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-ip?ip={urllib.parse.quote(ip_str)}"
+    )
+    if st_hr == 200 and isinstance(hr_obj, dict) and hr_obj.get("stealers"):
+        results.append(
+            _res(
+                "hudsonrock_ip_infostealer",
+                "ok",
+                f"ALERT: IP {ip_str} appeared in {len(hr_obj['stealers'])} infostealer infection log(s)",
+                {"stealers": hr_obj["stealers"][:8]},
+            )
+        )
     return results
 
 
@@ -754,38 +800,49 @@ def collect_crypto_osint(addr: str) -> list[dict]:
 def collect_for_selector(sel_type: str, value: str) -> list[dict]:
     """Dispatch all passive collectors registered for a given selector type."""
     if sel_type == "username":
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=9) as pool:
             f_gh = pool.submit(collect_github_user, value)
             f_keys = pool.submit(collect_github_keys, value)
             f_npm = pool.submit(collect_npm_maintainer, value)
             f_pypi = pool.submit(collect_pypi_package, value)
-            f_mat = pool.submit(collect_username_matrix, value)
+            f_soc = pool.submit(collect_deep_social_footprint, value)
             f_bsky = pool.submit(collect_bluesky_atproto, value)
             f_masto = pool.submit(collect_mastodon_fediverse, value)
             f_modpkg = pool.submit(collect_modern_pkg_registries, value)
-            return [
-                f_gh.result(),
-                f_keys.result(),
-                f_npm.result(),
-                f_pypi.result(),
-                f_mat.result(),
-                f_bsky.result(),
-                f_masto.result(),
-                f_modpkg.result(),
-            ]
+            f_cli = pool.submit(run_installed_passive_clis, "username", value)
+            return (
+                [
+                    f_gh.result(),
+                    f_keys.result(),
+                    f_npm.result(),
+                    f_pypi.result(),
+                    f_bsky.result(),
+                    f_masto.result(),
+                    f_modpkg.result(),
+                ]
+                + f_soc.result()
+                + f_cli.result()
+            )
 
     if sel_type == "email":
-        return collect_email_osint(value) + collect_byok_for_email(value)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            f_base = pool.submit(collect_email_osint, value)
+            f_deep = pool.submit(collect_email_deep_intel, value)
+            f_byok = pool.submit(collect_byok_for_email, value)
+            f_cli = pool.submit(run_installed_passive_clis, "email", value)
+            return f_base.result() + f_deep.result() + f_byok.result() + f_cli.result()
 
     if sel_type == "domain":
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
             f_dom = pool.submit(collect_domain_osint, value)
+            f_deep = pool.submit(collect_domain_deep_passive, value)
             f_entra = pool.submit(collect_entra_m365_tenant_passive, value)
             f_byok = pool.submit(collect_byok_for_domain, value)
-            return f_dom.result() + [f_entra.result()] + f_byok.result()
+            f_cli = pool.submit(run_installed_passive_clis, "domain", value)
+            return f_dom.result() + f_deep.result() + [f_entra.result()] + f_byok.result() + f_cli.result()
 
     if sel_type == "ip":
-        return collect_ip_osint(value) + collect_byok_for_ip(value)
+        return collect_ip_osint(value) + collect_byok_for_ip(value) + run_installed_passive_clis("ip", value)
 
     if sel_type == "asn":
         asn_clean = value.upper()
@@ -803,7 +860,8 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
 
     if sel_type == "phone":
         dec = decode_phone(value)
-        return [_res("phone_itu_e164_decoder", "ok", f"{dec['e164']} -> {dec['country']} ({dec.get('carrier_or_region_hint') or 'Mobile/Fixed'})", dec)]
+        base_mod = _res("phone_itu_e164_decoder", "ok", f"{dec['e164']} -> {dec['country']} ({dec.get('carrier_or_region_hint') or 'Mobile/Fixed'})", dec)
+        return [base_mod] + collect_phone_deep_osint(dec["e164"]) + run_installed_passive_clis("phone", dec["e164"])
 
     if sel_type == "aircraft_hex":
         dec = decode_aircraft_hex(value)
@@ -879,39 +937,49 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
     if sel_type in ("company", "person_name", "keyword"):
         q_enc = urllib.parse.quote(value)
         out = []
-        st_u, gh_u, _ = _http_json(f"https://api.github.com/search/users?q={q_enc}&per_page=8")
-        pivots = []
-        if st_u == 200 and isinstance(gh_u, dict) and gh_u.get("items"):
-            total_u = gh_u.get("total_count", 0)
-            accts = [{"login": i.get("login"), "type": i.get("type"), "url": i.get("html_url")} for i in gh_u["items"][:8]]
-            # If reasonably specific match (<=12 profiles), pivot on ALL matched handles; otherwise top 2
-            pivot_cap = 8 if total_u <= 12 else 2
-            for a in accts[:pivot_cap]:
-                if a.get("login"):
-                    pivots.append({"type": "username", "value": a["login"]})
-            out.append(_res("github_entity_search", "ok", f"Matched {total_u} GitHub user/org profile(s) for '{value}'", {"accounts": accts, "total_count": total_u}, pivots))
 
-        quoted_phrase = urllib.parse.quote(f'"{value}"')
-        st_r, gh_r, _ = _http_json(f"https://api.github.com/search/repositories?q={quoted_phrase}&per_page=6")
-        if st_r == 200 and isinstance(gh_r, dict) and gh_r.get("items"):
-            repo_pivots = []
-            repos = []
-            for r in gh_r["items"][:6]:
-                fn = r.get("full_name")
-                hp = (r.get("homepage") or "").strip()
-                repos.append({"full_name": fn, "homepage": hp or None, "description": (r.get("description") or "")[:120]})
-                if hp and hp.startswith("http"):
-                    repo_pivots.append({"type": "url", "value": hp})
-            out.append(_res("github_entity_repositories", "ok", f"Matched {gh_r.get('total_count', 0)} GitHub repo mention(s) for '{value}'", {"repositories": repos}, repo_pivots))
+        def _gh_entities():
+            sub_out = []
+            st_u, gh_u, _ = _http_json(f"https://api.github.com/search/users?q={q_enc}&per_page=8")
+            pivots = []
+            if st_u == 200 and isinstance(gh_u, dict) and gh_u.get("items"):
+                total_u = gh_u.get("total_count", 0)
+                accts = [{"login": i.get("login"), "type": i.get("type"), "url": i.get("html_url")} for i in gh_u["items"][:8]]
+                pivot_cap = 8 if total_u <= 12 else 2
+                for a in accts[:pivot_cap]:
+                    if a.get("login"):
+                        pivots.append({"type": "username", "value": a["login"]})
+                sub_out.append(_res("github_entity_search", "ok", f"Matched {total_u} GitHub user/org profile(s) for '{value}'", {"accounts": accts, "total_count": total_u}, pivots))
 
-        if sel_type == "company":
-            st_l, gleif, _ = _http_json(f"https://api.gleif.org/api/v1/lei-records?filter%5Bentity.legalName%5D={q_enc}&page%5Bsize%5D=5")
-            if st_l == 200 and isinstance(gleif, dict) and gleif.get("data"):
-                recs = []
-                for r in gleif["data"][:5]:
-                    ent = ((r.get("attributes") or {}).get("entity") or {})
-                    recs.append({"lei": r.get("id"), "legal_name": (ent.get("legalName") or {}).get("name"), "jurisdiction": ent.get("jurisdiction")})
-                out.append(_res("gleif_corporate_lei", "ok", f"Matched {len(recs)} global LEI corporate registration(s)", {"lei_records": recs}))
+            quoted_phrase = urllib.parse.quote(f'"{value}"')
+            st_r, gh_r, _ = _http_json(f"https://api.github.com/search/repositories?q={quoted_phrase}&per_page=6")
+            if st_r == 200 and isinstance(gh_r, dict) and gh_r.get("items"):
+                repo_pivots = []
+                repos = []
+                for r in gh_r["items"][:6]:
+                    fn = r.get("full_name")
+                    hp = (r.get("homepage") or "").strip()
+                    repos.append({"full_name": fn, "homepage": hp or None, "description": (r.get("description") or "")[:120]})
+                    if hp and hp.startswith("http"):
+                        repo_pivots.append({"type": "url", "value": hp})
+                sub_out.append(_res("github_entity_repositories", "ok", f"Matched {gh_r.get('total_count', 0)} GitHub repo mention(s) for '{value}'", {"repositories": repos}, repo_pivots))
+
+            if sel_type == "company":
+                st_l, gleif, _ = _http_json(f"https://api.gleif.org/api/v1/lei-records?filter%5Bentity.legalName%5D={q_enc}&page%5Bsize%5D=5")
+                if st_l == 200 and isinstance(gleif, dict) and gleif.get("data"):
+                    recs = []
+                    for r in gleif["data"][:5]:
+                        ent = ((r.get("attributes") or {}).get("entity") or {})
+                        recs.append({"lei": r.get("id"), "legal_name": (ent.get("legalName") or {}).get("name"), "jurisdiction": ent.get("jurisdiction")})
+                    sub_out.append(_res("gleif_corporate_lei", "ok", f"Matched {len(recs)} global LEI corporate registration(s)", {"lei_records": recs}))
+            return sub_out
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            f_gh_e = pool.submit(_gh_entities)
+            f_deep_e = pool.submit(collect_entity_deep_osint, sel_type, value)
+            out.extend(f_deep_e.result())
+            out.extend(f_gh_e.result())
+
         return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 760-tool arsenal pivots for '{value}'", {"query": value})]
 
     if sel_type in ("url", "onion_url"):
@@ -930,6 +998,9 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
         for pv in q_params.values():
             if pv.startswith(("http://", "https://")):
                 url_pivots.append({"type": "url", "value": pv})
+        soc_match = classify_social_profile_url(raw_u)
+        if soc_match and soc_match["pivot_type"] in ("username", "phone"):
+            url_pivots.append({"type": soc_match["pivot_type"], "value": soc_match["pivot_value"]})
         tt_meta = decode_tiktok_id_or_url(value)
         gei_meta = decode_google_ei_parameter(value)
         url_payload = {
@@ -940,6 +1011,8 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             "query_params": q_params,
             "is_tor_onion": host_u.endswith(".onion"),
         }
+        if soc_match:
+            url_payload["social_profile_detected"] = soc_match
         extra_note = ""
         if tt_meta:
             url_payload["tiktok_chronolocation"] = tt_meta
@@ -968,6 +1041,20 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
                         {"snapshot_url": closest.get("url"), "timestamp": closest.get("timestamp"), "status": closest.get("status")},
                     )
                 )
+                # Passively carve contacts, social handles & schema.org from the Internet Archive copy!
+                st_arch, arch_html, _ = _http_get(f"https://web.archive.org/web/2id_/{value}", timeout=5.0)
+                if st_arch == 200 and arch_html:
+                    carved_u = carve_webpage_intelligence(arch_html, base_url=raw_u)
+                    pivs_u = carved_u.pop("pivots", [])
+                    out.append(
+                        _res(
+                            "wayback_url_content_intel",
+                            "ok",
+                            f"Archived URL intel: {len(carved_u['emails'])} email(s), {len(carved_u['phones'])} phone(s), {len(carved_u['social_profiles'])} social link(s)",
+                            carved_u,
+                            pivs_u,
+                        )
+                    )
         return out
 
     return []
