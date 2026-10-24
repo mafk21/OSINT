@@ -108,7 +108,15 @@ def synthesize_intelligence(report: dict) -> dict:
     security_exposures: list[str] = []
     open_ports_summary: dict[str, list[int]] = {}
 
-    def _add_social_detail(platform: str, handle: str, url: str, display_name: str | None = None, bio: str | None = None, followers: object = None) -> None:
+    def _add_social_detail(
+        platform: str,
+        handle: str,
+        url: str,
+        display_name: str | None = None,
+        bio: str | None = None,
+        followers: object = None,
+        avatar_url: str | None = None,
+    ) -> None:
         if not url or not url.startswith("http"):
             return
         u_key = url.rstrip("/").lower()
@@ -120,6 +128,8 @@ def synthesize_intelligence(report: dict) -> dict:
                 existing["bio"] = str(bio)[:220]
             if display_name and not existing.get("display_name"):
                 existing["display_name"] = display_name
+            if avatar_url and not existing.get("avatar_url"):
+                existing["avatar_url"] = avatar_url
             return
         rec = {
             "platform": platform,
@@ -128,6 +138,7 @@ def synthesize_intelligence(report: dict) -> dict:
             "display_name": display_name,
             "bio": (str(bio)[:220] if bio else None),
             "followers": followers,
+            "avatar_url": avatar_url,
         }
         seen_prof_map[u_key] = rec
         social_profiles_detailed.append(rec)
@@ -152,10 +163,18 @@ def synthesize_intelligence(report: dict) -> dict:
                     display_name=data.get("name"),
                     bio=data.get("bio"),
                     followers=data.get("followers"),
+                    avatar_url=data.get("avatar_url"),
                 )
             for url_k in ("profile_url", "html_url", "web_url"):
                 if isinstance(data.get(url_k), str) and data[url_k].startswith("http"):
-                    _add_social_detail(mname, sval, data[url_k], display_name=data.get("name") or data.get("display_name"), bio=data.get("bio"))
+                    _add_social_detail(
+                        mname,
+                        sval,
+                        data[url_k],
+                        display_name=data.get("name") or data.get("display_name"),
+                        bio=data.get("bio"),
+                        avatar_url=data.get("avatar_url") or data.get("avatar"),
+                    )
             if mname == "username_platform_sweep":
                 for hit in data.get("hits") or []:
                     if isinstance(hit, dict) and hit.get("probe_url"):
@@ -166,6 +185,7 @@ def synthesize_intelligence(report: dict) -> dict:
                             display_name=hit.get("display_name"),
                             bio=hit.get("bio"),
                             followers=hit.get("followers"),
+                            avatar_url=hit.get("avatar_url"),
                         )
                         if hit.get("location"):
                             locations.add(str(hit["location"]).strip())
@@ -301,6 +321,15 @@ def synthesize_intelligence(report: dict) -> dict:
             bridge = f"[{sn['type']}] {sn['value']} ──({e['via']})──► [{dn['type']}] {dn['value']}"
             if bridge not in attribution_bridges:
                 attribution_bridges.append(bridge)
+
+    vis = report.get("visual_intel") or {}
+    for reuse in vis.get("avatar_reuse_matches") or []:
+        plats_str = " == ".join(f"{p['platform']} ({p.get('selector') or ''})" for p in reuse.get("platforms") or [])
+        if plats_str:
+            attribution_bridges.append(f"[avatar_sha256:{str(reuse.get('sha256', ''))[:12]}] Identical Photo Match: {plats_str}")
+    for fa in vis.get("forensic_alerts") or []:
+        if fa not in security_exposures:
+            security_exposures.append(fa)
 
     # Compute 0-100 Surface Exposure & Footprint Score
     score = 0
@@ -476,6 +505,33 @@ def render_standalone_html_dossier(report: dict) -> str:
         for d in (report.get("forged_dorks") or [])[:25]
     )
 
+    vis = report.get("visual_intel") or {}
+    vis_cards = []
+    for im in (vis.get("images") or [])[:16]:
+        img_src = html.escape(im.get("local_rel_path") or im.get("thumbnail_url") or im["url"])
+        full_u = html.escape(im["url"])
+        lens_u = html.escape((im.get("reverse_search") or {}).get("google_lens") or im["url"])
+        yandex_u = html.escape((im.get("reverse_search") or {}).get("yandex") or im["url"])
+        dim_s = f"{im['width']}×{im['height']}" if im.get("width") and im.get("height") else (im.get("format") or "IMG")
+        vis_cards.append(
+            f"<div style='background:#0f172a;border:1px solid #1e293b;border-radius:8px;overflow:hidden;'>"
+            f"<a href='{full_u}' target='_blank' rel='noopener'><img src='{img_src}' alt='' loading='lazy' "
+            f"style='width:100%;height:165px;object-fit:cover;display:block;background:#070b14;' /></a>"
+            f"<div style='padding:9px 11px;font-size:12px;'>"
+            f"<div style='font-weight:700;color:#f8fafc;'>{html.escape(im['platform'])} <span style='color:#94a3b8;font-weight:400;'>· {html.escape(str(dim_s))}</span></div>"
+            f"<div style='color:#cbd5e1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{html.escape(im['label'])}</div>"
+            f"<div style='margin-top:6px;display:flex;gap:8px;'><a href='{lens_u}' target='_blank' rel='noopener' style='color:#38bdf8;text-decoration:none;'>Lens ↗</a>"
+            f"<a href='{yandex_u}' target='_blank' rel='noopener' style='color:#38bdf8;text-decoration:none;'>Yandex ↗</a>"
+            f"<a href='{full_u}' target='_blank' rel='noopener' style='color:#94a3b8;text-decoration:none;'>Source ↗</a></div>"
+            f"</div></div>"
+        )
+    visual_section_html = (
+        f"<div class='card'><h2>📸 Suspect Photos &amp; Visual Evidence ({len(vis.get('images') or [])})</h2>"
+        f"<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;'>{''.join(vis_cards)}</div></div>"
+        if vis_cards
+        else ""
+    )
+
     findings_blocks = []
     for item in report.get("wave_results") or []:
         mods_html = []
@@ -564,6 +620,8 @@ def render_standalone_html_dossier(report: dict) -> str:
       <tbody>{''.join(rows_html)}</tbody>
     </table>
   </div>
+
+  {visual_section_html}
 
   <div class="card">
     <h2>🎯 Target-Forged Search Dorks</h2>

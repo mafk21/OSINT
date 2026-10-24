@@ -481,8 +481,101 @@
         )}</code></div>`
       );
     }
+    if (c.module === "open_web_image_search" && Array.isArray(d.images) && d.images.length) {
+      parts.push(
+        `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">` +
+          d.images
+            .slice(0, 6)
+            .map((im) => {
+              const u = im.thumbnail_url || im.image_url || "";
+              const proxyU = `./api/image-proxy?url=${encodeURIComponent(u)}`;
+              return `<a href="${esc(im.source_page_url || im.image_url || u)}" target="_blank" rel="noopener" title="${esc(im.title || "")}" style="display:block; width:56px; height:56px; border-radius:6px; overflow:hidden; border:1px solid var(--border); background:var(--bg-elev);">
+                <img src="${esc(proxyU)}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" />
+              </a>`;
+            })
+            .join("") +
+          `</div>`
+      );
+    }
 
     return parts.join("");
+  }
+
+  function resolvePhotoDisplayUrl(im, caseId) {
+    if (caseId && im.local_rel_path && im.local_rel_path.startsWith("images/")) {
+      const fname = im.local_rel_path.slice("images/".length);
+      return `./api/cases/${encodeURIComponent(caseId)}/images/${encodeURIComponent(fname)}`;
+    }
+    const raw = im.thumbnail_url || im.url || "";
+    if (/^https?:\/\//i.test(raw)) {
+      return `./api/image-proxy?url=${encodeURIComponent(raw)}`;
+    }
+    return raw;
+  }
+
+  function openPhotoLightbox(im, caseId) {
+    const backdrop = document.getElementById("photoLightboxBackdrop");
+    const box = document.getElementById("photoLightboxContent");
+    if (!backdrop || !box || !im) return;
+
+    const dispUrl = resolvePhotoDisplayUrl(im, caseId);
+    const rev = im.reverse_search || {};
+    const dims = im.width && im.height ? `${im.width}×${im.height} ${im.format || ""}`.trim() : im.format || "";
+    const exif = im.forensics?.exif || {};
+    const camStr = [exif.camera_make, exif.camera_model].filter(Boolean).join(" ");
+    const gps = exif.gps_coordinates;
+    const aiGen = im.forensics?.ai_or_c2pa?.detected ? im.forensics.ai_or_c2pa.indicators.join(", ") : "";
+
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px;">
+        <div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <strong style="font-size:16px;">${esc(im.platform || "Photo")}</strong>
+            ${dims ? `<span class="status-pill">${esc(dims)}</span>` : ""}
+            ${im.cached ? `<span class="status-pill green">Cached in Case</span>` : ""}
+            ${gps ? `<span class="status-pill amber">EXIF GPS</span>` : ""}
+            ${aiGen ? `<span class="status-pill red">AI / Synthetic</span>` : ""}
+          </div>
+          <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">${esc(im.label || im.selector || "")}</div>
+        </div>
+        <button class="btn-ghost" id="closePhotoLightboxBtn">✕</button>
+      </div>
+
+      <div style="background:#090b10; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center; margin-bottom:12px;">
+        <img src="${esc(dispUrl)}" alt="" style="max-width:100%; max-height:430px; border-radius:6px; object-fit:contain;" />
+      </div>
+
+      ${
+        im.sha256 || camStr || gps || aiGen || exif.datetime_original
+          ? `<div class="kv-list" style="margin-bottom:12px; font-size:12.5px;">
+              ${im.sha256 ? `<div class="kv-row"><span class="kv-key">SHA-256</span><span class="kv-val"><code>${esc(im.sha256.slice(0, 24))}…</code></span></div>` : ""}
+              ${camStr ? `<div class="kv-row"><span class="kv-key">Camera</span><span class="kv-val">${esc(camStr)}</span></div>` : ""}
+              ${exif.datetime_original ? `<div class="kv-row"><span class="kv-key">Captured</span><span class="kv-val">${esc(exif.datetime_original)}</span></div>` : ""}
+              ${gps ? `<div class="kv-row"><span class="kv-key">GPS Location</span><span class="kv-val"><a href="https://www.google.com/maps?q=${encodeURIComponent(gps.lat + "," + gps.lon)}" target="_blank" rel="noopener">${esc(gps.lat + ", " + gps.lon)} ↗</a></span></div>` : ""}
+              ${aiGen ? `<div class="kv-row"><span class="kv-key">Synthetic Hint</span><span class="kv-val">${esc(aiGen)}</span></div>` : ""}
+            </div>`
+          : ""
+      }
+
+      <div style="display:flex; flex-wrap:wrap; gap:7px; justify-content:space-between; align-items:center;">
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+          ${rev.google_lens ? `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(rev.google_lens)}" target="_blank" rel="noopener">Google Lens ↗</a>` : ""}
+          ${rev.yandex ? `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(rev.yandex)}" target="_blank" rel="noopener">Yandex ↗</a>` : ""}
+          ${rev.bing_visual ? `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(rev.bing_visual)}" target="_blank" rel="noopener">Bing Visual ↗</a>` : ""}
+          ${rev.tineye ? `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(rev.tineye)}" target="_blank" rel="noopener">TinEye ↗</a>` : ""}
+        </div>
+        <div style="display:flex; gap:6px;">
+          ${im.source_page && im.source_page !== im.url ? `<a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(im.source_page)}" target="_blank" rel="noopener">Source Page ↗</a>` : ""}
+          <a class="btn" style="font-size:12px; padding:5px 10px;" href="${esc(im.url)}" target="_blank" rel="noopener">Original Image ↗</a>
+        </div>
+      </div>
+    `;
+
+    backdrop.classList.add("open");
+    document.getElementById("closePhotoLightboxBtn").onclick = () => backdrop.classList.remove("open");
+    backdrop.onclick = (ev) => {
+      if (ev.target === backdrop) backdrop.classList.remove("open");
+    };
   }
 
   function renderHuntReport(report) {
@@ -512,6 +605,10 @@
     const exposures = syn.security_and_opsec_exposures || [];
     const launchpad = syn.launchpad_links || [];
     const forgedDorks = report.forged_dorks || [];
+    const visualIntel = report.visual_intel || {};
+    const visualImages = visualIntel.images || [];
+    const avatarReuses = visualIntel.avatar_reuse_matches || [];
+    const reuseShaSet = new Set(avatarReuses.map((r) => r.sha256));
 
     const phonesFormatted = (idC.phones || [])
       .slice(0, 4)
@@ -688,9 +785,9 @@
           <div class="card-title" style="margin-bottom:10px;">Signals &amp; Activity</div>
           <div class="kv-list">
             <div class="kv-row"><span class="kv-key">Profiles Found</span><span class="kv-val">${esc(String(socialProfiles.length))}</span></div>
+            <div class="kv-row"><span class="kv-key">Photos Found</span><span class="kv-val">${esc(String(visualImages.length))}${visualIntel.cached_count ? ` <span style="color:var(--text-muted); font-family:inherit;">(${esc(String(visualIntel.cached_count))} cached)</span>` : ""}</span></div>
             <div class="kv-row"><span class="kv-key">Web Mentions</span><span class="kv-val">${esc(String(webMentions.length))}</span></div>
             <div class="kv-row"><span class="kv-key">Timezone</span><span class="kv-val">${esc(tzKeys.join(", ") || (sleepWin ? `Quiet ${sleepWin}` : "—"))}</span></div>
-            <div class="kv-row"><span class="kv-key">Alerts</span><span class="kv-val">${esc(exposures[0] || "None flagged")}</span></div>
           </div>
         </div>
       </div>
@@ -701,6 +798,70 @@
               <div class="card-title" style="color:#fca5a5; margin-bottom:8px;">Exposure &amp; Breach Alerts (${exposures.length})</div>
               <div style="display:grid; gap:5px; font-size:13px; color:var(--text);">
                 ${exposures.slice(0, 10).map((ex) => `<div>⚠️ ${esc(ex)}</div>`).join("")}
+              </div>
+            </div>`
+          : ""
+      }
+
+      ${
+        visualImages.length > 0
+          ? `<div class="card">
+              <div class="card-header">
+                <div>
+                  <span class="card-title">Photos &amp; Visual Evidence (${visualImages.length})</span>
+                  <span style="color:var(--text-dim); font-size:12px; margin-left:8px;">Click any photo to inspect EXIF &amp; reverse-image search</span>
+                </div>
+              </div>
+              ${
+                avatarReuses.length > 0
+                  ? `<div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:8px 11px; margin-bottom:10px; font-size:12.5px; color:var(--text);">
+                      ${avatarReuses
+                        .slice(0, 3)
+                        .map((r) => `<div>🔗 <strong>Same photo reused across accounts:</strong> ${esc((r.platforms || []).map((p) => `${p.platform} (${p.selector})`).join(" · "))}</div>`)
+                        .join("")}
+                    </div>`
+                  : ""
+              }
+              <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(185px, 1fr)); gap:10px;">
+                ${visualImages
+                  .slice(0, 16)
+                  .map((im, idx) => {
+                    const dispSrc = resolvePhotoDisplayUrl(im, m.case_id);
+                    const rev = im.reverse_search || {};
+                    const hasGps = Boolean(im.forensics?.exif?.gps_coordinates);
+                    const hasAi = Boolean(im.forensics?.ai_or_c2pa?.detected);
+                    const isReused = im.sha256 && reuseShaSet.has(im.sha256);
+                    return `
+                    <div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:9px; overflow:hidden; display:flex; flex-direction:column;">
+                      <div data-photo-idx="${idx}" style="height:152px; background:#090b10; cursor:zoom-in; position:relative; overflow:hidden;">
+                        <img src="${esc(dispSrc)}" alt="" loading="lazy" style="width:100%; height:100%; object-fit:cover; display:block;" />
+                        ${
+                          hasGps || hasAi || isReused
+                            ? `<div style="position:absolute; top:6px; right:6px; display:flex; gap:4px;">
+                                ${hasGps ? `<span class="status-pill amber" style="font-size:10px; padding:1px 6px;">GPS</span>` : ""}
+                                ${hasAi ? `<span class="status-pill red" style="font-size:10px; padding:1px 6px;">AI</span>` : ""}
+                                ${isReused ? `<span class="status-pill green" style="font-size:10px; padding:1px 6px;">Match</span>` : ""}
+                              </div>`
+                            : ""
+                        }
+                      </div>
+                      <div style="padding:8px 10px; font-size:12px; flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                          <div style="display:flex; justify-content:space-between; gap:6px; align-items:baseline;">
+                            <strong style="color:var(--text);">${esc(im.platform)}</strong>
+                            <span style="color:var(--text-dim); font-size:11px;">${im.width && im.height ? `${im.width}×${im.height}` : esc(im.format || "")}</span>
+                          </div>
+                          <div style="color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(im.label || "")}">${esc(im.label || im.selector || "")}</div>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:6px; font-size:11.5px;">
+                          ${rev.google_lens ? `<a href="${esc(rev.google_lens)}" target="_blank" rel="noopener">Lens ↗</a>` : ""}
+                          ${rev.yandex ? `<a href="${esc(rev.yandex)}" target="_blank" rel="noopener">Yandex ↗</a>` : ""}
+                          <a href="${esc(im.source_page || im.url)}" target="_blank" rel="noopener" style="color:var(--text-muted);">Source ↗</a>
+                        </div>
+                      </div>
+                    </div>`;
+                  })
+                  .join("")}
               </div>
             </div>`
           : ""
@@ -718,11 +879,14 @@
                   .map(
                     (p) => `
                   <a href="${esc(p.url)}" target="_blank" rel="noopener" style="display:block; text-decoration:none; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:9px 11px;">
-                    <div style="display:flex; justify-content:space-between; gap:6px; align-items:baseline;">
-                      <strong style="color:var(--text); font-size:13px;">${esc(p.platform)}</strong>
+                    <div style="display:flex; justify-content:space-between; gap:6px; align-items:center;">
+                      <div style="display:flex; align-items:center; gap:7px;">
+                        ${p.avatar_url ? `<img src="./api/image-proxy?url=${encodeURIComponent(p.avatar_url)}" alt="" loading="lazy" style="width:24px; height:24px; border-radius:50%; object-fit:cover; background:#090b10;" />` : ""}
+                        <strong style="color:var(--text); font-size:13px;">${esc(p.platform)}</strong>
+                      </div>
                       <span style="font-size:11.5px; color:var(--accent);"><code>${esc(p.handle)}</code> ↗</span>
                     </div>
-                    ${p.display_name ? `<div style="font-size:12.5px; color:var(--text); margin-top:2px;">${esc(p.display_name)}${p.followers ? ` · <span style="color:var(--text-muted);">${esc(String(p.followers))}</span>` : ""}</div>` : ""}
+                    ${p.display_name ? `<div style="font-size:12.5px; color:var(--text); margin-top:3px;">${esc(p.display_name)}${p.followers ? ` · <span style="color:var(--text-muted);">${esc(String(p.followers))}</span>` : ""}</div>` : ""}
                     ${p.bio ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${esc(String(p.bio).slice(0, 110))}</div>` : ""}
                   </a>`
                   )
@@ -863,9 +1027,15 @@
       }
     `;
 
-    // Bind Export dropdown & Copy Dork buttons
+    // Bind Export dropdown, Copy Dork buttons & Photo Lightbox
     outArea.querySelectorAll(".copy-dork-btn").forEach((b) => {
       b.addEventListener("click", () => copyText(b.dataset.dork || "", b));
+    });
+    outArea.querySelectorAll("[data-photo-idx]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const idx = parseInt(el.dataset.photoIdx || "0", 10);
+        if (visualImages[idx]) openPhotoLightbox(visualImages[idx], m.case_id);
+      });
     });
     const expDd = document.getElementById("exportDropdown");
     document.getElementById("exportMenuBtn")?.addEventListener("click", (e) => {
