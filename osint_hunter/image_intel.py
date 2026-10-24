@@ -30,6 +30,7 @@ from typing import Any
 
 from .dfir_forensics import analyze_png_webp_c2pa_bytes
 from .offline_intel import _parse_jpeg_exif
+from .perceptual_hash import compute_dhash_hex, find_perceptual_photo_matches
 
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -640,6 +641,14 @@ def harvest_and_cache_visual_intel(
                         kind="site_screenshot",
                         title=d.get("title") or sval,
                     )
+            elif mname == "ens_and_web3_identity" and d.get("avatar_url"):
+                _add_img(
+                    image_url=d["avatar_url"],
+                    source="ENS / Web3",
+                    entity=d.get("ens_primary") or sval,
+                    kind="profile_avatar",
+                    title=f"Web3 Avatar ({d.get('ens_primary') or sval})",
+                )
             elif mname == "open_web_image_search":
                 for im in d.get("images") or []:
                     if isinstance(im, dict):
@@ -660,6 +669,7 @@ def harvest_and_cache_visual_intel(
             "images": [],
             "avatar_reuse_matches": [],
             "cross_platform_avatar_matches": [],
+            "perceptual_avatar_matches": [],
             "forensic_alerts": [],
             "forensic_image_alerts": [],
         }
@@ -706,6 +716,7 @@ def harvest_and_cache_visual_intel(
         width = fmt_info.get("width")
         height = fmt_info.get("height")
         sha256_hex = hashlib.sha256(raw).hexdigest()
+        dhash_hex = compute_dhash_hex(raw)
         forensics = inspect_image_bytes_forensics(raw, mime)
 
         enriched = dict(item)
@@ -716,6 +727,8 @@ def harvest_and_cache_visual_intel(
         enriched["width"] = width
         enriched["height"] = height
         enriched["sha256"] = sha256_hex
+        if dhash_hex:
+            enriched["dhash"] = dhash_hex
         if forensics:
             enriched["forensics"] = forensics
 
@@ -778,6 +791,10 @@ def harvest_and_cache_visual_intel(
             )
             forensic_alerts.append(f"Confirmed identical photo reused across {' + '.join(sources)} (SHA-256 `{sha[:12]}…`)")
 
+    perceptual_matches = find_perceptual_photo_matches(verified_images, max_hamming_distance=10)
+    for pm in perceptual_matches[:6]:
+        forensic_alerts.append(pm["note"])
+
     cached_cnt = sum(1 for im in verified_images if im.get("cached_file"))
     return {
         "total_images": len(verified_images),
@@ -785,6 +802,7 @@ def harvest_and_cache_visual_intel(
         "images": verified_images[:24],
         "avatar_reuse_matches": avatar_reuse_matches,
         "cross_platform_avatar_matches": avatar_reuse_matches,
+        "perceptual_avatar_matches": perceptual_matches,
         "forensic_alerts": forensic_alerts,
         "forensic_image_alerts": forensic_alerts,
     }

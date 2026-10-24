@@ -649,9 +649,14 @@ def analyze_local_file(file_path: str) -> dict:
         analyze_png_webp_c2pa_bytes,
         decode_ssh_pubkey_or_pem,
     )
+    from .ocr_engine import extract_text_and_codes_from_image
+    from .perceptual_hash import compute_dhash_hex
 
     if magic == "JPEG Image":
         metadata["exif"] = _parse_jpeg_exif(data)
+        dhash_val = compute_dhash_hex(data)
+        if dhash_val:
+            metadata["perceptual_dhash"] = dhash_val
         c2pa_info = analyze_png_webp_c2pa_bytes(data)
         if c2pa_info.get("c2pa_content_credentials_detected") or c2pa_info.get("ai_or_camera_signatures"):
             metadata["c2pa_and_ai_provenance"] = c2pa_info
@@ -663,13 +668,30 @@ def analyze_local_file(file_path: str) -> dict:
         xmp_m = re.search(rb"<x:xmpmeta[^>]*>.*?</x:xmpmeta>", data[:262_144], flags=re.DOTALL)
         if xmp_m:
             extracted_text_parts.append(_html_to_searchable_text(xmp_m.group(0).decode("utf-8", errors="ignore")))
+        ocr_res = extract_text_and_codes_from_image(p)
+        if ocr_res["raw_text"] or ocr_res["qr_or_barcodes"] or ocr_res["ocr_available"]:
+            metadata["image_ocr"] = ocr_res
+        if ocr_res["normalized_text"]:
+            extracted_text_parts.append(ocr_res["normalized_text"])
+        if ocr_res["qr_or_barcodes"]:
+            extracted_text_parts.extend(ocr_res["qr_or_barcodes"])
 
-    elif magic in ("PNG Image", "WebP Image"):
+    elif magic in ("PNG Image", "WebP Image", "GIF Image"):
+        dhash_val = compute_dhash_hex(data)
+        if dhash_val:
+            metadata["perceptual_dhash"] = dhash_val
         img_f = analyze_png_webp_c2pa_bytes(data)
         metadata["image_forensics_and_c2pa"] = img_f
-        for tk, tv in (img_f.get("text_chunks") or {}).items():
+        for tk, tv in (img_f.get("embedded_text_metadata") or img_f.get("text_chunks") or {}).items():
             if isinstance(tv, str) and len(tv) <= 4000:
                 extracted_text_parts.append(f"{tk}: {tv}")
+        ocr_res = extract_text_and_codes_from_image(p)
+        if ocr_res["raw_text"] or ocr_res["qr_or_barcodes"] or ocr_res["ocr_available"]:
+            metadata["image_ocr"] = ocr_res
+        if ocr_res["normalized_text"]:
+            extracted_text_parts.append(ocr_res["normalized_text"])
+        if ocr_res["qr_or_barcodes"]:
+            extracted_text_parts.extend(ocr_res["qr_or_barcodes"])
 
     elif magic == "MP4 / MOV QuickTime Video":
         mp4_res = analyze_mp4_mov_bytes(data)
@@ -791,6 +813,14 @@ def analyze_local_file(file_path: str) -> dict:
     if ssh_pem_info:
         metadata["key_or_cert_forensics"] = ssh_pem_info
 
+    carved_ibans = []
+    for iban_tok in re.findall(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b", sample_str.upper()):
+        ib_dec = decode_iban(iban_tok)
+        if ib_dec and ib_dec.get("mod97_valid"):
+            carved_ibans.append(ib_dec)
+    if carved_ibans:
+        metadata["carved_ibans"] = carved_ibans
+
     for sel in extract_selectors(sample_str, check_local_file=False):
         if sel["type"] != "keyword":
             _push_pivot(sel["type"], sel["value"])
@@ -850,11 +880,18 @@ def analyze_local_file(file_path: str) -> dict:
     carved_urls = [pv["value"] for pv in content_pivots if pv["type"] == "url"][:20] or sorted(set(URL_RE.findall(sample_str)))[:15]
     carved_wallets = [pv["value"] for pv in content_pivots if pv["type"] == "crypto_address"][:15] or sorted(set(EVM_RE.findall(sample_str)))[:10]
     carved_ips = [pv["value"] for pv in content_pivots if pv["type"] == "ip"][:15] or sorted(set(IPV4_RE.findall(sample_str)))[:10]
+    carved_ibans: list[str] = []
+    for ib_cand in IBAN_CANDIDATE_RE.findall(sample_str):
+        ib_chk = decode_iban(ib_cand)
+        if ib_chk and ib_chk.get("mod97_valid") and ib_chk["iban"] not in carved_ibans:
+            carved_ibans.append(ib_chk["iban"])
 
     for em in carved_emails[:10]:
         _push_pivot("email", em)
     for w in carved_wallets[:10]:
         _push_pivot("crypto_address", w)
+    for ib in carved_ibans[:10]:
+        _push_pivot("iban", ib)
 
     # Include content selectors first; append file_hash for non-text binary triage
     pivots: list[dict] = list(content_pivots[:45])
@@ -873,6 +910,7 @@ def analyze_local_file(file_path: str) -> dict:
             "urls": carved_urls,
             "evm_wallets": carved_wallets,
             "ipv4s": carved_ips,
+            "ibans": carved_ibans,
         },
         "content_selectors": content_pivots[:45],
         "extracted_text_sample": sample_str[:16_384],

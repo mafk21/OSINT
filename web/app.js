@@ -308,18 +308,132 @@
 
     btn.disabled = true;
     btn.textContent = "Investigating...";
-    outArea.innerHTML = `<div class="card" style="text-align:center; padding:32px; color:var(--text-muted);">Searching public sources and correlating leads for <code>${esc(target)}</code>...</div>`;
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    outArea.innerHTML = `
+      <div class="card" style="padding:20px 22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:14.5px; font-weight:600; color:var(--text);" id="liveProgressTitle">
+              Starting investigation on <code>${esc(target)}</code>...
+            </div>
+            <div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;" id="liveProgressSub">
+              Preparing Stage 1 collectors...
+            </div>
+          </div>
+          <button class="btn" id="stopEarlyHuntBtn" style="font-size:12.5px;">Stop &amp; View Results</button>
+        </div>
+        <div style="height:6px; background:var(--bg-elev); border-radius:999px; overflow:hidden; margin-top:14px;">
+          <div id="liveProgressBar" style="height:100%; width:8%; background:var(--accent); transition:width 0.25s ease;"></div>
+        </div>
+      </div>`;
+
+    const stopBtn = document.getElementById("stopEarlyHuntBtn");
+    if (stopBtn) {
+      stopBtn.onclick = async () => {
+        stopBtn.disabled = true;
+        stopBtn.textContent = "Stopping & synthesizing...";
+        const subEl = document.getElementById("liveProgressSub");
+        if (subEl) subEl.textContent = "Finishing in-flight checks and compiling report...";
+        try {
+          await fetch("./api/hunt/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ job_id: jobId }),
+          });
+        } catch (_) {}
+      };
+    }
 
     try {
-      const resp = await fetch("./api/hunt", {
+      const resp = await fetch("./api/hunt/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, depth, save_case: true, diff_last: diffLast }),
+        body: JSON.stringify({ target, depth, save_case: true, diff_last: diffLast, job_id: jobId }),
       });
-      const report = await resp.json();
-      if (!resp.ok || report.error) throw new Error(report.error || `HTTP ${resp.status}`);
-      lastHuntReport = report;
-      renderHuntReport(report);
+      if (!resp.ok) {
+        let errMsg = `HTTP ${resp.status}`;
+        try {
+          const ej = await resp.json();
+          if (ej.error) errMsg = ej.error;
+        } catch (_) {}
+        throw new Error(errMsg);
+      }
+
+      let finalReport = null;
+      let totalMatchesSoFar = 0;
+      let entitiesCheckedSoFar = 0;
+
+      if (resp.body && typeof resp.body.getReader === "function") {
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+
+        const handleEvt = (evt) => {
+          const titleEl = document.getElementById("liveProgressTitle");
+          const subEl = document.getElementById("liveProgressSub");
+          const barEl = document.getElementById("liveProgressBar");
+
+          if (evt.event === "stage_start") {
+            const pct = Math.min(88, Math.round(((evt.stage - 1) / Math.max(1, evt.max_depth)) * 80) + 10);
+            if (barEl) barEl.style.width = `${pct}%`;
+            if (titleEl) titleEl.innerHTML = `Stage ${esc(evt.stage)} of ${esc(evt.max_depth)} · Checking ${esc(evt.queued_count)} lead(s)`;
+            if (subEl) subEl.textContent = `${entitiesCheckedSoFar} entities checked · ${totalMatchesSoFar} positive matches so far`;
+          } else if (evt.event === "entity_done") {
+            entitiesCheckedSoFar += 1;
+            totalMatchesSoFar += Number(evt.hit_count || 0);
+            const stageBase = ((evt.stage - 1) / Math.max(1, depth)) * 80;
+            const stageFrac = (evt.completed_in_stage / Math.max(1, evt.total_in_stage)) * (80 / Math.max(1, depth));
+            const pct = Math.min(90, Math.round(10 + stageBase + stageFrac));
+            if (barEl) barEl.style.width = `${pct}%`;
+            if (titleEl) {
+              titleEl.innerHTML = `Stage ${esc(evt.stage)} of ${esc(depth)} · Checked <code>${esc(String(evt.value).slice(0, 38))}</code> (${esc(evt.completed_in_stage)}/${esc(evt.total_in_stage)})`;
+            }
+            if (subEl) {
+              subEl.textContent = `${entitiesCheckedSoFar} entities checked · ${totalMatchesSoFar} positive matches found`;
+            }
+          } else if (evt.event === "stage_analyzed" && evt.new_leads_count > 0) {
+            if (subEl) {
+              subEl.textContent = `Stage ${evt.stage} extracted ${evt.new_leads_count} new pivot lead(s) for Stage ${evt.stage + 1}`;
+            }
+          } else if (evt.event === "synthesizing") {
+            if (barEl) barEl.style.width = "95%";
+            if (titleEl) titleEl.textContent = evt.stopped_early ? "Stopped early — compiling collected intelligence..." : "Correlating entities, photos & dossier...";
+            if (stopBtn) stopBtn.style.display = "none";
+          } else if (evt.event === "complete" && evt.report) {
+            finalReport = evt.report;
+          } else if (evt.event === "error") {
+            throw new Error(evt.error || "Stream failed");
+          }
+        };
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() || "";
+          for (const ln of lines) {
+            if (!ln.trim()) continue;
+            handleEvt(JSON.parse(ln));
+          }
+        }
+        if (buf.trim()) {
+          handleEvt(JSON.parse(buf.trim()));
+        }
+      } else {
+        const text = await resp.text();
+        for (const ln of text.split("\n")) {
+          if (!ln.trim()) continue;
+          const evt = JSON.parse(ln);
+          if (evt.event === "complete" && evt.report) finalReport = evt.report;
+          if (evt.event === "error") throw new Error(evt.error || "Stream failed");
+        }
+      }
+
+      if (!finalReport) throw new Error("No report returned from local engine");
+      lastHuntReport = finalReport;
+      renderHuntReport(finalReport);
     } catch (err) {
       const msg = String(err?.message || err);
       const isOffline = /failed to fetch|networkerror|load failed/i.test(msg);
@@ -546,9 +660,10 @@
       </div>
 
       ${
-        im.sha256 || camStr || gps || aiGen || exif.datetime_original
+        im.sha256 || im.dhash || camStr || gps || aiGen || exif.datetime_original
           ? `<div class="kv-list" style="margin-bottom:12px; font-size:12.5px;">
               ${im.sha256 ? `<div class="kv-row"><span class="kv-key">SHA-256</span><span class="kv-val"><code>${esc(im.sha256.slice(0, 24))}…</code></span></div>` : ""}
+              ${im.dhash ? `<div class="kv-row"><span class="kv-key">Visual dHash</span><span class="kv-val"><code>${esc(im.dhash)}</code></span></div>` : ""}
               ${camStr ? `<div class="kv-row"><span class="kv-key">Camera</span><span class="kv-val">${esc(camStr)}</span></div>` : ""}
               ${exif.datetime_original ? `<div class="kv-row"><span class="kv-key">Captured</span><span class="kv-val">${esc(exif.datetime_original)}</span></div>` : ""}
               ${gps ? `<div class="kv-row"><span class="kv-key">GPS Location</span><span class="kv-val"><a href="https://www.google.com/maps?q=${encodeURIComponent(gps.lat + "," + gps.lon)}" target="_blank" rel="noopener">${esc(gps.lat + ", " + gps.lon)} ↗</a></span></div>` : ""}
@@ -601,6 +716,7 @@
       .join("");
 
     const socialProfiles = idC.social_profiles_detailed || [];
+    const namesakeProfiles = idC.possible_namesake_profiles || [];
     const webMentions = syn.web_and_news_mentions || [];
     const exposures = syn.security_and_opsec_exposures || [];
     const launchpad = syn.launchpad_links || [];
@@ -608,7 +724,11 @@
     const visualIntel = report.visual_intel || {};
     const visualImages = visualIntel.images || [];
     const avatarReuses = visualIntel.avatar_reuse_matches || [];
+    const perceptualMatches = visualIntel.perceptual_avatar_matches || [];
     const reuseShaSet = new Set(avatarReuses.map((r) => r.sha256));
+    const perceptualDhashSet = new Set(
+      perceptualMatches.flatMap((pm) => (pm.platforms || []).map((p) => p.dhash).filter(Boolean))
+    );
 
     const phonesFormatted = (idC.phones || [])
       .slice(0, 4)
@@ -696,6 +816,7 @@
             <strong style="font-size:16px;">${esc(m.raw_input)}</strong>
             <span class="status-pill ${isAct ? "red" : "green"}">${isAct ? "Active + Passive" : "Passive"}</span>
             <span class="status-pill ${scoreClass}">Exposure ${esc(score)}/100</span>
+            ${m.stopped_early ? `<span class="status-pill amber">Stopped Early</span>` : ""}
           </div>
           <div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">
             ${report.graph.nodes.length} entities · ${report.graph.edges.length} connections · ${esc(m.stages_executed || m.depth)} stage(s) in ${esc(m.duration_seconds)}s
@@ -776,7 +897,9 @@
           <div class="card-title" style="margin-bottom:10px;">Domains &amp; Network</div>
           <div class="kv-list">
             <div class="kv-row"><span class="kv-key">Domains</span><span class="kv-val">${esc((infC.domains_and_subdomains || []).slice(0, 5).join(", ") || "—")}</span></div>
+            ${(infC.sister_domains || []).length ? `<div class="kv-row"><span class="kv-key">Sister Domains</span><span class="kv-val">${esc((infC.sister_domains || []).slice(0, 4).join(", "))}</span></div>` : ""}
             <div class="kv-row"><span class="kv-key">IPs / ASNs</span><span class="kv-val">${esc([...(infC.ip_addresses || []), ...(infC.asns || [])].slice(0, 4).join(", ") || "—")}</span></div>
+            ${(infC.mail_and_saas_stack || []).length ? `<div class="kv-row"><span class="kv-key">Mail &amp; SaaS</span><span class="kv-val">${esc((infC.mail_and_saas_stack || []).slice(0, 4).join(", "))}</span></div>` : ""}
             <div class="kv-row"><span class="kv-key">Locations</span><span class="kv-val">${esc((idC.locations || []).slice(0, 4).join(", ") || "—")}</span></div>
           </div>
         </div>
@@ -813,11 +936,15 @@
                 </div>
               </div>
               ${
-                avatarReuses.length > 0
+                avatarReuses.length > 0 || perceptualMatches.length > 0
                   ? `<div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:8px 11px; margin-bottom:10px; font-size:12.5px; color:var(--text);">
                       ${avatarReuses
                         .slice(0, 3)
-                        .map((r) => `<div>🔗 <strong>Same photo reused across accounts:</strong> ${esc((r.platforms || []).map((p) => `${p.platform} (${p.selector})`).join(" · "))}</div>`)
+                        .map((r) => `<div>🔗 <strong>Exact photo match across accounts:</strong> ${esc((r.platforms || []).map((p) => `${p.platform} (${p.selector})`).join(" · "))}</div>`)
+                        .join("")}
+                      ${perceptualMatches
+                        .slice(0, 3)
+                        .map((pm) => `<div>👁️ <strong>Visually similar photo (${esc(pm.similarity_pct)}% dHash match):</strong> ${esc((pm.platforms || []).map((p) => `${p.platform} (${p.selector})`).join(" · "))}</div>`)
                         .join("")}
                     </div>`
                   : ""
@@ -830,7 +957,7 @@
                     const rev = im.reverse_search || {};
                     const hasGps = Boolean(im.forensics?.exif?.gps_coordinates);
                     const hasAi = Boolean(im.forensics?.ai_or_c2pa?.detected);
-                    const isReused = im.sha256 && reuseShaSet.has(im.sha256);
+                    const isReused = (im.sha256 && reuseShaSet.has(im.sha256)) || (im.dhash && perceptualDhashSet.has(im.dhash));
                     return `
                     <div style="background:var(--bg-elev); border:1px solid var(--border); border-radius:9px; overflow:hidden; display:flex; flex-direction:column;">
                       <div data-photo-idx="${idx}" style="height:152px; background:#090b10; cursor:zoom-in; position:relative; overflow:hidden;">
@@ -868,30 +995,58 @@
       }
 
       ${
-        socialProfiles.length > 0
+        socialProfiles.length > 0 || namesakeProfiles.length > 0
           ? `<div class="card">
               <div class="card-header">
                 <span class="card-title">Discovered Accounts &amp; Profiles (${socialProfiles.length})</span>
               </div>
-              <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:8px;">
-                ${socialProfiles
-                  .slice(0, 18)
-                  .map(
-                    (p) => `
-                  <a href="${esc(p.url)}" target="_blank" rel="noopener" style="display:block; text-decoration:none; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:9px 11px;">
-                    <div style="display:flex; justify-content:space-between; gap:6px; align-items:center;">
-                      <div style="display:flex; align-items:center; gap:7px;">
-                        ${p.avatar_url ? `<img src="./api/image-proxy?url=${encodeURIComponent(p.avatar_url)}" alt="" loading="lazy" style="width:24px; height:24px; border-radius:50%; object-fit:cover; background:#090b10;" />` : ""}
-                        <strong style="color:var(--text); font-size:13px;">${esc(p.platform)}</strong>
+              ${
+                socialProfiles.length > 0
+                  ? `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:8px;">
+                      ${socialProfiles
+                        .slice(0, 18)
+                        .map(
+                          (p) => `
+                        <a href="${esc(p.url)}" target="_blank" rel="noopener" style="display:block; text-decoration:none; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:9px 11px;">
+                          <div style="display:flex; justify-content:space-between; gap:6px; align-items:center;">
+                            <div style="display:flex; align-items:center; gap:7px;">
+                              ${p.avatar_url ? `<img src="./api/image-proxy?url=${encodeURIComponent(p.avatar_url)}" alt="" loading="lazy" style="width:24px; height:24px; border-radius:50%; object-fit:cover; background:#090b10;" />` : ""}
+                              <strong style="color:var(--text); font-size:13px;">${esc(p.platform)}</strong>
+                            </div>
+                            <span style="font-size:11.5px; color:var(--accent);"><code>${esc(p.handle)}</code> ↗</span>
+                          </div>
+                          ${p.display_name ? `<div style="font-size:12.5px; color:var(--text); margin-top:3px;">${esc(p.display_name)}${p.followers ? ` · <span style="color:var(--text-muted);">${esc(String(p.followers))}</span>` : ""}</div>` : ""}
+                          ${p.bio ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${esc(String(p.bio).slice(0, 110))}</div>` : ""}
+                        </a>`
+                        )
+                        .join("")}
+                    </div>`
+                  : `<div style="font-size:13px; color:var(--text-muted);">No corroborated profiles matched target context — common-handle namesake hits were held back below to prevent false-positive collisions.</div>`
+              }
+              ${
+                namesakeProfiles.length > 0
+                  ? `<details style="margin-top:10px;">
+                      <summary style="cursor:pointer; font-size:12.5px; color:var(--text-muted);">
+                        Possible namesake accounts on common username (${namesakeProfiles.length} uncorroborated — filtered from auto-pivoting)
+                      </summary>
+                      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:7px; margin-top:8px;">
+                        ${namesakeProfiles
+                          .slice(0, 12)
+                          .map(
+                            (np) => `
+                          <a href="${esc(np.url)}" target="_blank" rel="noopener" style="display:block; text-decoration:none; background:rgba(255,255,255,0.015); border:1px dashed var(--border); border-radius:8px; padding:7px 10px; font-size:12px;">
+                            <div style="display:flex; justify-content:space-between; gap:6px;">
+                              <strong style="color:var(--text-muted);">${esc(np.platform)}</strong>
+                              <span style="color:var(--text-dim);"><code>${esc(np.handle)}</code> ↗</span>
+                            </div>
+                            ${np.display_name ? `<div style="color:var(--text-muted); margin-top:2px;">${esc(np.display_name)}</div>` : ""}
+                          </a>`
+                          )
+                          .join("")}
                       </div>
-                      <span style="font-size:11.5px; color:var(--accent);"><code>${esc(p.handle)}</code> ↗</span>
-                    </div>
-                    ${p.display_name ? `<div style="font-size:12.5px; color:var(--text); margin-top:3px;">${esc(p.display_name)}${p.followers ? ` · <span style="color:var(--text-muted);">${esc(String(p.followers))}</span>` : ""}</div>` : ""}
-                    ${p.bio ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${esc(String(p.bio).slice(0, 110))}</div>` : ""}
-                  </a>`
-                  )
-                  .join("")}
-              </div>
+                    </details>`
+                  : ""
+              }
             </div>`
           : ""
       }
@@ -1841,6 +1996,7 @@
             </div>
             <div class="kv-list">
               <div class="kv-row"><span class="kv-key">Cases Folder</span><span class="kv-val"><code>${esc(d.cases_dir)}</code></span></div>
+              <div class="kv-row"><span class="kv-key">Screenshot OCR</span><span class="kv-val">${d.ocr_status?.ocr_available ? esc(d.ocr_status.preferred_backend) : "EXIF/Text Only"}</span></div>
               <div class="kv-row"><span class="kv-key">Optional Keys</span><span class="kv-val">${byok.filter((p) => p.configured).length} configured</span></div>
             </div>
           </div>

@@ -9,7 +9,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .bilingual_mena import generate_bilingual_pivots
 from .classify import DOMAIN_RE, NOISE_DOMAINS, extract_selectors, generate_handle_variants
+from .entity_disambiguator import (
+    build_anchor_context_from_nodes,
+    corroborate_social_profiles,
+    score_handle_uniqueness,
+)
 
 # Selector execution priority (lower = higher priority when ordering within a stage,
 # though ALL valid leads in a stage are hunted — never stopped after finding 1 clue!)
@@ -276,33 +282,82 @@ def analyze_stage_and_extract_leads(
             }
 
     # A. Analyze every single collector output across every entity hunted in this stage
+    stage_context_nodes = [{"type": it["type"], "value": it["value"]} for it in stage_items]
+    for v_id in visited:
+        if ":" in v_id:
+            vt, vv = v_id.split(":", 1)
+            stage_context_nodes.append({"type": vt, "value": vv})
+
+    collision_filtered_count = 0
     for item in stage_items:
         stype = item["type"]
         sval = item["value"]
         src_id = f"{stype}:{sval.lower()}"
 
-        # Deterministic handle mutation on Stage 1 usernames (or newly found dotted/underscored social handles)
-        if expand_handle_variants and stype == "username" and stage_num == 1:
+        # Check common-username collision risk (Upgrade #1)
+        is_common_handle = False
+        anchor_ctx = None
+        if stype == "username":
+            u_info = score_handle_uniqueness(sval)
+            is_common_handle = u_info["is_collision_prone"]
+            if is_common_handle:
+                anchor_ctx = build_anchor_context_from_nodes(stage_context_nodes, handle=sval)
+
+        # Deterministic handle mutation on Stage 1 distinctive usernames (skip mutating generic 'ahmed'/'admin'!)
+        if expand_handle_variants and stype == "username" and stage_num == 1 and not is_common_handle:
             for var in generate_handle_variants(sval, max_variants=4):
                 before = len(discovered_map)
                 _register_lead(src_id, "username", var, "stage_analyzer:handle_variant")
                 if len(discovered_map) > before:
                     handle_variants_added.append(var)
+            # Upgrade #4: Arabizi / MENA handle -> Arabic script pivot (e.g. dr.abo3tab -> د. أبو عتاب)
+            bi_h = generate_bilingual_pivots(sval)
+            if bi_h["has_arabizi"] and bi_h["arabic_queries"]:
+                _register_lead(src_id, "person_name", bi_h["arabic_queries"][0], "stage_analyzer:arabizi_to_arabic")
 
         for mod_res in item.get("collector_outputs") or []:
             mod_name = mod_res.get("module", "collector")
-            # 1. Explicit collector pivots (ALL of them — never stop at 1!)
+            mdata = mod_res.get("data") if isinstance(mod_res.get("data"), dict) else {}
+
+            # Guard single-platform profile collectors on collision-prone handles (@ahmed, @alex, @admin)
+            if is_common_handle and mod_res.get("status") == "ok" and mod_name in (
+                "github_user_osint",
+                "bluesky_atproto",
+                "mastodon_fediverse",
+                "npm_maintainer_osint",
+                "pypi_package_osint",
+            ):
+                synth_prof = {
+                    "platform": mod_name,
+                    "url": mdata.get("html_url") or mdata.get("url") or "",
+                    "display_name": mdata.get("name") or mdata.get("display_name"),
+                    "bio": mdata.get("bio") or mdata.get("description") or mdata.get("summary"),
+                    "website": mdata.get("blog") or mdata.get("homepage"),
+                    "company": mdata.get("company"),
+                    "location": mdata.get("location"),
+                    "emails": (mdata.get("commit_emails") or []) + ([mdata["email"]] if mdata.get("email") else []),
+                }
+                chk = corroborate_social_profiles(sval, [synth_prof], anchor_context=anchor_ctx)
+                if not chk["corroborated_profiles"]:
+                    collision_filtered_count += 1
+                    continue
+
+            # 1. Explicit collector pivots (ALL corroborated pivots!)
             for piv in mod_res.get("pivots") or []:
                 if isinstance(piv, dict) and piv.get("type") and piv.get("value"):
                     _register_lead(src_id, piv["type"], str(piv["value"]), mod_name)
 
             # 2. Deep structured & unstructured carving inside `mod_res["data"]`
-            if mod_res.get("status") == "ok" and mod_res.get("data"):
+            if mod_res.get("status") == "ok" and mdata:
+                # For username_platform_sweep on common handles, do not carve uncorroborated namesake bios
+                carve_payload = mdata
+                if is_common_handle and mod_name == "username_platform_sweep" and mdata.get("possible_namesake_profiles"):
+                    carve_payload = {k: v for k, v in mdata.items() if k not in ("possible_namesake_profiles", "possible_namesake_hits")}
                 _carve_from_collector_data(
                     stype,
                     sval,
                     mod_name,
-                    mod_res["data"],
+                    carve_payload,
                     lambda t, v, via, _sid=src_id: _register_lead(_sid, t, v, via),
                 )
 
@@ -341,6 +396,7 @@ def analyze_stage_and_extract_leads(
         "new_leads_by_type": by_type_counts,
         "handle_variants_generated": handle_variants_added,
         "filtered_infra_noise_count": filtered_noise_count,
+        "collision_filtered_count": collision_filtered_count,
         "leads": ordered_leads,
         "edges": all_edges,
     }

@@ -16,6 +16,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from .classify import DOMAIN_RE, NOISE_DOMAINS, extract_selectors
+from .entity_disambiguator import corroborate_social_profiles, score_handle_uniqueness
 from .image_intel import search_open_web_images
 from .web_search_intel import (
     _clean_emails_from_text,
@@ -710,8 +711,14 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
         web_social = f_web.result()
         img_social = f_img.result()
 
-    # Harvest pivots from every discovered profile!
-    for prof in profiles_found:
+    # Upgrade #1: Disambiguate common/collision-prone handles vs corroborated target accounts!
+    disamb = corroborate_social_profiles(u, profiles_found)
+    corroborated_profiles = disamb["corroborated_profiles"]
+    namesake_profiles = disamb["possible_namesake_profiles"]
+    uniq_meta = disamb["handle_uniqueness"]
+
+    # Harvest auto-pivots ONLY from corroborated profiles (prevents @ahmed/@alex stranger pollution!)
+    for prof in corroborated_profiles:
         ext_links = []
         for lk in prof.get("external_links") or []:
             if isinstance(lk, dict) and lk.get("url"):
@@ -765,12 +772,34 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
 
     # 1. Deep Social & Bio-Link Profile Sweep
     if profiles_found or offline_count < len(probe_fns):
-        plat_names = [p["platform"] for p in profiles_found]
-        summary = (
-            f"Extracted {len(profiles_found)} rich profile(s) ({', '.join(plat_names)})"
-            if profiles_found
-            else f"0 direct profile hits across {len(probe_fns) - offline_count} reachable platforms"
-        )
+        def _fmt_hit(p: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "site": p["platform"],
+                "category": p.get("category", "Social"),
+                "probe_url": p["url"],
+                "display_name": p.get("display_name"),
+                "avatar_url": p.get("avatar_url"),
+                "bio": p.get("bio") or p.get("stats_and_bio_preview"),
+                "followers": p.get("followers") or p.get("subscribers") or p.get("subscribers_or_handle"),
+                "location": p.get("location") or p.get("region"),
+                "external_links": p.get("external_links") or ([p["website"]] if p.get("website") else []),
+                "verified_proofs": p.get("verified_proofs") or p.get("verified_accounts"),
+                "corroborated": p.get("corroborated", True),
+                "attribution_confidence": p.get("attribution_confidence"),
+            }
+
+        plat_names = [p["platform"] for p in corroborated_profiles]
+        if corroborated_profiles:
+            summary = f"Extracted {len(corroborated_profiles)} corroborated profile(s) ({', '.join(plat_names)})"
+            if namesake_profiles:
+                summary += f" · Held back {len(namesake_profiles)} uncorroborated namesake match(es) on common handle '@{u}'"
+        elif namesake_profiles:
+            summary = (
+                f"Common handle '@{u}' matched {len(namesake_profiles)} platform(s) ({', '.join(p['platform'] for p in namesake_profiles[:6])}) "
+                "— held as uncorroborated namesakes to prevent false-positive pivots"
+            )
+        else:
+            summary = f"0 direct profile hits across {len(probe_fns) - offline_count} reachable platforms"
         if offline_count:
             summary += f" ({offline_count} external platform checks blocked by sandbox policy)"
         out_modules.append(
@@ -779,22 +808,12 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                 "ok" if profiles_found else ("restricted_or_offline" if offline_count == len(probe_fns) else "not_found"),
                 summary,
                 {
-                    "hits": [
-                        {
-                            "site": p["platform"],
-                            "category": p.get("category", "Social"),
-                            "probe_url": p["url"],
-                            "display_name": p.get("display_name"),
-                            "avatar_url": p.get("avatar_url"),
-                            "bio": p.get("bio") or p.get("stats_and_bio_preview"),
-                            "followers": p.get("followers") or p.get("subscribers") or p.get("subscribers_or_handle"),
-                            "location": p.get("location") or p.get("region"),
-                            "external_links": p.get("external_links") or ([p["website"]] if p.get("website") else []),
-                            "verified_proofs": p.get("verified_proofs") or p.get("verified_accounts"),
-                        }
-                        for p in profiles_found
-                    ],
-                    "profiles_detailed": profiles_found,
+                    "handle_uniqueness": uniq_meta,
+                    "collision_guard_triggered": disamb["collision_guard_triggered"],
+                    "hits": [_fmt_hit(p) for p in corroborated_profiles],
+                    "possible_namesake_hits": [_fmt_hit(p) for p in namesake_profiles],
+                    "profiles_detailed": corroborated_profiles,
+                    "possible_namesake_profiles": namesake_profiles,
                     "offline_skipped": offline_count,
                 },
                 pivots,
@@ -812,19 +831,22 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
 
     # 2. Open-Web Handle & Indexed Social Discovery (catches IG/TikTok/Snap/LinkedIn/X bios indexed in search!)
     if web_social["results"]:
+        safe_web_pivots = [] if uniq_meta["is_collision_prone"] else web_social["pivots"]
         out_modules.append(
             _res(
                 "username_open_web_and_social_index",
                 "ok",
-                f"Open-web search discovered {len(web_social['results'])} mention(s) & {len(web_social['social_hits'])} indexed social account(s) for '{u}'",
+                f"Open-web search discovered {len(web_social['results'])} mention(s) & {len(web_social['social_hits'])} indexed social account(s) for '{u}'"
+                + (" (auto-pivot gated: common handle)" if uniq_meta["is_collision_prone"] else ""),
                 {
+                    "handle_uniqueness": uniq_meta,
                     "social_profiles": web_social["social_hits"],
                     "web_results": web_social["results"][:15],
                     "extracted_emails": web_social["emails"],
                     "extracted_phones": web_social["phones"],
                     "related_domains": web_social["related_domains"],
                 },
-                web_social["pivots"],
+                safe_web_pivots,
             )
         )
 

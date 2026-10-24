@@ -348,6 +348,8 @@ def render_markdown_dossier(report: dict) -> str:
         for reuse in (vis.get("avatar_reuse_matches") or [])[:4]:
             plats = ", ".join(p["platform"] for p in reuse["platforms"])
             lines.append(f"  - 🔗 **Identical Photo Reused Across Platforms** (`SHA256:{reuse['sha256'][:12]}…`): `{plats}`")
+        for pm in (vis.get("perceptual_avatar_matches") or [])[:4]:
+            lines.append(f"  - 👁️ **{pm['note']}**")
         for fa in (vis.get("forensic_alerts") or [])[:5]:
             lines.append(f"  - 📸 **Image Forensic Alert**: {fa}")
         for im in vis["images"][:10]:
@@ -541,43 +543,86 @@ def _execute_stage_loop(
     enabled_active_mods: list[str],
     initial_ingested_evidence: list[dict] | None = None,
     expand_handle_variants: bool = True,
+    progress_callback=None,
+    cancel_event=None,
 ) -> tuple[int, bool]:
     """Run exhaustive breadth-first OSINT stage after stage until 0 new leads remain or max_stage is reached."""
     stages_executed = 0
     converged = False
     seen_edges = {(e["source"], e["target"], e["via"]) for e in edges}
 
+    def _emit_prog(payload: dict) -> None:
+        if callable(progress_callback):
+            try:
+                progress_callback(payload)
+            except Exception:
+                pass
+
     for wave_num in range(start_stage, max_stage + 1):
+        if cancel_event is not None and cancel_event.is_set():
+            break
         if not current_queue:
             converged = True
             break
 
         stages_executed += 1
+        _emit_prog(
+            {
+                "event": "stage_start",
+                "stage": wave_num,
+                "max_stage": max_stage,
+                "queued_count": len(current_queue),
+                "entities": [{"type": t, "value": v} for t, v in current_queue[:8]],
+            }
+        )
 
-        def _exec_one(item: tuple[str, str]):
-            st, sv = item
+        def _exec_one(idx_item: tuple[int, tuple[str, str]]):
+            idx_q, (st, sv) = idx_item
+            if cancel_event is not None and cancel_event.is_set():
+                return idx_q, st, sv, []
             try:
                 outs = collect_for_selector(st, sv)
             except Exception as exc:
                 outs = [{"module": "passive_collector_guard", "opsec": "Passive", "status": "restricted_or_offline", "summary": f"Collector skipped ({exc})", "data": {}, "pivots": []}]
-            if is_active:
+            if is_active and not (cancel_event is not None and cancel_event.is_set()):
                 try:
                     outs = outs + collect_active_for_selector(st, sv, enabled_active_mods)
                 except Exception as exc:
                     outs = outs + [{"module": "active_collector_guard", "opsec": "Active", "status": "restricted_or_offline", "status_code": 0, "summary": f"Active probe skipped ({exc})", "data": {}, "pivots": []}]
-            return st, sv, outs
+            return idx_q, st, sv, outs
 
-        stage_items: list[dict] = []
+        ordered_slots: list[dict | None] = [None] * len(current_queue)
+        done_in_stage = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(current_queue))) as pool:
-            for stype, sval, collector_outs in pool.map(_exec_one, current_queue):
-                rec = {
+            futs = [pool.submit(_exec_one, (i, item)) for i, item in enumerate(current_queue)]
+            for fut in concurrent.futures.as_completed(futs):
+                idx_q, stype, sval, collector_outs = fut.result()
+                done_in_stage += 1
+                ok_cnt = sum(1 for m in collector_outs if m.get("status") == "ok")
+                ordered_slots[idx_q] = {
                     "wave": wave_num,
                     "type": stype,
                     "value": sval,
                     "collector_outputs": collector_outs,
                 }
-                wave_results.append(rec)
-                stage_items.append(rec)
+                _emit_prog(
+                    {
+                        "event": "entity_done",
+                        "stage": wave_num,
+                        "max_stage": max_stage,
+                        "type": stype,
+                        "value": sval,
+                        "ok_matches": ok_cnt,
+                        "completed_in_stage": done_in_stage,
+                        "total_in_stage": len(current_queue),
+                    }
+                )
+
+        stage_items: list[dict] = [slot for slot in ordered_slots if slot is not None and slot["collector_outputs"]]
+        wave_results.extend(stage_items)
+
+        if cancel_event is not None and cancel_event.is_set():
+            break
 
         stage_ev = initial_ingested_evidence if wave_num == start_stage else None
         analysis = analyze_stage_and_extract_leads(
@@ -630,6 +675,16 @@ def _execute_stage_loop(
                 "queued_for_next_stage": len(queued_next),
             }
         )
+        _emit_prog(
+            {
+                "event": "stage_analyzed",
+                "stage": wave_num,
+                "new_leads_count": analysis["new_leads_count"],
+                "queued_next": len(queued_next),
+                "total_nodes": len(nodes),
+                "converged": converged,
+            }
+        )
         current_queue = queued_next
         if converged:
             break
@@ -655,6 +710,8 @@ def run_autonomous_hunt(
     enforce_turn_delay: bool = True,
     diff_last: bool = False,
     display_label: str | None = None,
+    progress_callback=None,
+    cancel_event=None,
 ) -> dict:
     """Execute an exhaustive multi-stage OSINT hunt until surface convergence.
 
@@ -787,7 +844,16 @@ def run_autonomous_hunt(
         enabled_active_mods=enabled_active_mods,
         initial_ingested_evidence=ev_blocks,
         expand_handle_variants=expand_handle_variants,
+        progress_callback=progress_callback,
+        cancel_event=cancel_event,
     )
+
+    stopped_early = bool(cancel_event is not None and cancel_event.is_set())
+    if callable(progress_callback):
+        try:
+            progress_callback({"event": "synthesizing", "total_nodes": len(nodes), "stopped_early": stopped_early})
+        except Exception:
+            pass
 
     all_entities = [(n["type"], n["value"]) for n in nodes]
     forged_dorks = forge_exhaustive_dorks_for_entities(all_entities, ALL_DORKS, max_total=60)
@@ -802,6 +868,7 @@ def run_autonomous_hunt(
             "depth": depth,
             "stages_executed": stages_executed,
             "converged": converged,
+            "stopped_early": stopped_early,
             "duration_seconds": elapsed,
             "opsec_mode": "Active+Passive" if is_active else "Passive",
             "approval_request_id": approved_record["request_id"] if approved_record else None,

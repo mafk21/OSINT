@@ -75,7 +75,11 @@ from osint_hunter.image_intel import (  # noqa: E402
     detect_image_format_and_dimensions,
     is_safe_public_http_url,
 )
+from osint_hunter.ocr_engine import get_ocr_backend_status  # noqa: E402
 from osint_hunter.providers import get_byok_status, update_byok_dotenv  # noqa: E402
+
+_ACTIVE_STREAM_LOCK = threading.Lock()
+_ACTIVE_STREAM_JOBS: dict[str, threading.Event] = {}
 from osint_hunter.watchlist import (  # noqa: E402
     add_to_watchlist,
     compute_case_delta,
@@ -192,6 +196,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                         "sqlite_fts5_present": (DATA_DIR / "osint.sqlite").is_file(),
                     },
                     "byok_providers": get_byok_status(),
+                    "ocr_status": get_ocr_backend_status(),
                     "auto_integrated_cli_tools": get_local_cli_status(),
                     "local_recon_binaries_detected": installed,
                     "optional_binaries_not_installed": [b for b in cli_probes if b not in installed],
@@ -477,6 +482,81 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 self._send_json({"error": "updates object is required"}, status=400)
                 return
             self._send_json({"byok_providers": update_byok_dotenv(updates)})
+            return
+
+        if path == "/api/hunt/cancel":
+            job_id = str(data.get("job_id") or "").strip()
+            with _ACTIVE_STREAM_LOCK:
+                ev = _ACTIVE_STREAM_JOBS.get(job_id)
+            if ev is not None:
+                ev.set()
+                self._send_json({"status": "cancelling", "job_id": job_id})
+            else:
+                self._send_json({"status": "not_found", "job_id": job_id})
+            return
+
+        if path == "/api/hunt/stream":
+            raw = str(data.get("target", "")).strip()
+            if not raw:
+                self._send_json({"error": "target is required"}, status=400)
+                return
+            depth = max(1, min(6, int(data.get("depth", 4))))
+            save_case = bool(data.get("save_case", True))
+            diff_last = bool(data.get("diff_last", False))
+            job_id = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("job_id") or f"job_{int(time.time() * 1000)}"))[:48]
+            cancel_ev = threading.Event()
+            with _ACTIVE_STREAM_LOCK:
+                _ACTIVE_STREAM_JOBS[job_id] = cancel_ev
+
+            write_lock = threading.Lock()
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+                self.send_header("X-Accel-Buffering", "no")
+                self.end_headers()
+
+                def _emit_ndjson(evt: dict) -> None:
+                    line_b = (json.dumps(evt, ensure_ascii=False) + "\n").encode("utf-8")
+                    with write_lock:
+                        try:
+                            self.wfile.write(line_b)
+                            self.wfile.flush()
+                        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                            cancel_ev.set()
+
+                _emit_ndjson({"event": "started", "job_id": job_id, "target": raw, "depth": depth})
+                report = run_autonomous_hunt(
+                    raw,
+                    depth=depth,
+                    save_case=save_case,
+                    mode="passive",
+                    diff_last=diff_last,
+                    progress_callback=_emit_ndjson,
+                    cancel_event=cancel_ev,
+                )
+                report["stix2_bundle"] = build_stix2_bundle(
+                    report["meta"]["case_id"],
+                    raw,
+                    report["graph"]["nodes"],
+                    report["graph"]["edges"],
+                )
+                report["entities_csv"] = render_entities_csv(report)
+                cdir = self._find_case_dir(report["meta"]["case_id"])
+                if cdir:
+                    for art_key, art_file in (("gexf_xml", "graph.gexf"), ("graphml_xml", "graph.graphml"), ("neo4j_cypher", "neo4j.cypher")):
+                        if (cdir / art_file).is_file():
+                            report[art_key] = (cdir / art_file).read_text(encoding="utf-8")
+                _emit_ndjson({"event": "complete", "report": report})
+            except Exception as exc:
+                try:
+                    err_b = (json.dumps({"event": "error", "error": str(exc)}, ensure_ascii=False) + "\n").encode("utf-8")
+                    self.wfile.write(err_b)
+                    self.wfile.flush()
+                except Exception:
+                    pass
+            finally:
+                with _ACTIVE_STREAM_LOCK:
+                    _ACTIVE_STREAM_JOBS.pop(job_id, None)
             return
 
         if path == "/api/hunt":

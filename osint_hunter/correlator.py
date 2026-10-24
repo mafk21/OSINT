@@ -11,6 +11,8 @@ import re
 import urllib.parse
 from pathlib import Path
 
+from .bilingual_mena import build_mena_regional_launchpad
+
 
 def _build_launchpad_links(by_type: dict[str, list[str]], phones_decoded: list[dict]) -> list[dict[str, str]]:
     """Build 1-click target-preloaded OSINT investigation URLs for every discovered entity class."""
@@ -78,7 +80,16 @@ def _build_launchpad_links(by_type: dict[str, list[str]], phones_decoded: list[d
         _add("Entity", f"Google Maps ({ent})", f"https://www.google.com/maps/search/{urllib.parse.quote(ent)}", ent)
         _add("Entity", f"OpenCorporates ({ent})", f"https://opencorporates.com/companies?q={urllib.parse.quote(ent)}", ent)
 
-    return links[:36]
+    # Upgrade #4: Append MENA / GCC verification & marketplace links (Maroof, Haraj, Saudi Business Center, SCFHS)
+    for m_lk in build_mena_regional_launchpad(
+        names=(by_type.get("person_name") or []) + (by_type.get("company") or []),
+        handles=by_type.get("username") or [],
+        phones=by_type.get("phone") or [],
+        domains=by_type.get("domain") or [],
+    ):
+        _add(m_lk["category"], m_lk["label"], m_lk["url"], "")
+
+    return links[:40]
 
 
 def synthesize_intelligence(report: dict) -> dict:
@@ -95,6 +106,7 @@ def synthesize_intelligence(report: dict) -> dict:
 
     verified_profiles: list[dict | str] = []
     social_profiles_detailed: list[dict] = []
+    possible_namesake_profiles: list[dict] = []
     seen_prof_map: dict[str, dict] = {}
     web_mentions: list[dict] = []
     seen_web_urls: set[str] = set()
@@ -105,6 +117,8 @@ def synthesize_intelligence(report: dict) -> dict:
     jarm_hashes: list[str] = []
     favicon_hashes: list[str] = []
     analytics_ids: set[str] = set()
+    mail_and_saas_stack: set[str] = set()
+    sister_domains: set[str] = set()
     security_exposures: list[str] = []
     open_ports_summary: dict[str, list[int]] = {}
 
@@ -189,6 +203,17 @@ def synthesize_intelligence(report: dict) -> dict:
                         )
                         if hit.get("location"):
                             locations.add(str(hit["location"]).strip())
+                for ns_hit in data.get("possible_namesake_hits") or []:
+                    if isinstance(ns_hit, dict) and ns_hit.get("probe_url"):
+                        possible_namesake_profiles.append(
+                            {
+                                "platform": ns_hit.get("site", "Platform"),
+                                "handle": sval,
+                                "url": ns_hit["probe_url"],
+                                "display_name": ns_hit.get("display_name"),
+                                "bio": (str(ns_hit["bio"])[:180] if ns_hit.get("bio") else None),
+                            }
+                        )
             if mname == "active_username_live_platform_probe":
                 for hit in (data.get("confirmed_accounts") or data.get("confirmed_profiles") or []):
                     if isinstance(hit, dict) and hit.get("url"):
@@ -283,6 +308,18 @@ def synthesize_intelligence(report: dict) -> dict:
                     verified_profiles.append(f"{reg_name}: {sval}")
             if mname == "microsoft_entra_tenant_passive" and data.get("federated_idp_auth_url"):
                 security_exposures.append(f"Federated SSO IdP endpoint exposed via Microsoft GetUserRealm on {sval}: {data['federated_idp_auth_url']}")
+            if mname == "spf_dmarc_saas_and_origin_intel":
+                for prov in data.get("saas_and_mail_providers") or []:
+                    mail_and_saas_stack.add(str(prov))
+                if data.get("spf_explicit_origin_ips"):
+                    security_exposures.append(
+                        f"SPF record on {sval} exposes direct origin mail/server IPv4(s): {', '.join(data['spf_explicit_origin_ips'][:4])}"
+                    )
+                if data.get("dmarc_policy") == "none":
+                    security_exposures.append(f"Weak DMARC policy (`p=none` spoofing monitor-only) on {sval}")
+            if mname == "ct_san_sister_domains":
+                for sd in data.get("sister_domains") or []:
+                    sister_domains.add(str(sd))
             if mname == "byok_hibp_breaches" and data.get("breach_count", 0) > 0:
                 security_exposures.append(f"HIBP flagged {data['breach_count']} credential breach(es) for {sval}")
             if mname == "byok_virustotal" and data.get("malicious", 0) > 0:
@@ -327,6 +364,10 @@ def synthesize_intelligence(report: dict) -> dict:
         plats_str = " == ".join(f"{p['platform']} ({p.get('selector') or ''})" for p in reuse.get("platforms") or [])
         if plats_str:
             attribution_bridges.append(f"[avatar_sha256:{str(reuse.get('sha256', ''))[:12]}] Identical Photo Match: {plats_str}")
+    for pm in vis.get("perceptual_avatar_matches") or []:
+        plats_str = " ~= ".join(f"{p['platform']} ({p.get('selector') or ''})" for p in pm.get("platforms") or [])
+        if plats_str:
+            attribution_bridges.append(f"[dhash_visual_match:{pm.get('similarity_pct')}%] Re-encoded Same Photo: {plats_str}")
     for fa in vis.get("forensic_alerts") or []:
         if fa not in security_exposures:
             security_exposures.append(fa)
@@ -384,10 +425,13 @@ def synthesize_intelligence(report: dict) -> dict:
             "locations": sorted(locations),
             "verified_profiles": verified_profiles[:30],
             "social_profiles_detailed": social_profiles_detailed[:30],
+            "possible_namesake_profiles": possible_namesake_profiles[:20],
             "business_and_academic_records": business_and_academic[:15],
         },
         "infrastructure_cluster": {
             "domains_and_subdomains": by_type.get("domain", []),
+            "sister_domains": sorted(sister_domains)[:15],
+            "mail_and_saas_stack": sorted(mail_and_saas_stack),
             "ip_addresses": by_type.get("ip", []),
             "asns": by_type.get("asn", []),
             "open_ports_by_host": open_ports_summary,
