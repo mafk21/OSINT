@@ -915,7 +915,16 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
         return out or [_res("entity_seed_indexed", "ok", f"Prepared dorks & 760-tool arsenal pivots for '{value}'", {"query": value})]
 
     if sel_type in ("url", "onion_url"):
-        parsed = urllib.parse.urlparse(value if "://" in value else f"http://{value}")
+        raw_u = value if "://" in value else f"http://{value}"
+        m_u6 = re.match(r"^(https?://)([^/?#]+)(.*)$", raw_u, flags=re.IGNORECASE)
+        if m_u6 and not m_u6.group(2).startswith("[") and m_u6.group(2).count(":") >= 2:
+            raw_u = f"{m_u6.group(1)}[{m_u6.group(2)}]{m_u6.group(3)}"
+        try:
+            parsed = urllib.parse.urlparse(raw_u)
+            host_u = parsed.hostname or ""
+        except ValueError:
+            parsed = urllib.parse.SplitResult("http", "", "/", "", "")
+            host_u = ""
         q_params = dict(urllib.parse.parse_qsl(parsed.query))
         url_pivots = []
         for pv in q_params.values():
@@ -926,10 +935,10 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
         url_payload = {
             "url": value,
             "scheme": parsed.scheme,
-            "hostname": parsed.hostname,
+            "hostname": host_u,
             "path": parsed.path,
             "query_params": q_params,
-            "is_tor_onion": (parsed.hostname or "").endswith(".onion"),
+            "is_tor_onion": host_u.endswith(".onion"),
         }
         extra_note = ""
         if tt_meta:
@@ -942,12 +951,12 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             _res(
                 "url_structural_decomposition",
                 "ok",
-                f"Host={(parsed.hostname or '')} · Path={parsed.path or '/'}" + extra_note,
+                f"Host={host_u} · Path={parsed.path or '/'}" + extra_note,
                 url_payload,
                 url_pivots,
             )
         ]
-        if sel_type == "url" and not (parsed.hostname or "").endswith(".onion"):
+        if sel_type == "url" and not host_u.endswith(".onion"):
             st_wb, wb_obj, _ = _http_json(f"https://archive.org/wayback/available?url={urllib.parse.quote(value)}", timeout=5.0)
             closest = ((wb_obj or {}).get("archived_snapshots") or {}).get("closest") if isinstance(wb_obj, dict) else None
             if st_wb == 200 and isinstance(closest, dict) and closest.get("available"):

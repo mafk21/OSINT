@@ -90,21 +90,33 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
         self.send_response(HTTPStatus.NO_CONTENT)
         self.end_headers()
 
+    def _safe_write(self, body: bytes) -> None:
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            pass
+
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self._safe_write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            pass
 
     def _send_html(self, html_doc: str, status: int = 200) -> None:
         body = html_doc.encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self._safe_write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            pass
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0") or 0)
@@ -123,6 +135,18 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
+
+        if path == "/favicon.ico":
+            svg_icon = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12141b"/><circle cx="16" cy="16" r="6" fill="#3b82f6"/></svg>'
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", "image/svg+xml")
+                self.send_header("Content-Length", str(len(svg_icon)))
+                self.end_headers()
+                self._safe_write(svg_icon)
+            except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+                pass
+            return
 
         if path == "/api/health":
             self._send_json(
@@ -228,7 +252,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                     self.send_header("Content-Disposition", f'attachment; filename="{cid}-obsidian-vault.zip"')
                     self.send_header("Content-Length", str(len(zbytes)))
                     self.end_headers()
-                    self.wfile.write(zbytes)
+                    self._safe_write(zbytes)
                     return
                 if len(parts) == 5 and parts[4] in ("gexf", "graphml", "cypher"):
                     ext_map = {
@@ -246,7 +270,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                     self.send_header("Content-Type", ctype)
                     self.send_header("Content-Length", str(len(body)))
                     self.end_headers()
-                    self.wfile.write(body)
+                    self._safe_write(body)
                     return
                 rep = json.loads((cdir / "report.json").read_text(encoding="utf-8"))
                 md_file = cdir / "dossier.md"
@@ -327,15 +351,20 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                         save_case=True,
                         mode="passive",
                         diff_last=diff_last,
+                        display_label=f"File: {fname}",
                     )
-                    report["meta"]["raw_input"] = f"[Uploaded File] {fname}"
                 report["stix2_bundle"] = build_stix2_bundle(
                     report["meta"]["case_id"],
-                    fname,
+                    f"File: {fname}",
                     report["graph"]["nodes"],
                     report["graph"]["edges"],
                 )
                 report["entities_csv"] = render_entities_csv(report)
+                cdir = self._find_case_dir(report["meta"]["case_id"])
+                if cdir:
+                    for art_key, art_file in (("gexf_xml", "graph.gexf"), ("graphml_xml", "graph.graphml"), ("neo4j_cypher", "neo4j.cypher")):
+                        if (cdir / art_file).is_file():
+                            report[art_key] = (cdir / art_file).read_text(encoding="utf-8")
                 self._send_json(report)
             except Exception as exc:
                 self._send_json({"error": str(exc)}, status=500)

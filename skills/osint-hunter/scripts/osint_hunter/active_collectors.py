@@ -11,6 +11,7 @@ import base64
 import concurrent.futures
 import hashlib
 import http.client
+import ipaddress
 import json
 import re
 import socket
@@ -93,12 +94,53 @@ def _res(module: str, status: str, summary: str, data: dict | list, pivots: list
     }
 
 
+def _is_ip_literal(host: str) -> bool:
+    try:
+        ipaddress.ip_address((host or "").strip().strip("[]"))
+        return True
+    except ValueError:
+        return False
+
+
+def _url_host(host: str) -> str:
+    """Format a hostname or IPv4/IPv6 literal safely for RFC 3986 URLs."""
+    h = (host or "").strip().strip("[]")
+    if ":" in h:
+        return f"[{h}]"
+    return h
+
+
+def _normalize_url_ipv6(url: str) -> str:
+    """Repair bare unbracketed IPv6 literals inside URLs (e.g. https://2606:4700::1/path)."""
+    m = re.match(r"^(https?://)([^/?#]+)(.*)$", (url or "").strip(), flags=re.IGNORECASE)
+    if not m:
+        return url
+    scheme_pfx, authority, rest = m.groups()
+    if not authority.startswith("[") and authority.count(":") >= 2:
+        try:
+            ipaddress.ip_address(authority)
+            return f"{scheme_pfx}[{authority}]{rest}"
+        except ValueError:
+            pass
+    return url
+
+
 def _extract_host(selector_type: str, value: str) -> str:
     if selector_type == "url":
-        return (urllib.parse.urlparse(value).hostname or "").lower()
+        try:
+            return (urllib.parse.urlparse(_normalize_url_ipv6(value)).hostname or "").strip("[]").lower()
+        except ValueError:
+            return ""
     if selector_type == "email" and "@" in value:
-        return value.split("@", 1)[1].lower()
-    return value.strip().lower()
+        return value.split("@", 1)[1].strip("[]").lower()
+    return value.strip().strip("[]").lower()
+
+
+def _target_url(selector_type: str, value: str, scheme: str = "https", path: str = "/") -> str:
+    if selector_type == "url":
+        return _normalize_url_ipv6(value)
+    host = _extract_host(selector_type, value)
+    return f"{scheme}://{_url_host(host)}{path}"
 
 
 def _raw_http_request(
@@ -109,18 +151,22 @@ def _raw_http_request(
     max_bytes: int = 250_000,
 ) -> tuple[list[dict], int, dict[str, str], bytes, str | None]:
     hops = []
-    curr = url
+    curr = _normalize_url_ipv6(url)
     req_headers = {"User-Agent": ACTIVE_USER_AGENT, "Accept": "*/*", "Connection": "close"}
     if extra_headers:
         req_headers.update(extra_headers)
 
     for _ in range(max_hops):
-        p = urllib.parse.urlparse(curr)
-        scheme = p.scheme or "https"
-        host = p.hostname
-        if not host:
-            return hops, 0, {}, b"", "Invalid URL hostname"
-        port = p.port or (443 if scheme == "https" else 80)
+        curr = _normalize_url_ipv6(curr)
+        try:
+            p = urllib.parse.urlparse(curr)
+            scheme = p.scheme or "https"
+            host = p.hostname
+            if not host:
+                return hops, 0, {}, b"", "Invalid URL hostname"
+            port = p.port or (443 if scheme == "https" else 80)
+        except ValueError as exc:
+            return hops, 0, {}, b"", f"Malformed URL ({exc})"
         path = (p.path or "/") + (f"?{p.query}" if p.query else "")
 
         try:
@@ -366,10 +412,11 @@ TAKEOVER_SIGNATURES = [
 
 def active_subdomain_takeover_cname_audit(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
+    uhost = _url_host(host)
     cnames = [a.get("data", "").rstrip(".").lower() for a in _doh_query(host, "CNAME") if a.get("data")]
-    _, st, _, body, err = _raw_http_request(f"https://{host}/", max_hops=2, max_bytes=80_000)
+    _, st, _, body, err = _raw_http_request(f"https://{uhost}/", max_hops=2, max_bytes=80_000)
     if st == 0:
-        _, st, _, body, err = _raw_http_request(f"http://{host}/", max_hops=2, max_bytes=80_000)
+        _, st, _, body, err = _raw_http_request(f"http://{uhost}/", max_hops=2, max_bytes=80_000)
 
     text = body.decode("utf-8", errors="replace") if body else ""
     candidates = []
@@ -410,20 +457,25 @@ def active_tls_cert_inspector(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
     port = 443
     if selector_type == "url":
-        p = urllib.parse.urlparse(value)
-        if p.port:
-            port = p.port
+        try:
+            p = urllib.parse.urlparse(_normalize_url_ipv6(value))
+            if p.port:
+                port = p.port
+        except ValueError:
+            pass
 
-    ctx = ssl.create_default_context()
+    is_ip = _is_ip_literal(host)
+    sni_name = None if is_ip else host
+    ctx = ssl._create_unverified_context() if is_ip else ssl.create_default_context()
     cert_dict = {}
     der_bytes = b""
     tls_version = None
     cipher_info = None
-    verified = True
+    verified = not is_ip
 
     try:
         with socket.create_connection((host, port), timeout=SOCKET_TIMEOUT) as raw_sock:
-            with ctx.wrap_socket(raw_sock, server_hostname=host) as tls_sock:
+            with ctx.wrap_socket(raw_sock, server_hostname=sni_name) as tls_sock:
                 cert_dict = tls_sock.getpeercert() or {}
                 der_bytes = tls_sock.getpeercert(binary_form=True) or b""
                 tls_version = tls_sock.version()
@@ -433,7 +485,7 @@ def active_tls_cert_inspector(selector_type: str, value: str) -> dict:
         ctx_unv = ssl._create_unverified_context()
         try:
             with socket.create_connection((host, port), timeout=SOCKET_TIMEOUT) as raw_sock:
-                with ctx_unv.wrap_socket(raw_sock, server_hostname=host) as tls_sock:
+                with ctx_unv.wrap_socket(raw_sock, server_hostname=sni_name) as tls_sock:
                     der_bytes = tls_sock.getpeercert(binary_form=True) or b""
                     tls_version = tls_sock.version()
                     cipher_info = tls_sock.cipher()
@@ -500,6 +552,7 @@ def active_tls_protocol_alpn_matrix(selector_type: str, value: str) -> dict:
         if ver is not None:
             proto_candidates.append((ver, label))
 
+    sni_name = None if _is_ip_literal(host) else host
     reachable = False
     for ver_enum, label in proto_candidates:
         try:
@@ -509,7 +562,7 @@ def active_tls_protocol_alpn_matrix(selector_type: str, value: str) -> dict:
             if hasattr(ctx, "set_alpn_protocols"):
                 ctx.set_alpn_protocols(["h2", "http/1.1"])
             with socket.create_connection((host, 443), timeout=2.5) as s:
-                with ctx.wrap_socket(s, server_hostname=host) as ts:
+                with ctx.wrap_socket(s, server_hostname=sni_name) as ts:
                     reachable = True
                     supported_versions.append(label)
                     ciph = ts.cipher()
@@ -654,7 +707,7 @@ def active_jarm_tls_fingerprint(selector_type: str, value: str) -> dict:
 # ============================================================================
 
 def active_http_fingerprint_and_headers(selector_type: str, value: str) -> dict:
-    url = value if selector_type == "url" else f"https://{_extract_host(selector_type, value)}/"
+    url = _target_url(selector_type, value)
     hops, status, hdrs, body_bytes, err = _raw_http_request(url)
     if status == 0:
         return _res("active_http_fingerprint_and_headers", "restricted_or_offline", f"Direct HTTP probe unreachable ({err})", {"url": url})
@@ -731,7 +784,7 @@ WAF_CDN_SIGNATURES = [
 
 
 def active_http_methods_cors_and_waf(selector_type: str, value: str) -> dict:
-    url = value if selector_type == "url" else f"https://{_extract_host(selector_type, value)}/"
+    url = _target_url(selector_type, value)
     _, opt_st, opt_hdrs, _, err = _raw_http_request(url, method="OPTIONS", max_hops=2, max_bytes=4096)
     canary_origin = "https://osint-cors-audit.example"
     _, cors_st, cors_hdrs, _, _ = _raw_http_request(
@@ -778,7 +831,7 @@ def active_http_methods_cors_and_waf(selector_type: str, value: str) -> dict:
 
 def active_wellknown_and_robots_harvester(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    base = f"https://{host}"
+    base = f"https://{_url_host(host)}"
     endpoints = {
         "robots_txt": "/robots.txt",
         "security_txt": "/.well-known/security.txt",
@@ -837,7 +890,7 @@ def active_wellknown_and_robots_harvester(selector_type: str, value: str) -> dic
 
 def active_mobile_app_and_fediverse_links(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    base = f"https://{host}"
+    base = f"https://{_url_host(host)}"
     paths = {
         "android_assetlinks": "/.well-known/assetlinks.json",
         "apple_app_site_association": "/.well-known/apple-app-site-association",
@@ -912,7 +965,7 @@ def active_mobile_app_and_fediverse_links(selector_type: str, value: str) -> dic
 
 def active_sitemap_and_feed_harvester(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    base = f"https://{host}"
+    base = f"https://{_url_host(host)}"
     urls_found: list[str] = []
     authors: set[str] = set()
     feeds_hit: list[str] = []
@@ -955,7 +1008,7 @@ def active_sitemap_and_feed_harvester(selector_type: str, value: str) -> dict:
 
 def active_api_openapi_and_graphql_discovery(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    base = f"https://{host}"
+    base = f"https://{_url_host(host)}"
     probes = [
         ("openapi_json", "/openapi.json"),
         ("swagger_json", "/swagger.json"),
@@ -1014,7 +1067,7 @@ def active_api_openapi_and_graphql_discovery(selector_type: str, value: str) -> 
 
 def active_exposed_vcs_and_env_check(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    base = f"https://{host}"
+    base = f"https://{_url_host(host)}"
     checks = [
         ("git_head", "/.git/HEAD", lambda b: b.startswith((b"ref: refs/", b"ref: "))),
         ("svn_entries", "/.svn/wc.db", lambda b: b.startswith(b"SQLite format 3")),
@@ -1051,7 +1104,7 @@ def active_exposed_vcs_and_env_check(selector_type: str, value: str) -> dict:
 # ============================================================================
 
 def active_js_bundle_cloud_and_endpoint_carver(selector_type: str, value: str) -> dict:
-    page_url = value if selector_type == "url" else f"https://{_extract_host(selector_type, value)}/"
+    page_url = _target_url(selector_type, value)
     _, st, _, raw_html, err = _raw_http_request(page_url, max_hops=3, max_bytes=200_000)
     if st == 0:
         return _res("active_js_bundle_cloud_and_endpoint_carver", "restricted_or_offline", f"Origin unreachable ({err})", {"url": page_url})
@@ -1109,7 +1162,7 @@ def active_js_bundle_cloud_and_endpoint_carver(selector_type: str, value: str) -
 
 def active_favicon_hash_extractor(selector_type: str, value: str) -> dict:
     host = _extract_host(selector_type, value)
-    _, st, hdrs, raw, err = _raw_http_request(f"https://{host}/favicon.ico", max_hops=3)
+    _, st, hdrs, raw, err = _raw_http_request(f"https://{_url_host(host)}/favicon.ico", max_hops=3)
     if st == 0:
         return _res("active_favicon_hash_extractor", "restricted_or_offline", f"Favicon fetch unreachable ({err})", {})
     if st != 200 or not raw or b"<html" in raw[:200].lower():
@@ -1172,7 +1225,7 @@ class _MetaAndJsonLdParser(HTMLParser):
 
 
 def active_url_jsonld_opengraph(selector_type: str, value: str) -> dict:
-    url = value if selector_type == "url" else f"https://{_extract_host(selector_type, value)}/"
+    url = _target_url(selector_type, value)
     _, st, _, raw, err = _raw_http_request(url, max_hops=4)
     if st == 0:
         return _res("active_url_jsonld_opengraph", "restricted_or_offline", f"Live HTML fetch unreachable ({err})", {"url": url})
@@ -1564,5 +1617,18 @@ def collect_active_for_selector(sel_type: str, value: str, enabled_modules: list
         return []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(applicable))) as pool:
-        futs = [pool.submit(MODULE_DISPATCH[m], sel_type, value) for m in applicable]
-        return [f.result() for f in futs]
+        fut_pairs = [(m, pool.submit(MODULE_DISPATCH[m], sel_type, value)) for m in applicable]
+        results = []
+        for m, fut in fut_pairs:
+            try:
+                results.append(fut.result())
+            except Exception as exc:
+                results.append(
+                    _res(
+                        m,
+                        "restricted_or_offline",
+                        f"Active probe skipped ({exc})",
+                        {"selector_type": sel_type, "value": value, "error": str(exc)},
+                    )
+                )
+        return results
