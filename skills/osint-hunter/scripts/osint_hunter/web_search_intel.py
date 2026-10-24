@@ -19,6 +19,7 @@ from html.parser import HTMLParser
 from typing import Any
 from xml.etree import ElementTree as ET
 
+from .bilingual_mena import generate_bilingual_pivots
 from .classify import DOMAIN_RE, EMAIL_RE, NOISE_DOMAINS, extract_selectors
 from .image_intel import search_open_web_images
 
@@ -1403,17 +1404,23 @@ def collect_entity_deep_osint(sel_type: str, value: str) -> list[dict]:
     """Deep open-web, Wikidata, ORCID/OpenAlex/PubMed medical & academic, and OpenStreetMap POI hunter."""
     q_clean = value.strip()
     q_enc = urllib.parse.quote(q_clean)
+    bilingual = generate_bilingual_pivots(q_clean)
 
     def _web_entity():
-        queries = [
-            f'"{q_clean}"',
-            f'"{q_clean}" (instagram OR linkedin OR tiktok OR snapchat OR x.com OR linktr.ee OR clinic OR company)',
-        ]
+        alt_script = bilingual["latin_queries"] if bilingual["has_arabic"] else bilingual["arabic_queries"]
+        if alt_script:
+            queries = [f'"{q_clean}"', f'"{alt_script[0]}"']
+        else:
+            queries = [
+                f'"{q_clean}"',
+                f'"{q_clean}" (instagram OR linkedin OR tiktok OR snapchat OR x.com OR linktr.ee OR clinic OR company)',
+            ]
         return run_multi_engine_web_search(queries, include_news=True)
 
     def _wikidata():
+        wd_lang = "ar" if bilingual["has_arabic"] else "en"
         st, obj, err = _http_json(
-            f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={q_enc}&language=en&format=json&limit=3"
+            f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={q_enc}&language={wd_lang}&format=json&limit=3"
         )
         if st != 200 or not isinstance(obj, dict):
             return None
@@ -1572,6 +1579,25 @@ def collect_entity_deep_osint(sel_type: str, value: str) -> list[dict]:
         img_r = f_img.result()
 
     out: list[dict] = []
+    if bilingual["arabic_queries"] or bilingual["latin_queries"] or bilingual["handle_candidates"]:
+        bi_pivs: list[dict[str, str]] = []
+        for lq in bilingual["latin_queries"][:1]:
+            bi_pivs.append({"type": sel_type, "value": lq})
+        for aq in bilingual["arabic_queries"][:1]:
+            bi_pivs.append({"type": sel_type, "value": aq})
+        for hc in bilingual["handle_candidates"][:2]:
+            bi_pivs.append({"type": "username", "value": hc})
+        out.append(
+            _res(
+                "bilingual_arabic_arabizi_transliteration",
+                "ok",
+                f"Generated bilingual Arabic/Latin pivot(s) for '{q_clean}': "
+                + ", ".join((bilingual["arabic_queries"] + bilingual["latin_queries"] + bilingual["handle_candidates"])[:4]),
+                bilingual,
+                bi_pivs,
+            )
+        )
+
     if web_r["results"]:
         out.append(
             _res(

@@ -12,6 +12,12 @@ import urllib.request
 from pathlib import Path
 
 from .classify import EMAIL_RE, NOISE_DOMAINS
+from .crypto_infra_deep import (
+    collect_btc_counterparty_intel,
+    collect_domain_mail_stack_and_sister_domains,
+    collect_evm_and_ens_intel,
+    collect_tron_trc20_intel,
+)
 from .dfir_forensics import decode_google_ei_parameter, decode_ssh_pubkey_or_pem
 from .modern_collectors import (
     collect_bluesky_atproto,
@@ -783,18 +789,23 @@ def collect_crypto_osint(addr: str) -> list[dict]:
                     mem,
                 )
             )
-    elif addr.startswith("0x"):
-        st_dx, dx, _ = _http_json(f"https://api.dexscreener.com/latest/dex/search?q={urllib.parse.quote(addr)}")
-        if st_dx == 200 and isinstance(dx, dict) and dx.get("pairs"):
-            p0 = dx["pairs"][0]
-            results.append(
-                _res(
-                    "dexscreener_liquidity",
-                    "ok",
-                    f"Matched DEX token/pair on {p0.get('chainId')}: {(p0.get('baseToken') or {}).get('symbol')}",
-                    {"top_pair": p0},
+        results.extend(collect_btc_counterparty_intel(addr))
+    elif addr.startswith("0x") or addr.lower().endswith(".eth"):
+        if addr.startswith("0x"):
+            st_dx, dx, _ = _http_json(f"https://api.dexscreener.com/latest/dex/search?q={urllib.parse.quote(addr)}")
+            if st_dx == 200 and isinstance(dx, dict) and dx.get("pairs"):
+                p0 = dx["pairs"][0]
+                results.append(
+                    _res(
+                        "dexscreener_liquidity",
+                        "ok",
+                        f"Matched DEX token/pair on {p0.get('chainId')}: {(p0.get('baseToken') or {}).get('symbol')}",
+                        {"top_pair": p0},
+                    )
                 )
-            )
+        results.extend(collect_evm_and_ens_intel(addr))
+    elif addr.startswith("T") and len(addr) == 34:
+        results.extend(collect_tron_trc20_intel(addr))
     return results
 
 
@@ -834,13 +845,14 @@ def collect_for_selector(sel_type: str, value: str) -> list[dict]:
             return f_base.result() + f_deep.result() + f_byok.result() + f_cli.result()
 
     if sel_type == "domain":
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             f_dom = pool.submit(collect_domain_osint, value)
             f_deep = pool.submit(collect_domain_deep_passive, value)
+            f_mail = pool.submit(collect_domain_mail_stack_and_sister_domains, value)
             f_entra = pool.submit(collect_entra_m365_tenant_passive, value)
             f_byok = pool.submit(collect_byok_for_domain, value)
             f_cli = pool.submit(run_installed_passive_clis, "domain", value)
-            return f_dom.result() + f_deep.result() + [f_entra.result()] + f_byok.result() + f_cli.result()
+            return f_dom.result() + f_deep.result() + f_mail.result() + [f_entra.result()] + f_byok.result() + f_cli.result()
 
     if sel_type == "ip":
         return collect_ip_osint(value) + collect_byok_for_ip(value) + run_installed_passive_clis("ip", value)

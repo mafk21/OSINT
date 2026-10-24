@@ -779,7 +779,237 @@ def main() -> int:
     finally:
         img_mod.fetch_image_bytes = orig_img_fetch
 
-    print("SELFTEST PASS: 760-Tool Catalog + All Upgrades + Visual & Image Intelligence (IMINT) verified.")
+    # ── 27. Next-Gen Upgrades #1–#6 End-to-End Verification ──────────────
+    # Upgrade #1: False-Positive & Common-Username Collision Disambiguator
+    from osint_hunter.entity_disambiguator import (
+        build_anchor_context_from_nodes,
+        corroborate_social_profiles,
+        score_handle_uniqueness,
+    )
+    from osint_hunter.stage_analyzer import analyze_stage_and_extract_leads
+
+    assert score_handle_uniqueness("alex")["is_collision_prone"] is True
+    assert score_handle_uniqueness("mafk21_osint_sec")["is_collision_prone"] is False
+
+    anchors_alex = build_anchor_context_from_nodes([{"type": "domain", "value": "acme-cyber.sa"}])
+    corrob_eval = corroborate_social_profiles(
+        "alex",
+        [
+            {"site": "Instagram", "display_name": "Alex Bakery Ohio", "bio": "Fresh cupcakes daily", "probe_url": "https://instagram.com/alex"},
+            {"site": "GitHub", "display_name": "Alex Sec", "bio": "Security engineer at acme-cyber.sa", "probe_url": "https://github.com/alex"},
+        ],
+        anchor_context=anchors_alex,
+    )
+    assert corrob_eval["collision_guard_triggered"] is True, corrob_eval
+    assert len(corrob_eval["corroborated_profiles"]) == 1 and corrob_eval["corroborated_profiles"][0]["site"] == "GitHub", corrob_eval
+    assert len(corrob_eval["possible_namesake_profiles"]) == 1 and corrob_eval["possible_namesake_profiles"][0]["site"] == "Instagram", corrob_eval
+
+    # Stage analyzer must block uncorroborated pivots from a common handle (`alex`), while allowing corroborated ones
+    stage_collision_test = [
+        {
+            "wave": 1,
+            "type": "username",
+            "value": "alex",
+            "collector_outputs": [
+                {
+                    "module": "github_user_osint",
+                    "status": "ok",
+                    "data": {"login": "alex", "name": "Alex Unrelated", "bio": "Just random person", "blog": "https://wrong-stranger.io"},
+                    "pivots": [{"type": "url", "value": "https://wrong-stranger.io"}],
+                }
+            ],
+        },
+        {
+            "wave": 1,
+            "type": "domain",
+            "value": "acme-cyber.sa",
+            "collector_outputs": [],
+        },
+    ]
+    stage_collision_res = analyze_stage_and_extract_leads(
+        stage_num=1,
+        stage_items=stage_collision_test,
+        visited={"username:alex", "domain:acme-cyber.sa"},
+    )
+    assert not any("wrong-stranger.io" in ld["value"] for ld in stage_collision_res["leads"]), stage_collision_res
+    assert stage_collision_res["collision_filtered_count"] >= 1, stage_collision_res
+
+    # Upgrade #2: Perceptual Photo Matching (`dHash` across resized / re-encoded PNGs)
+    from osint_hunter.perceptual_hash import (
+        compute_dhash_hex,
+        find_perceptual_photo_matches,
+        hamming_distance_64,
+    )
+
+    def _make_gradient_png(w: int, h: int, bias: int = 0) -> bytes:
+        rows = bytearray()
+        for ry in range(h):
+            rows.append(0)  # filter 0 (None)
+            for rx in range(w):
+                val = max(0, min(255, int(((rx * 210) // max(1, w - 1)) ^ (80 if (ry // max(1, h // 4)) % 2 else 0)) + bias))
+                rows.extend((val, val, val))
+        return (
+            b"\x89PNG\r\n\x1a\n"
+            + _mk_png_chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + _mk_png_chunk(b"IDAT", _zlib.compress(bytes(rows)))
+            + _mk_png_chunk(b"IEND", b"")
+        )
+
+    import hashlib as _hashlib
+
+    png_large = _make_gradient_png(96, 96, bias=0)
+    png_resized_reencoded = _make_gradient_png(32, 32, bias=5)  # Different resolution AND different pixel bytes/SHA-256!
+    assert _hashlib.sha256(png_large).hexdigest() != _hashlib.sha256(png_resized_reencoded).hexdigest()
+    dh1 = compute_dhash_hex(png_large)
+    dh2 = compute_dhash_hex(png_resized_reencoded)
+    assert dh1 and dh2 and len(dh1) == 16 and len(dh2) == 16, (dh1, dh2)
+    dist = hamming_distance_64(dh1, dh2)
+    assert dist <= 6, f"Expected near-zero dHash distance across resized avatar, got {dist} ({dh1} vs {dh2})"
+    p_matches = find_perceptual_photo_matches(
+        [
+            {"platform": "GitHub", "selector": "suspect1", "url": "https://a/1.png", "sha256": "aaa", "dhash": dh1},
+            {"platform": "Telegram", "selector": "suspect1_alt", "url": "https://b/2.jpg", "sha256": "bbb", "dhash": dh2},
+        ]
+    )
+    assert len(p_matches) == 1 and p_matches[0]["similarity_pct"] >= 90.0, p_matches
+
+    # Upgrade #3: Screenshot OCR & Photo-First Investigation (`ocr_engine.py` + `analyze_local_file` IBAN/metadata/OCR)
+    from osint_hunter.ocr_engine import extract_text_and_codes_from_image, get_ocr_backend_status, normalize_ocr_text_for_osint
+
+    ocr_st = get_ocr_backend_status()
+    assert "available_backends" in ocr_st and "ocr_available" in ocr_st, ocr_st
+    norm_txt = normalize_ocr_text_for_osint("Contact: ceo [at] acme-ksa.sa · Call ٠٥٥١٢٣٤٥٦٧ · IBAN SA4420000001234567891234")
+    assert "ceo@acme-ksa.sa" in norm_txt and "0551234567" in norm_txt, norm_txt
+
+    with tempfile.TemporaryDirectory(prefix="osint_ocr_test_") as ocrtmp:
+        png_with_leads = (
+            b"\x89PNG\r\n\x1a\n"
+            + _mk_png_chunk(b"IHDR", struct.pack(">IIBBBBB", 32, 32, 8, 2, 0, 0, 0))
+            + _mk_png_chunk(b"tEXt", b"Comment\x00Support leak@shadow-corp.sa IBAN SA0380000000608010167519")
+            + _mk_png_chunk(b"IDAT", _zlib.compress(b"\x00" * (32 * (32 * 3 + 1))))
+            + _mk_png_chunk(b"IEND", b"")
+        )
+        scr_path = Path(ocrtmp) / "screenshot.png"
+        scr_path.write_bytes(png_with_leads)
+        ocr_direct = extract_text_and_codes_from_image(str(scr_path))
+        assert isinstance(ocr_direct, dict) and "ocr_available" in ocr_direct
+        f_forensics = analyze_local_file(str(scr_path))
+        assert f_forensics["extracted_metadata"].get("perceptual_dhash"), f_forensics
+        piv_types = {(p["type"], p["value"]) for p in f_forensics["discovered_pivots"]}
+        assert ("email", "leak@shadow-corp.sa") in piv_types, piv_types
+        assert ("iban", "SA0380000000608010167519") in piv_types, piv_types
+
+    # Upgrade #4: Arabic <-> English / Arabizi Bilingual Pivoting & MENA/GCC Regional OSINT
+    from osint_hunter.bilingual_mena import generate_bilingual_pivots
+
+    sels_ar = extract_selectors("محمد القحطاني ٠٥٠١٢٣٤٥٦٧")
+    sel_map_ar = {(s["type"], s["value"]) for s in sels_ar}
+    assert ("person_name", "محمد القحطاني") in sel_map_ar, sels_ar
+    assert ("phone", "+966501234567") in sel_map_ar, sels_ar
+
+    sels_co_ar = extract_selectors("شركة المدار للتقنية المحدودة")
+    assert any(s["type"] == "company" for s in sels_co_ar), sels_co_ar
+
+    ar_to_en = generate_bilingual_pivots("محمد القحطاني")
+    assert any("mohammed" in v.lower() and "qahtani" in v.lower() for v in ar_to_en["latin_queries"]), ar_to_en
+    en_to_ar = generate_bilingual_pivots("Mohammed Al-Qahtani")
+    assert "محمد القحطاني" in en_to_ar["arabic_queries"], en_to_ar
+    arabizi_to_ar = generate_bilingual_pivots("m7md_q7tani")
+    assert any("محمد" in v for v in arabizi_to_ar["arabic_queries"]), arabizi_to_ar
+
+    # Upgrade #5: Live Stage-by-Stage Progress Stream & Cooperative Stop (`POST /api/hunt/stream` + `/api/hunt/cancel`)
+    import threading as _threading
+    from scripts.server import OSINTCommandHandler, ThreadingHTTPServer
+
+    stream_events: list[dict] = []
+    early_cancel = _threading.Event()
+    early_cancel.set()  # Pre-triggered cooperative stop after Stage 1 check
+    with tempfile.TemporaryDirectory(prefix="osint_stream_case_") as stmp:
+        prev_cdir = os.environ.get("OSINT_CASES_DIR")
+        os.environ["OSINT_CASES_DIR"] = stmp
+        try:
+            rep_stopped = run_autonomous_hunt(
+                "0x00000000219ab540356cbb839cbe05303d7705fa",
+                depth=3,
+                save_case=True,
+                progress_callback=stream_events.append,
+                cancel_event=early_cancel,
+            )
+            assert rep_stopped["meta"]["stopped_early"] is True, rep_stopped["meta"]
+            assert "intelligence_synthesis" in rep_stopped and "dossier_markdown" in rep_stopped
+
+            # Live HTTP server NDJSON stream + /api/doctor ocr_status check
+            httpd = ThreadingHTTPServer(("127.0.0.1", 0), OSINTCommandHandler)
+            srv_port = httpd.server_address[1]
+            srv_thread = _threading.Thread(target=httpd.serve_forever, daemon=True)
+            srv_thread.start()
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{srv_port}/api/doctor", timeout=5) as dresp:
+                    doc_json = json.loads(dresp.read().decode("utf-8"))
+                    assert "ocr_status" in doc_json, doc_json
+                req_stream = urllib.request.Request(
+                    f"http://127.0.0.1:{srv_port}/api/hunt/stream",
+                    data=json.dumps({"target": "SA0380000000608010167519", "depth": 1, "save_case": False, "job_id": "test_job_1"}).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req_stream, timeout=15) as sresp:
+                    nd_lines = [json.loads(ln) for ln in sresp.read().decode("utf-8").splitlines() if ln.strip()]
+                ev_names = [e.get("event") for e in nd_lines]
+                assert "started" in ev_names and "complete" in ev_names, ev_names
+            finally:
+                httpd.shutdown()
+                httpd.server_close()
+        finally:
+            if prev_cdir is None:
+                os.environ.pop("OSINT_CASES_DIR", None)
+            else:
+                os.environ["OSINT_CASES_DIR"] = prev_cdir
+
+    # Upgrade #6: Deeper Financial, Crypto (TRC-20 / BTC Cluster / ENS) & Infrastructure Attribution (SPF/DMARC + CT SAN Sister Domains)
+    from osint_hunter.crypto_infra_deep import (
+        analyze_spf_and_dmarc_records,
+        extract_coowned_sister_domains_from_ct,
+        parse_btc_transactions_cluster,
+    )
+
+    spf_intel = analyze_spf_and_dmarc_records(
+        "target-corp.com",
+        root_txt=["v=spf1 ip4:93.184.216.34 include:_spf.google.com include:sendgrid.net -all"],
+        dmarc_txt=["v=DMARC1; p=none; rua=mailto:dmarc-reports@parent-holding.co.uk;"],
+    )
+    assert "Google Workspace" in spf_intel["saas_and_mail_providers"], spf_intel
+    assert any("SendGrid" in s for s in spf_intel["saas_and_mail_providers"]), spf_intel
+    assert spf_intel["spf_explicit_origin_ips"] == ["93.184.216.34"], spf_intel
+    assert ("domain", "parent-holding.co.uk") in {(p["type"], p["value"]) for p in spf_intel["pivots"]}, spf_intel
+
+    sister_intel = extract_coowned_sister_domains_from_ct(
+        "target-brand.com",
+        [
+            {"name_value": "target-brand.com\nwww.target-brand.com\nsister-brand.io\napi.internal-ops.net", "issuer_name": "C=US, O=Let's Encrypt"},
+            {"name_value": "unrelated.com\nother.org", "issuer_name": "C=US, O=Cloudflare, Inc."},
+        ],
+    )
+    assert "sister-brand.io" in sister_intel and "internal-ops.net" in sister_intel, sister_intel
+
+    btc_cluster = parse_btc_transactions_cluster(
+        "bc1qtargetwallet0000000000000000000000000",
+        [
+            {
+                "vin": [
+                    {"prevout": {"scriptpubkey_address": "bc1qtargetwallet0000000000000000000000000"}},
+                    {"prevout": {"scriptpubkey_address": "bc1qcoinput_sibling_wallet_11111111111111"}},
+                ],
+                "vout": [
+                    {"scriptpubkey_address": "bc1qrecipient_counterparty_22222222222222"},
+                ],
+            }
+        ],
+    )
+    assert "bc1qcoinput_sibling_wallet_11111111111111" in btc_cluster["co_spent_wallet_cluster_mates"], btc_cluster
+    assert "bc1qrecipient_counterparty_22222222222222" in btc_cluster["recent_counterparties"], btc_cluster
+
+    print("SELFTEST PASS: 760-Tool Catalog + All 6 Next-Gen Upgrades + Visual & Image Intelligence verified.")
     return 0
 
 

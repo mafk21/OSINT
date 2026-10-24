@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 from urllib.parse import urlparse
 
+from .bilingual_mena import classify_arabic_seed, normalize_arabic_digits
+
 EMAIL_RE = re.compile(r"\b[a-zA-Z0-9._%+-]{1,64}@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,24}\b")
 URL_RE = re.compile(r"https?://[^\s<>\"'`)\]]+", re.IGNORECASE)
 ONION_RE = re.compile(r"\b[a-z2-7]{56}\.onion\b|\b[a-z2-7]{16}\.onion\b", re.IGNORECASE)
@@ -208,11 +210,14 @@ def extract_selectors(raw_input: str, cwd: str | None = None, *, check_local_fil
             resolved = candidate_path if candidate_path.is_absolute() else (base_dir / candidate_path)
             if resolved.exists() and resolved.is_file():
                 ext = resolved.suffix.lower()
-                sub = "image" if ext in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".heic"} else "document"
+                sub = "image" if ext in {".jpg", ".jpeg", ".png", ".webp", ".gif", ".tiff", ".heic", ".bmp"} else "document"
                 _add(results, seen, "local_file", str(resolved.resolve()), 1.0, f"Local {sub} file on disk")
                 return results
         except OSError:
             pass
+
+    # Normalize Eastern-Arabic & Persian digits (`٠-٩`, `۰-۹` -> `0-9`) so Arabic phones/IBANs parse natively
+    text = normalize_arabic_digits(text)
 
     # 2. JWT tokens
     for m in JWT_RE.findall(text):
@@ -353,6 +358,10 @@ def extract_selectors(raw_input: str, cwd: str | None = None, *, check_local_fil
         _add(results, seen, "phone", f"+{ph00}", 0.95, "00-prefixed international phone number")
     for ph_gcc in PHONE_BARE_GCC_MENA_RE.findall(text):
         _add(results, seen, "phone", f"+{ph_gcc}", 0.94, "International mobile number")
+    for m_sa05 in re.findall(r"(?<!\d)0(5\d[\s.-]?\d{3}[\s.-]?\d{4})(?!\d)", text):
+        digs_05 = re.sub(r"\D", "", m_sa05)
+        if len(digs_05) == 9:
+            _add(results, seen, "phone", f"+966{digs_05}", 0.92, "Saudi local 05XXXXXXXX mobile normalized to E.164")
 
     # 15. Domains (not part of email addresses or noise social hosts)
     text_no_emails = EMAIL_RE.sub(" ", text)
@@ -373,6 +382,12 @@ def extract_selectors(raw_input: str, cwd: str | None = None, *, check_local_fil
         if lh_clean.lower() not in PROMPT_STOPWORDS and not DOMAIN_RE.fullmatch(lh_clean):
             _add(results, seen, "username", lh_clean, 0.96, "Labeled platform username/handle")
 
+    # 16b. Arabic multi-word Person / Company entities embedded alongside phones, handles, or emails
+    for ar_span in re.findall(r"[\u0600-\u06FF.]+(?:\s+[\u0600-\u06FF.]+){1,5}", text):
+        ar_cls_span = classify_arabic_seed(ar_span.strip())
+        if ar_cls_span is not None:
+            _add(results, seen, ar_cls_span[0], ar_cls_span[1], 0.91, f"Arabic {ar_cls_span[0]} entity")
+
     # 17. Fallback heuristics when the input is a bare handle, owner/repo, person name, or company!
     if not results:
         # Clean leading conversational verbs like "do osint on ..." or "hunt ..."
@@ -389,10 +404,15 @@ def extract_selectors(raw_input: str, cwd: str | None = None, *, check_local_fil
             owner, _ = cleaned.split("/", 1)
             _add(results, seen, "repo_code", cleaned, 0.97, "owner/repo slug")
             _add(results, seen, "username", owner, 0.88, "Repository owner handle")
+        elif re.fullmatch(r"05\d{8}", re.sub(r"[\s.-]", "", cleaned)):
+            digs_sa = re.sub(r"\D", "", cleaned)
+            _add(results, seen, "phone", f"+966{digs_sa[1:]}", 0.91, "Saudi local 05XXXXXXXX mobile normalized to E.164")
         elif re.fullmatch(r"[1-9]\d{9,14}", cleaned):
             _add(results, seen, "phone", f"+{cleaned}", 0.90, "Unprefixed international phone number")
         elif re.fullmatch(r"[a-zA-Z0-9_.-]{2,39}", cleaned) and " " not in cleaned:
             _add(results, seen, "username", cleaned, 0.92, "Single-token username / package handle")
+        elif (ar_cls := classify_arabic_seed(cleaned)) is not None:
+            _add(results, seen, ar_cls[0], ar_cls[1], 0.91, f"Arabic {ar_cls[0]} entity")
         elif 2 <= len(cleaned.split()) <= 5:
             corp_suffixes = {"inc", "inc.", "llc", "ltd", "ltd.", "corp", "corp.", "gmbh", "ag", "plc", "sa", "bv", "group", "technologies", "labs", "holdings", "bank", "capital"}
             tokens_low = {w.lower().strip(",.") for w in cleaned.split()}
