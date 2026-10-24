@@ -20,13 +20,14 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from .classify import DOMAIN_RE, EMAIL_RE, NOISE_DOMAINS, extract_selectors
+from .image_intel import search_open_web_images
 
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 API_UA = "OSINT-Monster-Hunter/2026.10 (+https://github.com/mafk21/OSINT)"
-SEARCH_TIMEOUT = 4.8
+SEARCH_TIMEOUT = 3.6
 
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 EMAIL_FALSE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".css", ".js", ".woff", ".woff2", ".ico")
@@ -667,22 +668,25 @@ def _search_ddg(query: str) -> tuple[bool, list[dict[str, str]]]:
         data_bytes=form,
         headers={"Content-Type": "application/x-www-form-urlencoded", "Referer": "https://html.duckduckgo.com/"},
         browser_ua=True,
+        timeout=3.4,
     )
+    if st == 0:
+        return False, []
     if st in (200, 202) and html_txt and "anomaly-modal" not in html_txt:
         parsed = parse_duckduckgo_html(html_txt)
         if parsed:
             return True, parsed
-    # Fallback to DuckDuckGo Lite
     st2, lite_txt, _ = _http_fetch(
         "https://lite.duckduckgo.com/lite/",
         method="POST",
         data_bytes=urllib.parse.urlencode({"q": query}).encode("utf-8"),
         headers={"Content-Type": "application/x-www-form-urlencoded", "Referer": "https://lite.duckduckgo.com/"},
         browser_ua=True,
+        timeout=3.0,
     )
     if st2 == 200 and lite_txt:
         return True, parse_duckduckgo_html(lite_txt)
-    return st != 0 or st2 != 0, []
+    return True, []
 
 
 def _search_yahoo(query: str) -> tuple[bool, list[dict[str, str]]]:
@@ -715,7 +719,7 @@ def _search_google_news_rss(query: str) -> tuple[bool, list[dict[str, str]]]:
 
 def run_multi_engine_web_search(queries: list[str], *, include_news: bool = True) -> dict[str, Any]:
     """Execute queries concurrently across DuckDuckGo, Yahoo, Bing RSS & Google News RSS and carve OSINT leads."""
-    clean_queries = [q.strip() for q in queries if q and q.strip()][:3]
+    clean_queries = [q.strip() for q in queries if q and q.strip()][:2]
     if not clean_queries:
         return {"reachable": False, "results": [], "social_hits": [], "emails": [], "phones": [], "pivots": []}
 
@@ -899,15 +903,17 @@ def collect_phone_deep_osint(e164_phone: str) -> list[dict]:
             return arr[:5]
         return []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         f_web = pool.submit(_web_task)
         f_wa = pool.submit(_wa_task)
         f_gh = pool.submit(_gh_task)
         f_osm = pool.submit(_osm_task)
+        f_img = pool.submit(search_open_web_images, f'"{fmt["e164"]}"' + (f' OR "{local0}"' if local0 else ""))
         web_res = f_web.result()
         wa_res, _ = f_wa.result()
         gh_repos = f_gh.result()
         osm_places = f_osm.result()
+        img_res = f_img.result()
 
     # 1. Phone formats + WhatsApp verification link card (always useful)
     wa_pivots = []
@@ -945,6 +951,16 @@ def collect_phone_deep_osint(e164_phone: str) -> list[dict]:
         out.append(_res("phone_open_web_mentions", "restricted_or_offline", "External search engines unreachable in restricted network", {"queries": queries}))
     else:
         out.append(_res("phone_open_web_mentions", "not_found", f"0 indexed public web pages matched {fmt['e164']} / {local0 or digits}", {"queries": queries}))
+
+    if img_res and img_res.get("images"):
+        out.append(
+            _res(
+                "open_web_image_search",
+                "ok",
+                f"Discovered {len(img_res['images'])} public photo(s) / flyer(s) mentioning {fmt['e164']}",
+                {"images": img_res["images"]},
+            )
+        )
 
     # 3. GitHub Public Repos mentioning Phone
     if gh_repos:
@@ -1249,10 +1265,34 @@ def collect_domain_deep_passive(domain: str) -> list[dict]:
 
     def _multi_subdomains():
         subs: set[str] = set()
+        otx_ips: set[str] = set()
         sources_hit: list[str] = []
 
-        # 1. HackerTarget hostsearch
-        st1, txt1, _ = _http_fetch(f"https://api.hackertarget.com/hostsearch/?q={urllib.parse.quote(d)}", timeout=4.5)
+        def _f_ht():
+            return _http_fetch(f"https://api.hackertarget.com/hostsearch/?q={urllib.parse.quote(d)}", timeout=3.8)
+
+        def _f_anubis():
+            return _http_json(f"https://jldc.me/anubis/subdomains/{urllib.parse.quote(d)}", timeout=3.8)
+
+        def _f_cs():
+            return _http_json(
+                f"https://api.certspotter.com/v1/issuances?domain={urllib.parse.quote(d)}&include_subdomains=true&expand=dns_names",
+                timeout=3.8,
+            )
+
+        def _f_otx():
+            return _http_json(f"https://otx.alienvault.com/api/v1/indicators/domain/{urllib.parse.quote(d)}/passive_dns", timeout=3.8)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as sub_pool:
+            r_ht = sub_pool.submit(_f_ht)
+            r_an = sub_pool.submit(_f_anubis)
+            r_cs = sub_pool.submit(_f_cs)
+            r_ox = sub_pool.submit(_f_otx)
+            st1, txt1, _ = r_ht.result()
+            st2, arr2, _ = r_an.result()
+            st3, arr3, _ = r_cs.result()
+            st4, obj4, _ = r_ox.result()
+
         if st1 == 200 and txt1 and "API count exceeded" not in txt1 and "," in txt1:
             sources_hit.append("HackerTarget")
             for ln in txt1.splitlines():
@@ -1260,19 +1300,12 @@ def collect_domain_deep_passive(domain: str) -> list[dict]:
                 if host_part.endswith(d) and DOMAIN_RE.fullmatch(host_part):
                     subs.add(host_part)
 
-        # 2. AnubisDB
-        st2, arr2, _ = _http_json(f"https://jldc.me/anubis/subdomains/{urllib.parse.quote(d)}", timeout=4.5)
         if st2 == 200 and isinstance(arr2, list):
             sources_hit.append("AnubisDB")
             for h in arr2[:300]:
                 if isinstance(h, str) and h.lower().endswith(d) and DOMAIN_RE.fullmatch(h.lower()):
                     subs.add(h.lower())
 
-        # 3. CertSpotter
-        st3, arr3, _ = _http_json(
-            f"https://api.certspotter.com/v1/issuances?domain={urllib.parse.quote(d)}&include_subdomains=true&expand=dns_names",
-            timeout=4.5,
-        )
         if st3 == 200 and isinstance(arr3, list):
             sources_hit.append("CertSpotter")
             for it in arr3[:150]:
@@ -1281,9 +1314,6 @@ def collect_domain_deep_passive(domain: str) -> list[dict]:
                     if clean_n.endswith(d) and DOMAIN_RE.fullmatch(clean_n):
                         subs.add(clean_n)
 
-        # 4. AlienVault OTX Passive DNS
-        st4, obj4, _ = _http_json(f"https://otx.alienvault.com/api/v1/indicators/domain/{urllib.parse.quote(d)}/passive_dns", timeout=4.5)
-        otx_ips: set[str] = set()
         if st4 == 200 and isinstance(obj4, dict):
             sources_hit.append("AlienVaultOTX")
             for row in (obj4.get("passive_dns") or [])[:200]:
@@ -1419,6 +1449,15 @@ def collect_entity_deep_osint(sel_type: str, value: str) -> list[dict]:
                             pivs.append({"type": ptype, "value": dv})
                 if vals:
                     props_summary[pname] = vals
+            # P18 (image) & P154 (logo image) -> Wikimedia Commons Special:FilePath URLs!
+            wd_images = []
+            for img_pid in ("P18", "P154"):
+                for c in (claims.get(img_pid) or [])[:2]:
+                    fn = (((c.get("mainsnak") or {}).get("datavalue") or {}).get("value"))
+                    if isinstance(fn, str) and fn:
+                        wd_images.append(f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(fn.replace(' ', '_'))}?width=800")
+            if wd_images:
+                props_summary["images"] = wd_images
         return _res(
             "wikidata_knowledge_graph",
             "ok",
@@ -1520,15 +1559,17 @@ def collect_entity_deep_osint(sel_type: str, value: str) -> list[dict]:
             pivs,
         )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
         f_web = pool.submit(_web_entity)
         f_wd = pool.submit(_wikidata)
         f_ac = pool.submit(_academic_medical)
         f_osm = pool.submit(_osm_poi)
+        f_img = pool.submit(search_open_web_images, q_clean)
         web_r = f_web.result()
         wd_r = f_wd.result()
         ac_r = f_ac.result()
         osm_r = f_osm.result()
+        img_r = f_img.result()
 
     out: list[dict] = []
     if web_r["results"]:
@@ -1550,6 +1591,23 @@ def collect_entity_deep_osint(sel_type: str, value: str) -> list[dict]:
         )
     elif not web_r["reachable"]:
         out.append(_res("entity_open_web_and_news_search", "restricted_or_offline", "External search engines unreachable in restricted network", {"query": q_clean}))
+
+    if img_r["images"]:
+        img_pivs = []
+        for im in img_r["images"]:
+            if im.get("source_page_url"):
+                soc = classify_social_profile_url(im["source_page_url"], title=im.get("title") or "")
+                if soc:
+                    img_pivs.append({"type": soc["pivot_type"], "value": soc["pivot_value"]})
+        out.append(
+            _res(
+                "open_web_image_search",
+                "ok",
+                f"Discovered {len(img_r['images'])} public photo(s) / visual media for '{q_clean}'",
+                {"images": img_r["images"]},
+                img_pivs,
+            )
+        )
 
     for extra_mod in (wd_r, ac_r, osm_r):
         if extra_mod:

@@ -107,6 +107,8 @@ def collect_bluesky_atproto(handle_or_actor: str) -> dict:
                 "did": did,
                 "handle": cur_handle,
                 "display_name": display_name,
+                "avatar": prof.get("avatar"),
+                "banner": prof.get("banner"),
                 "description": desc,
                 "created_utc_iso": created_at,
                 "followers_count": prof.get("followersCount"),
@@ -159,6 +161,10 @@ def collect_mastodon_fediverse(username: str) -> dict:
     if disp and " " in disp and 4 <= len(disp) <= 45:
         pivots.append({"type": "person_name", "value": disp, "reason": "mastodon_display_name"})
 
+    avatar_masto = acct.get("avatar")
+    if avatar_masto and "missing.png" in str(avatar_masto):
+        avatar_masto = None
+
     return _res(
         "mastodon_fediverse",
         "ok",
@@ -167,6 +173,7 @@ def collect_mastodon_fediverse(username: str) -> dict:
             "acct": acct.get("acct"),
             "url": acct.get("url"),
             "display_name": disp,
+            "avatar_url": avatar_masto,
             "note_plain": HTML_TAG_RE.sub("", str(acct.get("note") or "")).strip()[:400],
             "created_utc_iso": acct.get("created_at"),
             "followers_count": acct.get("followers_count"),

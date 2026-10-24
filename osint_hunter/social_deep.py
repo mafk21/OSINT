@@ -16,6 +16,7 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 from .classify import DOMAIN_RE, NOISE_DOMAINS, extract_selectors
+from .image_intel import search_open_web_images
 from .web_search_intel import (
     _clean_emails_from_text,
     _http_fetch,
@@ -112,6 +113,7 @@ def parse_linktree_html(raw_html: str, username: str) -> dict[str, Any] | None:
     links_out: list[dict[str, str]] = []
     display_name = None
     bio = None
+    avatar_url = None
     if m:
         try:
             nd = json.loads(m.group(1))
@@ -120,6 +122,7 @@ def parse_linktree_html(raw_html: str, username: str) -> dict[str, Any] | None:
                 return None
             display_name = acct.get("pageTitle") or acct.get("username")
             bio = acct.get("description")
+            avatar_url = acct.get("profilePictureUrl") or ((acct.get("background") or {}).get("heroImageUrl"))
             for lk in acct.get("links") or []:
                 if isinstance(lk, dict) and lk.get("url"):
                     links_out.append({"title": str(lk.get("title") or "")[:100], "url": str(lk["url"])})
@@ -134,6 +137,7 @@ def parse_linktree_html(raw_html: str, username: str) -> dict[str, Any] | None:
             return None
         display_name = carved.get("title")
         bio = carved.get("description")
+        avatar_url = (carved.get("meta_tags") or {}).get("og:image")
         links_out = [{"title": s["platform"], "url": s["url"]} for s in carved["social_profiles"]]
 
     return {
@@ -141,6 +145,7 @@ def parse_linktree_html(raw_html: str, username: str) -> dict[str, Any] | None:
         "category": "Bio-Links",
         "url": f"https://linktr.ee/{username}",
         "display_name": display_name,
+        "avatar_url": avatar_url,
         "bio": bio,
         "external_links": links_out[:30],
     }
@@ -152,32 +157,40 @@ def parse_telegram_html(raw_html: str, username: str, channel_html: str = "") ->
     m_title = re.search(r'<div[^>]+class="[^"]*tgme_page_title[^"]*"[^>]*>(.*?)</div>', raw_html, re.I | re.S)
     m_extra = re.search(r'<div[^>]+class="[^"]*tgme_page_extra[^"]*"[^>]*>(.*?)</div>', raw_html, re.I | re.S)
     m_desc = re.search(r'<div[^>]+class="[^"]*tgme_page_description[^"]*"[^>]*>(.*?)</div>', raw_html, re.I | re.S)
+    m_photo = re.search(r'<img[^>]+class="[^"]*tgme_page_photo_image[^"]*"[^>]+src="([^"]+)"', raw_html, re.I)
     title = _strip_html(m_title.group(1)) if m_title else None
     if not title or f"Telegram: Contact @{username}".lower() == title.lower():
         return None
     extra = _strip_html(m_extra.group(1)) if m_extra else None
     desc_raw = m_desc.group(1) if m_desc else ""
     bio = _strip_html(desc_raw)
+    avatar_url = html.unescape(m_photo.group(1)) if m_photo else None
     ext_urls = re.findall(r'href=["\'](https?://[^"\'>\s]+)["\']', desc_raw, re.I)
     ext_urls = [u for u in ext_urls if not u.startswith("https://telegram.org")]
 
     recent_posts: list[str] = []
-    if channel_html and "tgme_widget_message_text" in channel_html:
-        for pm in re.findall(r'<div[^>]+class="[^"]*tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', channel_html, re.I | re.S)[:5]:
-            recent_posts.append(_strip_html(pm)[:260])
-            for u in re.findall(r'href=["\'](https?://[^"\'>\s]+)["\']', pm, re.I):
-                if "t.me/" not in u or f"t.me/{username.lower()}" not in u.lower():
-                    ext_urls.append(u)
+    post_photos: list[str] = []
+    if channel_html:
+        if "tgme_widget_message_text" in channel_html:
+            for pm in re.findall(r'<div[^>]+class="[^"]*tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>', channel_html, re.I | re.S)[:5]:
+                recent_posts.append(_strip_html(pm)[:260])
+                for u in re.findall(r'href=["\'](https?://[^"\'>\s]+)["\']', pm, re.I):
+                    if "t.me/" not in u or f"t.me/{username.lower()}" not in u.lower():
+                        ext_urls.append(u)
+        for ph_m in re.findall(r"tgme_widget_message_photo_wrap[^>]+background-image:url\(['\"]?(https?://[^'\")\s]+)", channel_html, re.I)[:4]:
+            post_photos.append(ph_m)
 
     return {
         "platform": "Telegram",
         "category": "Messaging",
         "url": f"https://t.me/{username}",
         "display_name": title,
+        "avatar_url": avatar_url,
         "subscribers_or_handle": extra,
         "bio": bio or None,
         "external_links": sorted(set(ext_urls))[:20],
         "recent_channel_posts": recent_posts,
+        "post_photos": post_photos,
     }
 
 
@@ -197,6 +210,8 @@ def parse_snapchat_html(raw_html: str, username: str) -> dict[str, Any] | None:
                     "category": "Social",
                     "url": f"https://www.snapchat.com/add/{username}",
                     "display_name": info.get("title") or info.get("displayName"),
+                    "avatar_url": info.get("profilePictureUrl") or info.get("squareHeroImageUrl"),
+                    "snapcode_url": info.get("snapcodeImageUrl"),
                     "bio": info.get("bio"),
                     "website": info.get("websiteUrl"),
                     "location": info.get("address"),
@@ -211,11 +226,13 @@ def parse_snapchat_html(raw_html: str, username: str) -> dict[str, Any] | None:
         og_t = html.unescape(m_og.group(1)).strip()
         if username.lower() in og_t.lower() and "Snapchat" in og_t and "Share your favorite" not in og_t:
             disp = re.sub(r"\s*\(@?[^)]+\).*$|\s+on\s+Snapchat.*$", "", og_t, flags=re.I).strip()
+            m_img = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
             return {
                 "platform": "Snapchat",
                 "category": "Social",
                 "url": f"https://www.snapchat.com/add/{username}",
                 "display_name": disp if disp.lower() != username.lower() else None,
+                "avatar_url": html.unescape(m_img.group(1)).strip() if m_img else None,
             }
     return None
 
@@ -237,6 +254,7 @@ def parse_tiktok_html(raw_html: str, username: str) -> dict[str, Any] | None:
                     "category": "Social/Video",
                     "url": f"https://www.tiktok.com/@{username}",
                     "display_name": user.get("nickname"),
+                    "avatar_url": user.get("avatarLarger") or user.get("avatarMedium"),
                     "bio": user.get("signature") or None,
                     "website": bio_link,
                     "region": user.get("region"),
@@ -255,6 +273,7 @@ def parse_instagram_meta_html(raw_html: str, username: str) -> dict[str, Any] | 
         return None
     m_title = re.search(r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
     m_desc = re.search(r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
+    m_img = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
     if not m_title:
         return None
     og_t = html.unescape(m_title.group(1)).strip()
@@ -263,11 +282,15 @@ def parse_instagram_meta_html(raw_html: str, username: str) -> dict[str, Any] | 
     disp_m = re.match(r"^(.*?)\s*\(@", og_t)
     disp = disp_m.group(1).strip() if disp_m else None
     og_d = html.unescape(m_desc.group(1)).strip() if m_desc else None
+    av = html.unescape(m_img.group(1)).strip() if m_img else None
+    if av and "static.cdninstagram.com" in av:
+        av = None
     return {
         "platform": "Instagram",
         "category": "Social",
         "url": f"https://www.instagram.com/{username}/",
         "display_name": disp,
+        "avatar_url": av,
         "stats_and_bio_preview": og_d,
     }
 
@@ -279,14 +302,21 @@ def parse_youtube_html(raw_html: str, username: str) -> dict[str, Any] | None:
     title = None
     desc = None
     chan_id = None
+    avatar_url = None
     if m_meta:
         try:
             cm = json.loads(m_meta.group(1))
             title = cm.get("title")
             desc = cm.get("description")
             chan_id = cm.get("externalId")
+            thumbs = ((cm.get("avatar") or {}).get("thumbnails")) or []
+            if thumbs and isinstance(thumbs[-1], dict):
+                avatar_url = thumbs[-1].get("url")
         except Exception:
             pass
+    if not avatar_url:
+        m_img = re.search(r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
+        avatar_url = html.unescape(m_img.group(1)).strip() if m_img else None
     if not title:
         m_og = re.search(r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']', raw_html, re.I)
         title = html.unescape(m_og.group(1)).strip() if m_og else None
@@ -297,6 +327,7 @@ def parse_youtube_html(raw_html: str, username: str) -> dict[str, Any] | None:
         "category": "Video",
         "url": f"https://www.youtube.com/@{username}",
         "display_name": title,
+        "avatar_url": avatar_url,
         "bio": (desc or "")[:350] or None,
         "channel_id": chan_id,
     }
@@ -345,30 +376,33 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
         ]
         found_hubs = []
         any_reach = False
-        for name, url in hubs:
-            st, body, _ = _http_fetch(url, browser_ua=True, timeout=3.8, max_bytes=220_000)
-            if st == 0:
-                continue
-            any_reach = True
-            if st != 200 or not body:
-                continue
-            low = body.lower()
-            if any(miss in low for miss in ("page not found", '"statuscode":404', "claim your link", "doesn't exist", "404 not found")):
-                continue
-            carved = carve_webpage_intelligence(body, base_url=url)
-            if carved["social_profiles"] or carved["phones"] or carved["emails"]:
-                found_hubs.append(
-                    {
-                        "platform": name,
-                        "category": "Bio-Links",
-                        "url": url,
-                        "display_name": carved.get("title"),
-                        "bio": carved.get("description"),
-                        "external_links": [{"title": s["platform"], "url": s["url"]} for s in carved["social_profiles"]],
-                        "phones": carved["phones"],
-                        "emails": carved["emails"],
-                    }
-                )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as hub_pool:
+            hub_futs = [(name, url, hub_pool.submit(_http_fetch, url, browser_ua=True, timeout=3.5, max_bytes=220_000)) for name, url in hubs]
+            for name, url, fut in hub_futs:
+                st, body, _ = fut.result()
+                if st == 0:
+                    continue
+                any_reach = True
+                if st != 200 or not body:
+                    continue
+                low = body.lower()
+                if any(miss in low for miss in ("page not found", '"statuscode":404', "claim your link", "doesn't exist", "404 not found")):
+                    continue
+                carved = carve_webpage_intelligence(body, base_url=url)
+                if carved["social_profiles"] or carved["phones"] or carved["emails"]:
+                    found_hubs.append(
+                        {
+                            "platform": name,
+                            "category": "Bio-Links",
+                            "url": url,
+                            "display_name": carved.get("title"),
+                            "avatar_url": (carved.get("meta_tags") or {}).get("og:image"),
+                            "bio": carved.get("description"),
+                            "external_links": [{"title": s["platform"], "url": s["url"]} for s in carved["social_profiles"]],
+                            "phones": carved["phones"],
+                            "emails": carved["emails"],
+                        }
+                    )
         if not any_reach:
             return "offline", None
         return ("hit_list", found_hubs) if found_hubs else ("miss", None)
@@ -429,11 +463,15 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
             if d.get("is_suspended"):
                 return "hit", {"platform": "Reddit", "category": "Social", "url": f"https://www.reddit.com/user/{u}", "status_note": "Suspended account"}
             sub = d.get("subreddit") or {}
+            icon = html.unescape(str(d.get("snoovatar_img") or d.get("icon_img") or "")) or None
+            if icon and "styles.redditmedia.com/t5_" not in icon and "redditstatic.com/avatars/defaults" in icon:
+                icon = None
             return "hit", {
                 "platform": "Reddit",
                 "category": "Social",
                 "url": f"https://www.reddit.com/user/{d.get('name') or u}",
                 "display_name": sub.get("title") or None,
+                "avatar_url": icon,
                 "bio": sub.get("public_description") or None,
                 "total_karma": d.get("total_karma"),
                 "created_utc": d.get("created_utc"),
@@ -448,6 +486,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
         if them and isinstance(them[0], dict):
             t0 = them[0]
             prof = t0.get("profile") or {}
+            pic_url = (((t0.get("pictures") or {}).get("primary") or {}).get("url")) or None
             proofs = ((t0.get("proofs_summary") or {}).get("all")) or []
             verified_proofs = [
                 {"service": p.get("proof_type"), "handle": p.get("nametag"), "url": p.get("service_url")}
@@ -459,6 +498,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                 "category": "Crypto/Identity",
                 "url": f"https://keybase.io/{u}",
                 "display_name": prof.get("full_name"),
+                "avatar_url": pic_url,
                 "bio": prof.get("bio"),
                 "location": prof.get("location"),
                 "verified_proofs": verified_proofs,
@@ -478,11 +518,15 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                 if isinstance(a, dict)
             ]
             urls = [x.get("value") for x in (e0.get("urls") or []) if isinstance(x, dict) and x.get("value")]
+            thumb = e0.get("thumbnailUrl")
+            if thumb and "?" not in str(thumb):
+                thumb = f"{thumb}?s=512"
             return "hit", {
                 "platform": "Gravatar",
                 "category": "Identity",
                 "url": e0.get("profileUrl") or f"https://gravatar.com/{u}",
                 "display_name": e0.get("displayName"),
+                "avatar_url": thumb,
                 "bio": e0.get("aboutMe"),
                 "location": e0.get("currentLocation"),
                 "company": e0.get("company"),
@@ -509,6 +553,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                 "category": "Developer",
                 "url": detail.get("web_url") or f"https://gitlab.com/{u}",
                 "display_name": detail.get("name"),
+                "avatar_url": detail.get("avatar_url"),
                 "bio": detail.get("bio") or None,
                 "location": detail.get("location") or None,
                 "company": detail.get("organization") or None,
@@ -523,9 +568,19 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
     def _p_dev_creator_batch():
         found_batch = []
         any_reach = False
-        # DEV.to
-        st1, d1, _ = _http_json(f"https://dev.to/api/users/by_username?url={u_enc}", timeout=3.8)
-        if st1 != 0:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as batch_pool:
+            f1 = batch_pool.submit(_http_json, f"https://dev.to/api/users/by_username?url={u_enc}", timeout=3.4)
+            f2 = batch_pool.submit(_http_json, f"https://hacker-news.firebaseio.com/v0/user/{u_enc}.json", timeout=3.4)
+            f3 = batch_pool.submit(_http_fetch, f"https://medium.com/feed/@{u_enc}", timeout=3.4)
+            f4 = batch_pool.submit(_http_json, f"https://api.chess.com/pub/player/{u_enc}", timeout=3.2)
+            f5 = batch_pool.submit(_http_json, f"https://www.duolingo.com/2017-06-30/users?username={u_enc}", timeout=3.2)
+            st1, d1, _ = f1.result()
+            st2, d2, _ = f2.result()
+            st3, xml3, _ = f3.result()
+            st4, d4, _ = f4.result()
+            st5, d5, _ = f5.result()
+
+        if any(s != 0 for s in (st1, st2, st3, st4, st5)):
             any_reach = True
         if st1 == 200 and isinstance(d1, dict) and d1.get("username"):
             found_batch.append(
@@ -534,6 +589,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                     "category": "Developer",
                     "url": f"https://dev.to/{d1['username']}",
                     "display_name": d1.get("name"),
+                    "avatar_url": d1.get("profile_image"),
                     "bio": d1.get("summary"),
                     "location": d1.get("location"),
                     "website": d1.get("website_url"),
@@ -541,10 +597,6 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                     "github": d1.get("github_username"),
                 }
             )
-        # HackerNews
-        st2, d2, _ = _http_json(f"https://hacker-news.firebaseio.com/v0/user/{u_enc}.json", timeout=3.8)
-        if st2 != 0:
-            any_reach = True
         if st2 == 200 and isinstance(d2, dict) and d2.get("id"):
             found_batch.append(
                 {
@@ -556,14 +608,11 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                     "created_utc": d2.get("created"),
                 }
             )
-        # Medium RSS
-        st3, xml3, _ = _http_fetch(f"https://medium.com/feed/@{u_enc}", timeout=3.8)
-        if st3 != 0:
-            any_reach = True
         if st3 == 200 and "<rss" in xml3:
             try:
                 rt = ET.fromstring(xml3)
                 ch_title = (rt.findtext("./channel/title") or "").replace("Stories by ", "").replace(" on Medium", "").strip()
+                ch_img = rt.findtext("./channel/image/url")
                 articles = [(it.findtext("title") or "").strip() for it in rt.findall("./channel/item")[:4]]
                 found_batch.append(
                     {
@@ -571,34 +620,35 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                         "category": "Publishing",
                         "url": f"https://medium.com/@{u}",
                         "display_name": ch_title or None,
+                        "avatar_url": ch_img or None,
                         "recent_articles": articles,
                     }
                 )
             except Exception:
                 pass
-        # Chess.com & Lichess & Duolingo
-        st4, d4, _ = _http_json(f"https://api.chess.com/pub/player/{u_enc}", timeout=3.5)
         if st4 == 200 and isinstance(d4, dict) and d4.get("player_id"):
-            any_reach = True
             found_batch.append(
                 {
                     "platform": "Chess.com",
                     "category": "Gaming",
                     "url": d4.get("url") or f"https://www.chess.com/member/{u}",
                     "display_name": d4.get("name"),
+                    "avatar_url": d4.get("avatar"),
                     "location": d4.get("location"),
                 }
             )
-        st5, d5, _ = _http_json(f"https://www.duolingo.com/2017-06-30/users?username={u_enc}", timeout=3.5)
         if st5 == 200 and isinstance(d5, dict) and d5.get("users"):
-            any_reach = True
             du0 = d5["users"][0]
+            du_pic = du0.get("picture")
+            if du_pic and str(du_pic).startswith("//"):
+                du_pic = f"https:{du_pic}/xlarge"
             found_batch.append(
                 {
                     "platform": "Duolingo",
                     "category": "Education",
                     "url": f"https://www.duolingo.com/profile/{u}",
                     "display_name": du0.get("name"),
+                    "avatar_url": du_pic if str(du_pic or "").startswith("http") else None,
                     "streak": du0.get("streak"),
                 }
             )
@@ -638,10 +688,11 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
         _p_dev_creator_batch,
     ]
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=14) as pool:
         f_probes = [pool.submit(fn) for fn in probe_fns]
         f_hr = pool.submit(_p_hudsonrock_user)
         f_web = pool.submit(_p_social_web_search)
+        f_img = pool.submit(search_open_web_images, u)
 
         for fut in f_probes:
             try:
@@ -657,6 +708,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
 
         stealer_hits = f_hr.result()
         web_social = f_web.result()
+        img_social = f_img.result()
 
     # Harvest pivots from every discovered profile!
     for prof in profiles_found:
@@ -733,6 +785,7 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                             "category": p.get("category", "Social"),
                             "probe_url": p["url"],
                             "display_name": p.get("display_name"),
+                            "avatar_url": p.get("avatar_url"),
                             "bio": p.get("bio") or p.get("stats_and_bio_preview"),
                             "followers": p.get("followers") or p.get("subscribers") or p.get("subscribers_or_handle"),
                             "location": p.get("location") or p.get("region"),
@@ -772,6 +825,17 @@ def collect_deep_social_footprint(username: str) -> list[dict]:
                     "related_domains": web_social["related_domains"],
                 },
                 web_social["pivots"],
+            )
+        )
+
+    # 2b. Open-Web Image & Avatar Discovery for Handle
+    if img_social and img_social.get("images"):
+        out_modules.append(
+            _res(
+                "open_web_image_search",
+                "ok",
+                f"Discovered {len(img_social['images'])} public photo(s) / indexed avatar(s) matching '{u}'",
+                {"images": img_social["images"]},
             )
         )
 

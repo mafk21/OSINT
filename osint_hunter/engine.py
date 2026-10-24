@@ -28,6 +28,7 @@ from .exporters import (
     render_neo4j_cypher,
     write_obsidian_vault,
 )
+from .image_intel import harvest_and_cache_visual_intel
 from .offline_intel import INTEL_TABLES, analyze_local_file
 from .paths import DATA_DIR, IS_REPO_MODE, PKG_PARENT, get_cases_dir
 from .persona import enrich_graph_confidence_and_personas
@@ -337,6 +338,22 @@ def render_markdown_dossier(report: dict) -> str:
         lines.append("- **Technical / OPSEC Exposures Flagged**:")
         for ex in syn["security_and_opsec_exposures"][:8]:
             lines.append(f"  - ⚠️ {ex}")
+
+    vis = report.get("visual_intel") or {}
+    if vis.get("images"):
+        lines.append(
+            f"- **Visual & Image Intelligence (`IMINT`)**: `{vis['total_images']}` image(s) harvested "
+            f"(`{vis.get('cached_count', 0)}` forensically cached in `images/`)"
+        )
+        for reuse in (vis.get("avatar_reuse_matches") or [])[:4]:
+            plats = ", ".join(p["platform"] for p in reuse["platforms"])
+            lines.append(f"  - 🔗 **Identical Photo Reused Across Platforms** (`SHA256:{reuse['sha256'][:12]}…`): `{plats}`")
+        for fa in (vis.get("forensic_alerts") or [])[:5]:
+            lines.append(f"  - 📸 **Image Forensic Alert**: {fa}")
+        for im in vis["images"][:10]:
+            local_note = f" (`{im['local_rel_path']}`, `{im.get('width') or '?'}x{im.get('height') or '?'}`)" if im.get("local_rel_path") else ""
+            lens_u = (im.get("reverse_search") or {}).get("google_lens") or im["url"]
+            lines.append(f"  - 🖼️ **[{im['platform']} · {im['label'][:70]}]({im['url']})**{local_note} — [Google Lens]({lens_u})")
 
     tprof = report.get("temporal_profile") or {}
     if tprof.get("inferred_timezone_offsets") or tprof.get("estimated_sleep_window_utc"):
@@ -801,6 +818,8 @@ def run_autonomous_hunt(
         "arsenal": arsenal,
     }
 
+    case_dir = (get_cases_dir(cases_dir) / case_id) if save_case else None
+    report["visual_intel"] = harvest_and_cache_visual_intel(report, case_dir=case_dir, is_active=is_active)
     report["intelligence_synthesis"] = synthesize_intelligence(report)
     report["temporal_profile"] = build_temporal_profile(report)
     report["persona_and_confidence"] = enrich_graph_confidence_and_personas(report)
@@ -812,9 +831,7 @@ def run_autonomous_hunt(
     dossier_md = render_markdown_dossier(report)
     stix_bundle = build_stix2_bundle(case_id, effective_label, nodes, edges)
 
-    if save_case:
-        base_cases_dir = get_cases_dir(cases_dir)
-        case_dir = base_cases_dir / case_id
+    if save_case and case_dir is not None:
         _write_case_artifacts(case_dir, report, dossier_md, stix_bundle)
 
     report["dossier_markdown"] = dossier_md
@@ -939,6 +956,7 @@ def expand_existing_case(
     report["meta"]["converged"] = converged
     report["meta"]["duration_seconds"] = round(report["meta"].get("duration_seconds", 0.0) + (time.monotonic() - t0), 2)
 
+    report["visual_intel"] = harvest_and_cache_visual_intel(report, case_dir=case_dir, is_active=False)
     report["intelligence_synthesis"] = synthesize_intelligence(report)
     report["temporal_profile"] = build_temporal_profile(report)
     report["persona_and_confidence"] = enrich_graph_confidence_and_personas(report)

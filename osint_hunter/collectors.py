@@ -216,6 +216,7 @@ def collect_github_user(username: str) -> dict:
         "login": profile.get("login"),
         "id": profile.get("id"),
         "type": profile.get("type"),
+        "avatar_url": profile.get("avatar_url"),
         "name": profile.get("name"),
         "company": profile.get("company"),
         "location": profile.get("location"),

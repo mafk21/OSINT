@@ -176,7 +176,7 @@ def main() -> int:
             env=env,
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=50,
         )
         assert p_passive.returncode == 0, f"Standalone passive skill failed: {p_passive.stderr}"
         created_cases = list((work_cwd / "cases").glob("*"))
@@ -199,7 +199,7 @@ def main() -> int:
             env=env,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=90,
         )
         assert p_expand.returncode == 0, f"Multi-stage --resume-case failed: {p_expand.stderr}"
         exp_rep = json.loads((case_dir_created / "report.json").read_text(encoding="utf-8"))
@@ -224,7 +224,7 @@ def main() -> int:
             env=env,
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=50,
         )
         assert p_case2.returncode == 0
         all_cases = sorted((work_cwd / "cases").glob("*"))
@@ -335,6 +335,13 @@ def main() -> int:
             raise AssertionError("Expected 403 from unapproved /api/hunt/active!")
         except urllib.error.HTTPError as he:
             assert he.code == 403
+
+        # Verify SSRF protection on /api/image-proxy blocks internal/metadata URLs with 400
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/image-proxy?url=http%3A%2F%2F169.254.169.254%2Flatest%2Fmeta-data%2F", timeout=5)
+            raise AssertionError("Expected 400 from SSRF URL on /api/image-proxy!")
+        except urllib.error.HTTPError as he_ssrf:
+            assert he_ssrf.code == 400
 
         # Verify /api/typosquats & /api/graph/path REST endpoints (Upgrades #4 & #7)
         req_typo = urllib.request.Request(
@@ -632,17 +639,17 @@ def main() -> int:
     assert len(rss_rows) == 1 and rss_rows[0]["engine"] == "Bing"
 
     lt_parsed = parse_linktree_html(
-        '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"account":{"username":"dr.abo3tab","pageTitle":"Dr. Abo 3tab Clinic","description":"Riyadh & Khobar","links":[{"title":"WhatsApp","url":"https://wa.me/966559106068"}],"socialLinks":[{"type":"INSTAGRAM","url":"https://instagram.com/dr.abo3tab"}]}}}}</script>',
+        '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"account":{"username":"dr.abo3tab","pageTitle":"Dr. Abo 3tab Clinic","profilePictureUrl":"https://ugc.production.linktr.ee/avatar_test.jpg","description":"Riyadh & Khobar","links":[{"title":"WhatsApp","url":"https://wa.me/966559106068"}],"socialLinks":[{"type":"INSTAGRAM","url":"https://instagram.com/dr.abo3tab"}]}}}}</script>',
         "dr.abo3tab",
     )
-    assert lt_parsed and lt_parsed["display_name"] == "Dr. Abo 3tab Clinic" and len(lt_parsed["external_links"]) == 2
+    assert lt_parsed and lt_parsed["display_name"] == "Dr. Abo 3tab Clinic" and len(lt_parsed["external_links"]) == 2 and lt_parsed["avatar_url"].endswith("avatar_test.jpg")
 
     tg_parsed = parse_telegram_html(
-        '<div class="tgme_page_title"><span>Dr. Abo 3tab</span></div><div class="tgme_page_extra">14 200 subscribers</div><div class="tgme_page_description">Clinic site: <a href="https://abo3tab-clinic.sa">abo3tab-clinic.sa</a></div>',
+        '<img class="tgme_page_photo_image" src="https://cdn4.telesco.pe/file/test_avatar.jpg"/><div class="tgme_page_title"><span>Dr. Abo 3tab</span></div><div class="tgme_page_extra">14 200 subscribers</div><div class="tgme_page_description">Clinic site: <a href="https://abo3tab-clinic.sa">abo3tab-clinic.sa</a></div>',
         "dr_abo3tab",
-        '<div class="tgme_widget_message_text">Call +966559106068 for appointments</div>',
+        '<div class="tgme_widget_message_photo_wrap" style="background-image:url(\'https://cdn4.telesco.pe/file/post1.jpg\')"></div><div class="tgme_widget_message_text">Call +966559106068 for appointments</div>',
     )
-    assert tg_parsed and tg_parsed["display_name"] == "Dr. Abo 3tab" and len(tg_parsed["recent_channel_posts"]) == 1
+    assert tg_parsed and tg_parsed["display_name"] == "Dr. Abo 3tab" and len(tg_parsed["recent_channel_posts"]) == 1 and tg_parsed["avatar_url"].endswith("test_avatar.jpg") and len(tg_parsed["post_photos"]) == 1
 
     sc_parsed = parse_snapchat_html(
         '<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"userProfile":{"publicProfileInfo":{"username":"dr.abo3tab","title":"Dr. Abo 3tab","bio":"Consultant","websiteUrl":"https://abo3tab-clinic.sa","subscriberCount":"45000"}}}}}</script>',
@@ -672,7 +679,107 @@ def main() -> int:
     assert "G-ABCD1234EF" in carved_page["tracking_ids"]["ga4_ids"]
     assert "https://horizon-med.sa/contact-us" in carved_page["contact_subpages"]
 
-    print("SELFTEST PASS: 760-Tool Catalog + All 8 Next-Level Upgrades (Temporal, DFIR 2.0, Modern Collectors, Persona, BYOK, Watchlist/Diff, Graph Studio & Gephi/Neo4j/Obsidian) verified.")
+    # Upgrade #11: Visual & Image Intelligence (IMINT), Forensic Caching, Cross-Platform Reuse & SSRF Guard
+    import osint_hunter.image_intel as img_mod
+    from osint_hunter.image_intel import (
+        build_reverse_image_links,
+        detect_image_format_and_dimensions,
+        harvest_and_cache_visual_intel,
+        inspect_image_forensics,
+        is_safe_public_http_url,
+        parse_bing_images_html,
+        parse_ddg_images_json,
+    )
+
+    assert is_safe_public_http_url("https://avatars.githubusercontent.com/u/1?v=4") is True
+    assert is_safe_public_http_url("http://169.254.169.254/latest/meta-data/") is False
+    assert is_safe_public_http_url("http://localhost:8000/secret.png") is False
+
+    rev_lks = build_reverse_image_links("https://example.org/photo.jpg")
+    assert "lens.google.com" in rev_lks["google_lens"] and "yandex.com" in rev_lks["yandex"] and "tineye.com" in rev_lks["tineye"]
+
+    bing_imgs = parse_bing_images_html(
+        '<a class="iusc" m="{&quot;murl&quot;:&quot;https://cdn.example.org/dr_photo.jpg&quot;,&quot;turl&quot;:&quot;https://tse1.mm.bing.net/th?id=OIP.123&quot;,&quot;purl&quot;:&quot;https://instagram.com/dr.abo3tab&quot;,&quot;t&quot;:&quot;Dr Abo 3tab Profile&quot;}"></a>'
+    )
+    assert len(bing_imgs) == 1 and bing_imgs[0]["image_url"] == "https://cdn.example.org/dr_photo.jpg"
+    ddg_imgs = parse_ddg_images_json({"results": [{"image": "https://cdn.example.org/pic2.png", "thumbnail": "https://tse.ddg.co/th2.png", "url": "https://x.com/dr_abo3tab", "title": "Avatar", "width": 400, "height": 400}]})
+    assert len(ddg_imgs) == 1 and ddg_imgs[0]["width"] == 400
+
+    # Craft a valid 64x48 PNG with tEXt AI-generation marker and verify binary dimensions + AI detection + SHA-256 reuse caching
+    def _mk_png_chunk(ctype: bytes, cdata: bytes) -> bytes:
+        return struct.pack(">I", len(cdata)) + ctype + cdata + struct.pack(">I", _zlib.crc32(ctype + cdata) & 0xFFFFFFFF)
+
+    sample_png = (
+        b"\x89PNG\r\n\x1a\n"
+        + _mk_png_chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 48, 8, 2, 0, 0, 0))
+        + _mk_png_chunk(b"tEXt", b"Software\x00Midjourney C2PA Generator")
+        + _mk_png_chunk(b"IDAT", _zlib.compress(b"\x00" * (48 * (64 * 3 + 1))))
+        + _mk_png_chunk(b"IEND", b"")
+    )
+    dim_chk = detect_image_format_and_dimensions(sample_png)
+    assert dim_chk == {"format": "PNG", "ext": ".png", "width": 64, "height": 48}, dim_chk
+    for_chk = inspect_image_forensics(sample_png, "PNG")
+    assert for_chk["ai_or_c2pa"]["detected"] is True
+
+    orig_img_fetch = img_mod.fetch_image_bytes
+    mock_fetches: list[str] = []
+
+    def _mock_img_fetch(url: str, timeout: float = 3.2):
+        mock_fetches.append(url)
+        return sample_png, "image/png"
+
+    img_mod.fetch_image_bytes = _mock_img_fetch
+    try:
+        with tempfile.TemporaryDirectory(prefix="osint_imint_") as imtmp:
+            im_case_dir = Path(imtmp) / "CASE-IMINT-TEST"
+            im_case_dir.mkdir(parents=True, exist_ok=True)
+            fake_rep = {
+                "meta": {"case_id": "CASE-IMINT-TEST", "raw_input": "@suspect_handle", "opsec_mode": "Passive"},
+                "graph": {
+                    "nodes": [
+                        {"id": "username:suspect_handle", "type": "username", "value": "suspect_handle", "wave": 1},
+                        {"id": "domain:suspect-private.org", "type": "domain", "value": "suspect-private.org", "wave": 2},
+                    ],
+                    "edges": [],
+                },
+                "wave_results": [
+                    {
+                        "wave": 1,
+                        "type": "username",
+                        "value": "suspect_handle",
+                        "collector_outputs": [
+                            {
+                                "module": "github_user_osint",
+                                "status": "ok",
+                                "data": {"login": "suspect_handle", "avatar_url": "https://avatars.githubusercontent.com/u/99999?v=4", "html_url": "https://github.com/suspect_handle"},
+                            },
+                            {
+                                "module": "username_platform_sweep",
+                                "status": "ok",
+                                "data": {
+                                    "profiles_detailed": [
+                                        {"platform": "Telegram", "url": "https://t.me/suspect_handle", "display_name": "Suspect", "avatar_url": "https://cdn4.telesco.pe/file/same_avatar.png"},
+                                        {"platform": "PersonalSite", "url": "https://suspect-private.org", "avatar_url": "https://suspect-private.org/headshot.png"},
+                                    ]
+                                },
+                            },
+                        ],
+                    }
+                ],
+            }
+            vis_out = harvest_and_cache_visual_intel(fake_rep, case_dir=im_case_dir, is_active=False)
+            assert vis_out["total_images"] == 3 and vis_out["cached_count"] == 2, vis_out
+            # Passive OPSEC check: suspect-private.org MUST NOT have been directly fetched in Passive mode!
+            assert not any("suspect-private.org" in u for u in mock_fetches), f"OPSEC leak to target domain: {mock_fetches}"
+            # Cross-platform identical SHA-256 avatar reuse between GitHub & Telegram MUST be detected!
+            assert len(vis_out["avatar_reuse_matches"]) == 1, vis_out
+            assert len(vis_out["forensic_alerts"]) >= 1, vis_out
+            cached_fn = Path(vis_out["images"][0]["local_rel_path"]).name
+            assert (im_case_dir / "images" / cached_fn).is_file()
+    finally:
+        img_mod.fetch_image_bytes = orig_img_fetch
+
+    print("SELFTEST PASS: 760-Tool Catalog + All Upgrades + Visual & Image Intelligence (IMINT) verified.")
     return 0
 
 

@@ -22,14 +22,17 @@ from __future__ import annotations
 import argparse
 import base64
 import io
+import ipaddress
 import json
 import re
 import shutil
+import socket
 import sys
 import tempfile
 import threading
 import time
 import urllib.parse
+import urllib.request
 import webbrowser
 import zipfile
 from http import HTTPStatus
@@ -66,7 +69,12 @@ from osint_hunter.persona import (  # noqa: E402
     find_shortest_attribution_path,
     generate_domain_typosquats,
 )
-from osint_hunter.cli_runner import get_local_cli_status
+from osint_hunter.cli_runner import get_local_cli_status  # noqa: E402
+from osint_hunter.image_intel import (  # noqa: E402
+    BROWSER_UA as IMG_UA,
+    detect_image_format_and_dimensions,
+    is_safe_public_http_url,
+)
 from osint_hunter.providers import get_byok_status, update_byok_dotenv  # noqa: E402
 from osint_hunter.watchlist import (  # noqa: E402
     add_to_watchlist,
@@ -191,6 +199,40 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
             )
             return
 
+        if path == "/api/image-proxy":
+            qs = urllib.parse.parse_qs(parsed.query)
+            raw_url = (qs.get("url") or [""])[0].strip()
+            if not is_safe_public_http_url(raw_url):
+                self._send_json({"error": "Blocked or invalid external image URL"}, status=400)
+                return
+            try:
+                p_u = urllib.parse.urlparse(raw_url)
+                addrs = socket.getaddrinfo(p_u.hostname, p_u.port or (443 if p_u.scheme == "https" else 80))
+                for addr_item in addrs:
+                    ip_obj = ipaddress.ip_address(addr_item[4][0])
+                    if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local or ip_obj.is_reserved:
+                        self._send_json({"error": "Resolved private/internal IP blocked"}, status=403)
+                        return
+                req = urllib.request.Request(
+                    raw_url,
+                    headers={"User-Agent": IMG_UA, "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"},
+                )
+                with urllib.request.urlopen(req, timeout=4.5) as resp:
+                    img_bytes = resp.read(4_000_000)
+                fmt_info = detect_image_format_and_dimensions(img_bytes)
+                if not fmt_info:
+                    self._send_json({"error": "Remote resource is not a valid raster image"}, status=415)
+                    return
+                mime_map = {"JPEG": "image/jpeg", "PNG": "image/png", "WebP": "image/webp", "GIF": "image/gif"}
+                self.send_response(200)
+                self.send_header("Content-Type", mime_map.get(fmt_info["format"], "image/jpeg"))
+                self.send_header("Content-Length", str(len(img_bytes)))
+                self.end_headers()
+                self._safe_write(img_bytes)
+            except Exception as exc:
+                self._send_json({"error": f"Image fetch failed: {exc}"}, status=502)
+            return
+
         if path == "/api/watchlist":
             self._send_json({"watchlist": load_watchlist()})
             return
@@ -216,6 +258,7 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                                     "edges": len(meta_full.get("graph", {}).get("edges", [])),
                                     "exposure_score": syn.get("exposure_score"),
                                     "exposure_rating": syn.get("exposure_rating"),
+                                    "images_count": (meta_full.get("visual_intel") or {}).get("total_images", 0),
                                 }
                             )
                         except Exception:
@@ -231,6 +274,24 @@ class OSINTCommandHandler(SimpleHTTPRequestHandler):
                 cdir = self._find_case_dir(cid)
                 if not cdir:
                     self._send_json({"error": f"Case '{cid}' not found"}, status=404)
+                    return
+                if len(parts) == 6 and parts[4] == "images":
+                    fname = urllib.parse.unquote(parts[5])
+                    if not re.fullmatch(r"[A-Za-z0-9_.-]+\.(?:jpg|jpeg|png|webp|gif)", fname):
+                        self._send_json({"error": "Invalid image filename"}, status=400)
+                        return
+                    img_path = cdir / "images" / fname
+                    if not img_path.is_file():
+                        self._send_json({"error": "Image file not found"}, status=404)
+                        return
+                    data_b = img_path.read_bytes()
+                    ext_l = img_path.suffix.lower()
+                    mime_m = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif"}
+                    self.send_response(200)
+                    self.send_header("Content-Type", mime_m.get(ext_l, "image/jpeg"))
+                    self.send_header("Content-Length", str(len(data_b)))
+                    self.end_headers()
+                    self._safe_write(data_b)
                     return
                 if len(parts) == 5 and parts[4] == "html":
                     html_file = cdir / "report.html"
